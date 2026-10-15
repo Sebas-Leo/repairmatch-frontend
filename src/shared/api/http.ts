@@ -40,27 +40,12 @@ export class ApiError extends Error {
   }
 }
 
-export type QueryValue = string | number | boolean | null | undefined;
-
 export interface HttpRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
-  /** Query-string parameters. `undefined` and `null` values are skipped. */
-  query?: Readonly<Record<string, QueryValue>>;
   signal?: AbortSignal;
   token?: string;
   headers?: HeadersInit;
-}
-
-function buildQueryString(query: HttpRequestOptions['query']): string {
-  if (!query) return '';
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined && value !== null)
-      params.append(key, String(value));
-  }
-  const text = params.toString();
-  return text ? `?${text}` : '';
 }
 
 /** JSON transport only. T describes the expected contract; it is not runtime validation. */
@@ -80,19 +65,16 @@ export function createHttpClient(baseUrl: string) {
     if (options.token) headers.set('Authorization', `Bearer ${options.token}`);
     if (options.body !== undefined)
       headers.set('Content-Type', 'application/json');
-    const response = await fetch(
-      `${base}${path}${buildQueryString(options.query)}`,
-      {
-        method: options.method ?? 'GET',
-        headers,
-        credentials: 'omit',
-        redirect: 'error',
-        ...(options.body !== undefined
-          ? { body: JSON.stringify(options.body) }
-          : {}),
-        ...(options.signal ? { signal: options.signal } : {}),
-      },
-    );
+    const response = await fetch(`${base}${path}`, {
+      method: options.method ?? 'GET',
+      headers,
+      credentials: 'omit',
+      redirect: 'error',
+      ...(options.body !== undefined
+        ? { body: JSON.stringify(options.body) }
+        : {}),
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
     const text = response.status === 204 ? '' : await response.text();
     let data: unknown;
     if (text.trim()) {

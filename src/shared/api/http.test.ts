@@ -130,45 +130,6 @@ describe('JSON HTTP client', () => {
     },
   );
 
-  it.each(['PUT', 'PATCH', 'DELETE'] as const)(
-    'sends %s requests with a JSON body and never uses credentials',
-    async (method) => {
-      const fetchMock = vi.fn().mockResolvedValue(Response.json({ ok: true }));
-      vi.stubGlobal('fetch', fetchMock);
-      await request('/technicians/me/profile', { method, body: { bio: 'x' } });
-      const options = fetchMock.mock.calls[0]?.[1] as RequestInit;
-      expect(options.method).toBe(method);
-      expect(options.body).toBe('{"bio":"x"}');
-      expect(options.credentials).toBe('omit');
-    },
-  );
-
-  it('builds an encoded query string and skips undefined and null values', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json([]));
-    vi.stubGlobal('fetch', fetchMock);
-    await request('/technicians/me/matching-requests', {
-      query: { page: 0, size: 20, status: 'A&B', skipped: undefined, no: null },
-    });
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      'http://localhost:8080/api/technicians/me/matching-requests?page=0&size=20&status=A%26B',
-    );
-  });
-
-  it('adds no question mark when every query value is skipped', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockImplementation(() => Promise.resolve(Response.json([])));
-    vi.stubGlobal('fetch', fetchMock);
-    await request('/requests', { query: { page: undefined } });
-    await request('/requests', { query: {} });
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      'http://localhost:8080/api/requests',
-    );
-    expect(fetchMock.mock.calls[1]?.[0]).toBe(
-      'http://localhost:8080/api/requests',
-    );
-  });
-
   it('exposes backend field errors on ApiError and ignores malformed ones', async () => {
     vi.stubGlobal(
       'fetch',

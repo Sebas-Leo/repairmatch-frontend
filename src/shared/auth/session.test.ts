@@ -283,25 +283,21 @@ describe('authenticated requests', () => {
     expect(bearer(api.calls[0]!)).toBe('Bearer access-1');
   });
 
-  it('passes method, body, query and signal through', async () => {
+  it('passes method, body and signal through', async () => {
     const { api, session } = setup(
-      {
-        'PATCH /services/7/status': () => Response.json({ id: 7 }),
-      },
+      { 'PATCH /things/7': () => Response.json({ id: 7 }) },
       { accessToken: 'access-1' },
     );
     const signal = new AbortController().signal;
-    await session.request('/services/7/status', {
+    await session.request('/things/7', {
       method: 'PATCH',
-      query: { status: 'COMPLETADO' },
+      body: { name: 'x' },
       signal,
     });
-    expect(api.fetchMock.mock.calls[0]?.[0]).toBe(
-      `${TEST_API_BASE}/services/7/status?status=COMPLETADO`,
-    );
-    expect((api.fetchMock.mock.calls[0]?.[1] as RequestInit).signal).toBe(
-      signal,
-    );
+    const options = api.fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(options.method).toBe('PATCH');
+    expect(options.body).toBe('{"name":"x"}');
+    expect(options.signal).toBe(signal);
   });
 
   it('sends no Authorization header when there is no token', async () => {
