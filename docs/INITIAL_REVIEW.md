@@ -1,6 +1,6 @@
 # Initial frontend review
 
-Review date: **2026-10-14**. Scope: the initial frontend foundation, before its first commit and Linux CI execution.
+Review date: **2026-10-14**. Scope: the initial frontend foundation. The independent review below occurred before its first commit; publication and Linux CI verification were confirmed afterward.
 
 ## Independent review
 
@@ -22,9 +22,14 @@ An initial sandbox run failed with a temporary-file permission error. Overlappin
 
 ## Remaining verification gaps
 
-- The first GitHub-hosted Linux CI run is pending; local checks ran on Windows with Node 25.6.1, while CI targets Node 24 LTS.
-- Native Codex automatic code review activation is pending and not verified. The repository contains review guidance, not an API-key-backed AI review workflow.
+- Native Codex automatic code review is not active: activation remains blocked/pending because saving the repository setting failed, including a retry after publication. The repository contains review guidance, not an API-key-backed AI review workflow. Future pull requests must not be assumed to receive automatic AI review.
 - HTTP tests use mocks. The backend has not been started or integration-tested by this scaffold work; no deployed API URL is verified.
 - Authentication, token storage/refresh, product workflows and production deployment are intentionally absent. Authorization must remain on the server when these features are added.
+
+## Publication verification
+
+The foundation was published as commit `8419a0fea19bb571fccc3fbb9f22e70e64bd7b62`. The first [GitHub-hosted Linux CI run](https://github.com/Sebas-Leo/repairmatch-frontend/actions/runs/38665990795) completed successfully in 57 seconds with Node 24 LTS: formatting, types, lint, 23 tests with coverage, production build, both Chromium desktop/mobile smoke checks, verification summary and artifact upload. This closes the initial Linux CI gap; local author checks used Windows with Node 25.6.1.
+
+Native AI review activation was attempted again after publication but could not be saved. It remains unavailable for automatic repository review until setup succeeds. No private settings screenshots are published in this repository.
 
 See [README.md](../README.md) for setup and the backend contract. CI artifacts are deterministic verification reports, not AI analysis or human approval.

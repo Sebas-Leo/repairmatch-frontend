@@ -22,7 +22,9 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`verify` checks formatting, types, lint, unit/component tests with coverage, and a production build. `test:e2e` builds and smoke-tests the preview in desktop and mobile Chromium. GitHub Actions is configured to run both and publish test artifacts in the **Frontend verify** check; the first Linux CI run is still pending. These are deterministic checks, not an AI analysis or proof of correctness. Native AI code review is **pending and not yet verified**; enable and confirm it separately in [Codex code review settings](https://chatgpt.com/settings/code-review). Its availability and usage limits depend on that integration. No API key or paid API workflow is included here.
+`verify` checks formatting, types, lint, unit/component tests with coverage, and a production build. `test:e2e` builds and smoke-tests the preview in desktop and mobile Chromium. The first [GitHub-hosted Linux CI run](https://github.com/Sebas-Leo/repairmatch-frontend/actions/runs/38665990795) passed on the published foundation: verification, both browser smoke checks, summary and artifact upload. The stable check is **Frontend verify**. These are deterministic checks, not an AI analysis or proof of correctness.
+
+Native automatic AI code review is **not active: setup is blocked/pending**. Saving the repository setting in [Codex code review settings](https://chatgpt.com/settings/code-review) failed, including a retry after publication. Do not assume future pull requests receive automatic AI review until activation is confirmed. Its availability and usage limits depend on that integration. No API key or paid API workflow is included here.
 
 ## Structure
 
