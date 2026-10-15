@@ -20,6 +20,8 @@ export function AuthProvider({ session, children }: AuthProviderProps) {
     // Idempotent and single-flight, so React StrictMode's double effect is safe
     // even though refresh tokens are single-use.
     void session.restore();
+    // Follow sign-outs and sign-ins done in other tabs; stops on unmount.
+    return session.watchExternalChanges();
   }, [session]);
 
   const value = useMemo<AuthContextValue>(

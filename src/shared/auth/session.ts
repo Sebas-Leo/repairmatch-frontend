@@ -44,6 +44,11 @@ export interface Session {
   register(input: RegisterRequest): Promise<AuthUser>;
   /** Always ends the local session, even if the server call fails. */
   logout(): Promise<void>;
+  /**
+   * Starts following sign-outs and sign-ins made in other tabs (through the
+   * token store). Returns a stop function. A no-op for stores that cannot tell.
+   */
+  watchExternalChanges(): () => void;
   /** Authenticated JSON request that expects a response body. */
   request<T>(path: string, options?: ApiRequestOptions): Promise<T>;
   /** Authenticated request whose response body is ignored (204 and similar). */
@@ -123,14 +128,24 @@ export function createSession({
     void authApi.logout({ refreshToken }).catch(() => undefined);
   }
 
-  async function exchange(refreshToken: string): Promise<TokenPair> {
+  async function exchange(
+    refreshToken: string,
+    startedAt: number,
+  ): Promise<TokenPair> {
     try {
       return await authApi.refresh({ refreshToken });
     } catch (error) {
       const latest = tokenStore.getRefreshToken();
       // Refresh tokens are single-use and shared between tabs through storage:
-      // if another tab rotated it first, retry ONCE with the newer token.
-      if (isRejection(error) && latest && latest !== refreshToken) {
+      // if another tab rotated it first, retry ONCE with the newer token, but
+      // only while this session is still the one that asked: after a logout or
+      // a new sign-in here, the newer token may belong to another account.
+      if (
+        epoch === startedAt &&
+        isRejection(error) &&
+        latest &&
+        latest !== refreshToken
+      ) {
         return authApi.refresh({ refreshToken: latest });
       }
       throw error;
@@ -147,7 +162,7 @@ export function createSession({
     const startedAt = epoch;
     let tokens: TokenPair;
     try {
-      tokens = await exchange(refreshToken);
+      tokens = await exchange(refreshToken, startedAt);
     } catch (error) {
       // The session changed meanwhile (logout or new login): nothing to undo.
       if (epoch !== startedAt) return 'rejected';
@@ -168,9 +183,13 @@ export function createSession({
 
   /** Single-flight: concurrent callers share one refresh (tokens are single-use). */
   function refresh(): Promise<RefreshOutcome> {
-    refreshInFlight ??= performRefresh().finally(() => {
-      refreshInFlight = null;
-    });
+    refreshInFlight ??= performRefresh()
+      // Never reject, and always clear the slot: a failure here must not wedge
+      // later refreshes behind a dead promise.
+      .catch((): RefreshOutcome => 'unavailable')
+      .finally(() => {
+        refreshInFlight = null;
+      });
     return refreshInFlight;
   }
 
@@ -183,18 +202,25 @@ export function createSession({
     if (path.startsWith('/auth/')) return http<T>(path, options);
 
     const used = tokenStore.getAccessToken();
+    const startedAt = epoch;
     try {
       return await http<T>(path, withToken(options, used));
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 401) throw error;
+      // The session was ended or replaced while the request was in flight
+      // (logout, another sign-in): never replay it under a different identity.
+      if (epoch !== startedAt) throw error;
       // A 401 means the server rejected the credentials before running the
       // handler, so replaying the request once is safe.
-      const current = tokenStore.getAccessToken();
-      if (current === used) {
-        if (!tokenStore.getRefreshToken()) throw error;
-        if ((await refresh()) !== 'refreshed') throw error;
-      } else if (!current) {
-        throw error; // The session ended while the request was in flight.
+      if (tokenStore.getAccessToken() === used) {
+        if (!tokenStore.getRefreshToken()) {
+          // The persisted token is gone (another tab signed out): this session
+          // is over here too, so guards send the user to /login.
+          if (used !== null) endSession();
+          throw error;
+        }
+        if ((await refresh()) !== 'refreshed' || epoch !== startedAt)
+          throw error;
       } // else: another request already refreshed; just retry with its token.
       return http<T>(path, withToken(options, tokenStore.getAccessToken()));
     }
@@ -218,19 +244,31 @@ export function createSession({
     return establish(await authApi.login(credentials));
   }
 
+  /** Another tab signed out or signed in: this tab's identity can no longer be trusted. */
+  function handleExternalChange() {
+    if (state.status === 'anonymous') return;
+    // Nothing persisted any more -> signed out elsewhere. Otherwise the
+    // persisted tokens now belong to another sign-in (or a rotation): keep
+    // them, since they are not ours to delete, and only drop this page's state.
+    if (tokenStore.getRefreshToken()) suspendSession();
+    else endSession();
+  }
+
   async function doRestore(): Promise<void> {
     if (state.status !== 'loading') return;
+    const startedAt = epoch;
     const outcome = await refresh();
-    if (outcome === 'unavailable') return suspendSession();
-    if (outcome === 'rejected') return; // endSession() already ran.
+    // Ended or replaced meanwhile (rejected refresh, logout, new sign-in,
+    // another tab): whoever did it already set the state, so do not touch it.
+    if (epoch !== startedAt) return;
+    if (outcome !== 'refreshed') return suspendSession();
     const accessToken = tokenStore.getAccessToken();
-    if (!accessToken) return;
+    if (!accessToken) return suspendSession();
     try {
-      setState({
-        status: 'authenticated',
-        user: await authApi.me(accessToken),
-      });
+      const user = await authApi.me(accessToken);
+      if (epoch === startedAt) setState({ status: 'authenticated', user });
     } catch (error) {
+      if (epoch !== startedAt) return;
       if (isRejection(error)) endSession();
       else suspendSession();
     }
@@ -249,6 +287,8 @@ export function createSession({
       return restoreInFlight;
     },
     login,
+    watchExternalChanges: () =>
+      tokenStore.subscribe?.(handleExternalChange) ?? (() => undefined),
     async register(input) {
       await authApi.register(input);
       try {

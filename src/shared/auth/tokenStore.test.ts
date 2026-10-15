@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createBrowserTokenStore,
   createMemoryTokenStore,
@@ -194,5 +194,87 @@ describe('memory token store', () => {
 
   it('starts empty by default', () => {
     expect(createMemoryTokenStore().getRefreshToken()).toBeNull();
+  });
+});
+
+function storageEvent(init: StorageEventInit) {
+  window.dispatchEvent(new StorageEvent('storage', init));
+}
+
+describe('browser token store: changes made by other tabs', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const store = () => createBrowserTokenStore(() => fakeStorage());
+
+  it('notifies when the persisted refresh token is removed, rotated or replaced', () => {
+    const listener = vi.fn();
+    const stop = store().subscribe?.(listener);
+    storageEvent({
+      key: REFRESH_TOKEN_STORAGE_KEY,
+      oldValue: 'a',
+      newValue: null,
+    });
+    storageEvent({
+      key: REFRESH_TOKEN_STORAGE_KEY,
+      oldValue: 'a',
+      newValue: 'b',
+    });
+    storageEvent({
+      key: REFRESH_TOKEN_STORAGE_KEY,
+      oldValue: null,
+      newValue: 'c',
+    });
+    expect(listener).toHaveBeenCalledTimes(3);
+    stop?.();
+  });
+
+  it('notifies when another tab clears the whole storage', () => {
+    const listener = vi.fn();
+    const stop = store().subscribe?.(listener);
+    storageEvent({ key: null });
+    expect(listener).toHaveBeenCalledTimes(1);
+    stop?.();
+  });
+
+  it('ignores other keys and writes that change nothing', () => {
+    const listener = vi.fn();
+    const stop = store().subscribe?.(listener);
+    storageEvent({ key: 'unrelated', oldValue: 'a', newValue: 'b' });
+    storageEvent({
+      key: REFRESH_TOKEN_STORAGE_KEY,
+      oldValue: 'a',
+      newValue: 'a',
+    });
+    expect(listener).not.toHaveBeenCalled();
+    stop?.();
+  });
+
+  it('stops notifying after unsubscribing', () => {
+    const listener = vi.fn();
+    const stop = store().subscribe?.(listener);
+    stop?.();
+    storageEvent({
+      key: REFRESH_TOKEN_STORAGE_KEY,
+      oldValue: 'a',
+      newValue: null,
+    });
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('is a safe no-op when there is no window', () => {
+    vi.stubGlobal('window', undefined);
+    const stop = store().subscribe?.(vi.fn());
+    expect(stop).toBeTypeOf('function');
+    expect(() => stop?.()).not.toThrow();
+  });
+
+  it('is a safe no-op when window cannot listen for events', () => {
+    vi.stubGlobal('window', {});
+    const stop = store().subscribe?.(vi.fn());
+    expect(() => stop?.()).not.toThrow();
+  });
+
+  it('is not offered by the memory store, which persists nothing', () => {
+    expect(createMemoryTokenStore().subscribe).toBeUndefined();
   });
 });

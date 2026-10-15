@@ -5,7 +5,7 @@ import {
   TEST_API_BASE,
   tokenPair,
 } from '../../test/fakeApi';
-import { createAuthApi } from './auth';
+import { AUTH_REQUEST_TIMEOUT_MS, createAuthApi } from './auth';
 import { ApiError, createHttpClient } from './http';
 
 const authApi = createAuthApi(createHttpClient(TEST_API_BASE));
@@ -62,5 +62,86 @@ describe('auth endpoints', () => {
     await expect(
       authApi.login({ email: 'a@example.test', password: 'x' }),
     ).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe('auth call timeouts', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const hang = () => new Promise<Response>(() => undefined);
+  const calls: Array<[string, string, () => Promise<unknown>]> = [
+    [
+      'register',
+      'POST /auth/register',
+      () =>
+        authApi.register({
+          name: 'n',
+          email: 'a@example.test',
+          password: 'Test-pass-1',
+          role: 'CLIENT',
+        }),
+    ],
+    [
+      'login',
+      'POST /auth/login',
+      () => authApi.login({ email: 'a@example.test', password: 'x' }),
+    ],
+    [
+      'refresh',
+      'POST /auth/refresh',
+      () => authApi.refresh({ refreshToken: 'r' }),
+    ],
+    [
+      'logout',
+      'POST /auth/logout',
+      () => authApi.logout({ refreshToken: 'r' }),
+    ],
+    ['me', 'GET /users/me', () => authApi.me('access-1')],
+  ];
+
+  it.each(calls)(
+    'aborts a stalled %s after 10 seconds with a TimeoutError',
+    async (_name, route, call) => {
+      vi.useFakeTimers();
+      installFakeApi({ [route]: hang });
+      let settled = false;
+      const outcome = call()
+        .catch((error: unknown) => error)
+        .finally(() => {
+          settled = true;
+        });
+
+      await vi.advanceTimersByTimeAsync(AUTH_REQUEST_TIMEOUT_MS - 1);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(await outcome).toMatchObject({ name: 'TimeoutError' });
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
+  it('sends an abort signal and clears its timer when the call completes', async () => {
+    vi.useFakeTimers();
+    const api = installFakeApi({
+      'POST /auth/login': () => Response.json(tokenPair('login')),
+    });
+    await authApi.login({ email: 'a@example.test', password: 'x' });
+    expect(api.fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(
+      AbortSignal,
+    );
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('honours a custom timeout', async () => {
+    vi.useFakeTimers();
+    installFakeApi({ 'POST /auth/login': hang });
+    const fast = createAuthApi(createHttpClient(TEST_API_BASE), {
+      timeoutMs: 50,
+    });
+    const outcome = fast
+      .login({ email: 'a@example.test', password: 'x' })
+      .catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(await outcome).toMatchObject({ name: 'TimeoutError' });
   });
 });

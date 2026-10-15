@@ -78,7 +78,18 @@ export function installFakeApi(routes: Routes) {
       };
       calls.push(call);
       const handler = routes[`${call.method} ${call.path}`];
-      return handler ? handler(call) : errorResponse(404, 'Ruta no encontrada');
+      const respond = async () =>
+        handler ? handler(call) : errorResponse(404, 'Ruta no encontrada');
+      const signal = init?.signal;
+      if (!signal) return respond();
+      // Like a real fetch, reject as soon as the caller's signal aborts.
+      return new Promise<Response>((resolve, reject) => {
+        if (signal.aborted) return reject(signal.reason);
+        signal.addEventListener('abort', () => reject(signal.reason), {
+          once: true,
+        });
+        respond().then(resolve, reject);
+      });
     },
   );
   vi.stubGlobal('fetch', fetchMock);

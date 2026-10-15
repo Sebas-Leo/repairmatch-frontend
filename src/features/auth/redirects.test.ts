@@ -55,18 +55,34 @@ describe('resolvePostLoginTarget', () => {
     );
   });
 
+  it('matches role areas case-insensitively, like the router does', () => {
+    expect(resolvePostLoginTarget({ from: '/CLIENT/x' }, 'TECHNICIAN')).toBe(
+      '/technician',
+    );
+    expect(resolvePostLoginTarget({ from: '/Technician' }, 'CLIENT')).toBe(
+      '/client',
+    );
+    expect(resolvePostLoginTarget({ from: '/Client/Requests' }, 'CLIENT')).toBe(
+      '/Client/Requests',
+    );
+  });
+
   it('does not treat a similarly named path as an area', () => {
     expect(resolvePostLoginTarget({ from: '/clients' }, 'TECHNICIAN')).toBe(
       '/clients',
     );
   });
 
-  it.each(['/', '/login', '/register?x=1', '/unauthorized'])(
-    'never returns to %s',
-    (from) => {
-      expect(resolvePostLoginTarget({ from }, 'CLIENT')).toBe('/client');
-    },
-  );
+  it.each([
+    '/',
+    '/login',
+    '/LOGIN',
+    '/Login/',
+    '/register?x=1',
+    '/UNAUTHORIZED',
+  ])('never returns to %s', (from) => {
+    expect(resolvePostLoginTarget({ from }, 'CLIENT')).toBe('/client');
+  });
 
   it('ignores unsafe locations', () => {
     expect(resolvePostLoginTarget({ from: '//evil.example' }, 'CLIENT')).toBe(

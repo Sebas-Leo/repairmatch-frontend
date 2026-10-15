@@ -4,6 +4,7 @@ import { createSession } from '../shared/auth/session';
 import {
   createMemoryTokenStore,
   type StoredTokens,
+  type TokenStore,
 } from '../shared/auth/tokenStore';
 import {
   installFakeApi,
@@ -23,12 +24,12 @@ export function authRoutes(user: UserResponse, extra: Routes = {}): Routes {
   };
 }
 
-/** A session wired to an in-memory backend and an in-memory token store. */
+/** A session wired to an in-memory backend; the token store defaults to a memory one. */
 export function createTestSession(
   routes: Routes,
   initial: Partial<StoredTokens> = {},
+  tokenStore: TokenStore = createMemoryTokenStore(initial),
 ) {
-  const tokenStore = createMemoryTokenStore(initial);
   const api = installFakeApi(routes);
   const session = createSession({
     http: createHttpClient(TEST_API_BASE),

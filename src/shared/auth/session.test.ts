@@ -10,9 +10,16 @@ import {
 } from '../../test/fakeApi';
 import { ApiError, createHttpClient } from '../api/http';
 import { createSession, RegistrationSignInError } from './session';
-import { createMemoryTokenStore, type StoredTokens } from './tokenStore';
+import {
+  createMemoryTokenStore,
+  type StoredTokens,
+  type TokenStore,
+} from './tokenStore';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 const credentials = { email: 'client@example.test', password: 'Test-pass-1' };
 const registration = {
@@ -21,8 +28,11 @@ const registration = {
   role: 'CLIENT' as const,
 };
 
-function setup(routes: Routes, initial: Partial<StoredTokens> = {}) {
-  const tokenStore = createMemoryTokenStore(initial);
+function setup(
+  routes: Routes,
+  initial: Partial<StoredTokens> = {},
+  tokenStore: TokenStore = createMemoryTokenStore(initial),
+) {
   const api = installFakeApi(routes);
   const session = createSession({
     http: createHttpClient(TEST_API_BASE),
@@ -642,5 +652,379 @@ describe('subscriptions', () => {
     session.subscribe(listener);
     await session.logout();
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+/** A token store that behaves like shared storage: another tab can change it. */
+function sharedStore(
+  initial: { accessToken?: string; persisted?: string } = {},
+) {
+  let access = initial.accessToken ?? null;
+  let persisted = initial.persisted ?? null;
+  let notify: (() => void) | null = null;
+  const store: TokenStore = {
+    getAccessToken: () => access,
+    getRefreshToken: () => persisted,
+    setTokens(tokens) {
+      access = tokens.accessToken;
+      persisted = tokens.refreshToken;
+    },
+    clearAccessToken() {
+      access = null;
+    },
+    clear() {
+      access = null;
+      persisted = null;
+    },
+    subscribe(listener) {
+      notify = listener;
+      return () => {
+        notify = null;
+      };
+    },
+  };
+  return {
+    store,
+    persisted: () => persisted,
+    otherTab: {
+      signOut() {
+        persisted = null;
+        notify?.();
+      },
+      signIn(token: string) {
+        persisted = token;
+        notify?.();
+      },
+      /** The token disappears but no event is delivered (for example a missed one). */
+      silentlyRemoveToken() {
+        persisted = null;
+      },
+    },
+  };
+}
+
+const signInRoutes: Routes = {
+  'POST /auth/login': () => Response.json(tokenPair('login')),
+  'GET /users/me': () => Response.json(clientUser),
+};
+
+describe('changes made by other tabs', () => {
+  async function signedInSession(routes: Routes = signInRoutes) {
+    const shared = sharedStore();
+    const harness = setup(routes, {}, shared.store);
+    const stop = harness.session.watchExternalChanges();
+    await harness.session.login(credentials);
+    return { ...harness, ...shared, stop };
+  }
+
+  it('ends the session when another tab signs out', async () => {
+    const { session, tokenStore, otherTab, persisted } =
+      await signedInSession();
+    otherTab.signOut();
+    expect(session.getState()).toEqual({ status: 'anonymous', user: null });
+    expect(tokenStore.getAccessToken()).toBeNull();
+    expect(persisted()).toBeNull();
+  });
+
+  it('drops only this page when another tab signs in, keeping the other token', async () => {
+    const { session, tokenStore, otherTab, persisted } =
+      await signedInSession();
+    otherTab.signIn('refresh-other-account');
+    expect(session.getState().status).toBe('anonymous');
+    expect(tokenStore.getAccessToken()).toBeNull();
+    expect(persisted()).toBe('refresh-other-account'); // not ours to delete
+  });
+
+  it('ignores external changes while already signed out', () => {
+    const shared = sharedStore();
+    const { session } = setup(signInRoutes, {}, shared.store);
+    session.watchExternalChanges();
+    const listener = vi.fn();
+    session.subscribe(listener);
+    shared.otherTab.signIn('refresh-other-account');
+    expect(listener).not.toHaveBeenCalled();
+    expect(shared.persisted()).toBe('refresh-other-account');
+  });
+
+  it('settles a restore that was still loading when another tab signed out', async () => {
+    const shared = sharedStore({ persisted: 'refresh-old' });
+    const gate = deferred();
+    const { session } = setup(
+      {
+        'POST /auth/refresh': async () => {
+          await gate.promise;
+          return Response.json(tokenPair('new'));
+        },
+        'GET /users/me': () => Response.json(clientUser),
+        'POST /auth/logout': () => new Response(null, { status: 204 }),
+      },
+      {},
+      shared.store,
+    );
+    session.watchExternalChanges();
+    const restoring = session.restore();
+    expect(session.getState().status).toBe('loading');
+
+    shared.otherTab.signOut();
+    expect(session.getState().status).toBe('anonymous');
+    gate.resolve();
+    await restoring;
+    expect(session.getState().status).toBe('anonymous');
+    expect(shared.persisted()).toBeNull();
+  });
+
+  it('stops following once the returned function is called', async () => {
+    const { session, otherTab, stop } = await signedInSession();
+    stop();
+    otherTab.signOut();
+    expect(session.getState().status).toBe('authenticated');
+  });
+
+  it('is a harmless no-op for stores that cannot tell', () => {
+    const { session } = setup({});
+    expect(() => session.watchExternalChanges()()).not.toThrow();
+  });
+
+  it('ends the session when a 401 arrives and the persisted token is gone', async () => {
+    const { api, session, tokenStore, otherTab } = await signedInSession({
+      ...signInRoutes,
+      'GET /requests': unauthorized,
+    });
+    otherTab.silentlyRemoveToken();
+
+    await expect(session.request('/requests')).rejects.toMatchObject({
+      status: 401,
+    });
+
+    expect(session.getState()).toEqual({ status: 'anonymous', user: null });
+    expect(tokenStore.getAccessToken()).toBeNull();
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(0);
+  });
+
+  it('leaves everything alone when an anonymous request gets a 401', async () => {
+    const shared = sharedStore();
+    const clear = vi.spyOn(shared.store, 'clear');
+    const { session } = setup(
+      { 'GET /requests': unauthorized },
+      {},
+      shared.store,
+    );
+    await expect(session.request('/requests')).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(clear).not.toHaveBeenCalled();
+  });
+});
+
+describe('stale results after the session changed', () => {
+  it('does not replay a request under a different identity after a new sign-in', async () => {
+    const gate = deferred();
+    const { api, session, tokenStore } = setup(
+      {
+        ...signInRoutes,
+        'GET /slow': async (call) => {
+          if (bearer(call) === 'Bearer access-old') {
+            await gate.promise;
+            return unauthorized();
+          }
+          return Response.json({ leaked: 'to the new account' });
+        },
+      },
+      { accessToken: 'access-old', refreshToken: 'refresh-old' },
+    );
+    const pending = session.request('/slow').catch((e: unknown) => e);
+    await vi.waitFor(() => expect(api.callsTo('GET /slow')).toHaveLength(1));
+
+    await session.login(credentials); // another account signs in meanwhile
+    gate.resolve();
+
+    expect(await pending).toMatchObject({ status: 401 });
+    expect(api.callsTo('GET /slow')).toHaveLength(1);
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(0);
+    expect(session.getState().status).toBe('authenticated');
+    expect(tokenStore.getAccessToken()).toBe('access-login');
+  });
+
+  it('does not retry a rejected refresh with the token of a newer sign-in', async () => {
+    const gate = deferred();
+    const { api, session, tokenStore } = setup(
+      {
+        ...signInRoutes,
+        'GET /requests': unauthorized,
+        'POST /auth/refresh': async () => {
+          await gate.promise;
+          return errorResponse(401, 'Token inválido');
+        },
+      },
+      { accessToken: 'access-old', refreshToken: 'refresh-old' },
+    );
+    const pending = session.request('/requests').catch((e: unknown) => e);
+    await vi.waitFor(() =>
+      expect(api.callsTo('POST /auth/refresh')).toHaveLength(1),
+    );
+
+    await session.login(credentials);
+    gate.resolve();
+
+    expect(await pending).toMatchObject({ status: 401 });
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(1); // no retry
+    expect(session.getState().status).toBe('authenticated');
+    expect(tokenStore.getRefreshToken()).toBe('refresh-login');
+  });
+
+  it('does not overwrite a session ended while /users/me was loading', async () => {
+    const gate = deferred();
+    const { session, tokenStore } = setup(
+      {
+        'POST /auth/refresh': () => Response.json(tokenPair('new')),
+        'GET /users/me': async () => {
+          await gate.promise;
+          return Response.json(clientUser);
+        },
+        'POST /auth/logout': () => new Response(null, { status: 204 }),
+      },
+      { refreshToken: 'refresh-old' },
+    );
+    const restoring = session.restore();
+    await vi.waitFor(() =>
+      expect(tokenStore.getAccessToken()).toBe('access-new'),
+    );
+
+    await session.logout();
+    gate.resolve();
+    await restoring;
+
+    expect(session.getState()).toEqual({ status: 'anonymous', user: null });
+    expect(tokenStore.getRefreshToken()).toBeNull();
+  });
+
+  it('does not end a newer sign-in when a stale /users/me fails', async () => {
+    const gate = deferred();
+    const { session } = setup(
+      {
+        'POST /auth/login': () => Response.json(tokenPair('login')),
+        'POST /auth/refresh': () => Response.json(tokenPair('new')),
+        'GET /users/me': async (call) => {
+          if (bearer(call) === 'Bearer access-new') {
+            await gate.promise;
+            return unauthorized();
+          }
+          return Response.json(clientUser);
+        },
+      },
+      { refreshToken: 'refresh-old' },
+    );
+    const restoring = session.restore();
+    await tick(); // the restore reaches its slow /users/me call
+
+    await session.login(credentials);
+    gate.resolve();
+    await restoring;
+
+    expect(session.getState().status).toBe('authenticated');
+  });
+
+  it('settles signed out when the access token vanished after a refresh', async () => {
+    const { session, tokenStore } = setup(
+      { 'POST /auth/refresh': () => Response.json(tokenPair('new')) },
+      { refreshToken: 'refresh-old' },
+    );
+    vi.spyOn(tokenStore, 'getAccessToken').mockReturnValue(null);
+    await session.restore();
+    expect(session.getState().status).toBe('anonymous');
+    expect(tokenStore.getRefreshToken()).toBe('refresh-new');
+  });
+});
+
+describe('auth timeouts', () => {
+  const hang = () => new Promise<Response>(() => undefined);
+
+  it('settles a restore whose refresh hangs, keeping the persisted token, and frees the next refresh', async () => {
+    vi.useFakeTimers();
+    let refreshes = 0;
+    const valid = new Set(['access-new']);
+    const { api, session, tokenStore } = setup(
+      authedRoutes(valid, {
+        'POST /auth/refresh': () => {
+          refreshes += 1;
+          return refreshes === 1 ? hang() : Response.json(tokenPair('new'));
+        },
+      }),
+      { refreshToken: 'refresh-old' },
+    );
+
+    const restoring = session.restore();
+    expect(session.getState().status).toBe('loading');
+    await vi.advanceTimersByTimeAsync(10_000);
+    await restoring;
+
+    expect(session.getState().status).toBe('anonymous'); // not loading forever
+    expect(tokenStore.getRefreshToken()).toBe('refresh-old');
+
+    // The hung refresh must not block later ones.
+    expect(await session.request('/requests')).toEqual([{ id: 1 }]);
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(2);
+  });
+
+  it('keeps an authenticated session when an in-session refresh times out', async () => {
+    vi.useFakeTimers();
+    const { session, tokenStore } = setup({
+      ...signInRoutes,
+      'GET /requests': unauthorized,
+      'POST /auth/refresh': hang,
+    });
+    await session.login(credentials);
+
+    const pending = session.request('/requests').catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(await pending).toMatchObject({ status: 401 });
+    expect(session.getState().status).toBe('authenticated');
+    expect(tokenStore.getRefreshToken()).toBe('refresh-login');
+  });
+
+  it('settles signed out, keeping the new token, when /users/me hangs during restore', async () => {
+    vi.useFakeTimers();
+    const { session, tokenStore } = setup(
+      {
+        'POST /auth/refresh': () => Response.json(tokenPair('new')),
+        'GET /users/me': hang,
+      },
+      { refreshToken: 'refresh-old' },
+    );
+    const restoring = session.restore();
+    await vi.advanceTimersByTimeAsync(10_000);
+    await restoring;
+    expect(session.getState().status).toBe('anonymous');
+    expect(tokenStore.getRefreshToken()).toBe('refresh-new');
+    expect(tokenStore.getAccessToken()).toBeNull();
+  });
+
+  it('lets a login time out instead of hanging', async () => {
+    vi.useFakeTimers();
+    const { session } = setup({ 'POST /auth/login': hang });
+    const attempt = session.login(credentials).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await attempt).toMatchObject({ name: 'TimeoutError' });
+    expect(session.getState().status).toBe('anonymous');
+  });
+
+  it('never wedges refreshes behind an unexpected failure', async () => {
+    const valid = new Set(['access-new']);
+    const { api, session, tokenStore } = setup(
+      authedRoutes(valid, {
+        'POST /auth/refresh': () => Response.json(tokenPair('new')),
+      }),
+      { accessToken: 'access-old', refreshToken: 'refresh-old' },
+    );
+    vi.spyOn(tokenStore, 'setTokens').mockImplementationOnce(() => {
+      throw new Error('storage exploded');
+    });
+
+    await expect(session.request('/requests')).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(await session.request('/requests')).toEqual([{ id: 1 }]);
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(2);
   });
 });

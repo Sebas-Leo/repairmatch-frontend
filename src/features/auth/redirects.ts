@@ -42,8 +42,12 @@ export function readReturnPath(state: unknown): string | null {
 export function resolvePostLoginTarget(state: unknown, role: Role): string {
   const from = readReturnPath(state);
   if (!from) return roleHome(role);
-  const pathname = pathnameOf(from);
-  if (NEVER_RETURN_TO.has(pathname)) return roleHome(role);
+  // The router matches paths case-insensitively and ignores a trailing slash,
+  // so `/Client/` opens the client area: compare the same way.
+  const pathname = pathnameOf(from).toLowerCase();
+  if (NEVER_RETURN_TO.has(pathname.replace(/\/+$/, '') || '/')) {
+    return roleHome(role);
+  }
   for (const [prefix, areaRole] of AREA_ROLES) {
     if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
       return areaRole === role ? from : roleHome(role);

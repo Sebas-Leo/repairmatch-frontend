@@ -36,6 +36,12 @@ export interface TokenStore {
   clearAccessToken(): void;
   /** Forgets everything, including the persisted refresh token. */
   clear(): void;
+  /**
+   * Optional. Calls `listener` when ANOTHER tab or window changes or removes the
+   * persisted refresh token (never for this context's own writes). Returns an
+   * unsubscribe function. Stores that persist nothing simply omit it.
+   */
+  subscribe?(listener: () => void): () => void;
 }
 
 export const REFRESH_TOKEN_STORAGE_KEY = 'repairmatch.auth.refreshToken';
@@ -114,6 +120,24 @@ export function createBrowserTokenStore(
       } catch {
         // Ignore: there is nothing persisted that we could still reach.
       }
+    },
+    subscribe(listener) {
+      // No `window` (SSR, workers): nothing can change under us.
+      if (
+        typeof window === 'undefined' ||
+        typeof window.addEventListener !== 'function'
+      ) {
+        return () => undefined;
+      }
+      const onStorage = (event: StorageEvent) => {
+        // `key === null` means the other tab called `storage.clear()`.
+        if (event.key !== null && event.key !== REFRESH_TOKEN_STORAGE_KEY)
+          return;
+        if (event.key !== null && event.oldValue === event.newValue) return;
+        listener();
+      };
+      window.addEventListener('storage', onStorage);
+      return () => window.removeEventListener('storage', onStorage);
     },
   };
 }
