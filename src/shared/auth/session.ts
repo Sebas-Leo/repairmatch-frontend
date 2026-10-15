@@ -1,0 +1,278 @@
+import { createAuthApi } from '../api/auth';
+import {
+  ApiError,
+  requireBody,
+  type HttpRequest,
+  type HttpRequestOptions,
+} from '../api/http';
+import type {
+  LoginRequest,
+  RegisterRequest,
+  TokenPair,
+  UserResponse,
+} from '../api/types';
+import type { TokenStore } from './tokenStore';
+
+export type AuthUser = UserResponse;
+
+export type SessionStatus = 'loading' | 'authenticated' | 'anonymous';
+
+export type SessionState =
+  | { readonly status: 'loading'; readonly user: null }
+  | { readonly status: 'anonymous'; readonly user: null }
+  | { readonly status: 'authenticated'; readonly user: AuthUser };
+
+/** Per-request options. The session owns the token, so callers cannot pass one. */
+export type ApiRequestOptions = Omit<HttpRequestOptions, 'token'>;
+
+/** Registration succeeded but the automatic sign-in that follows it did not. */
+export class RegistrationSignInError extends Error {
+  constructor(cause: unknown) {
+    super('Your account was created, but signing in failed', { cause });
+    this.name = 'RegistrationSignInError';
+  }
+}
+
+export interface Session {
+  getState(): SessionState;
+  /** For `useSyncExternalStore`. Returns an unsubscribe function. */
+  subscribe(listener: () => void): () => void;
+  /** Restores the session from a persisted refresh token. Idempotent; never rejects. */
+  restore(): Promise<void>;
+  login(credentials: LoginRequest): Promise<AuthUser>;
+  /** The backend returns no tokens on register, so this registers and then signs in. */
+  register(input: RegisterRequest): Promise<AuthUser>;
+  /** Always ends the local session, even if the server call fails. */
+  logout(): Promise<void>;
+  /** Authenticated JSON request that expects a response body. */
+  request<T>(path: string, options?: ApiRequestOptions): Promise<T>;
+  /** Authenticated request whose response body is ignored (204 and similar). */
+  send(path: string, options?: ApiRequestOptions): Promise<void>;
+}
+
+export interface SessionDependencies {
+  http: HttpRequest;
+  tokenStore: TokenStore;
+}
+
+type RefreshOutcome =
+  /** New tokens are stored. */
+  | 'refreshed'
+  /** The refresh token is invalid, expired, revoked or missing: the session is over. */
+  | 'rejected'
+  /** Network failure, 5xx or similar: unknown whether the token is still valid. */
+  | 'unavailable';
+
+const LOADING: SessionState = Object.freeze({ status: 'loading', user: null });
+const ANONYMOUS: SessionState = Object.freeze({
+  status: 'anonymous',
+  user: null,
+});
+
+/** The backend answers 401 for a bad refresh token and 400 for a malformed one. */
+function isRejection(error: unknown): boolean {
+  return error instanceof ApiError && [400, 401, 403].includes(error.status);
+}
+
+function withToken(
+  options: ApiRequestOptions,
+  token: string | null,
+): HttpRequestOptions {
+  return token ? { ...options, token } : options;
+}
+
+/**
+ * Framework-agnostic session: token lifecycle, restore on start, single-flight
+ * refresh and an authenticated request wrapper. React only subscribes to it.
+ */
+export function createSession({
+  http,
+  tokenStore,
+}: SessionDependencies): Session {
+  const authApi = createAuthApi(http);
+  const listeners = new Set<() => void>();
+  let state: SessionState = tokenStore.getRefreshToken() ? LOADING : ANONYMOUS;
+  // Bumped whenever the session is replaced or ended, so stale async results
+  // (for example a refresh that finishes after logout) are discarded.
+  let epoch = 0;
+  let refreshInFlight: Promise<RefreshOutcome> | null = null;
+  let restoreInFlight: Promise<void> | null = null;
+
+  function setState(next: SessionState) {
+    if (next === state) return;
+    state = next;
+    for (const listener of [...listeners]) listener();
+  }
+
+  /** Ends the session: forgets every token (also the persisted one). */
+  function endSession() {
+    epoch += 1;
+    tokenStore.clear();
+    setState(ANONYMOUS);
+  }
+
+  /** Signs out of this page only: keeps the persisted refresh token for a later retry. */
+  function suspendSession() {
+    epoch += 1;
+    tokenStore.clearAccessToken();
+    setState(ANONYMOUS);
+  }
+
+  /** Best effort: an orphaned refresh token would otherwise live until it expires. */
+  function revokeQuietly(refreshToken: string) {
+    void authApi.logout({ refreshToken }).catch(() => undefined);
+  }
+
+  async function exchange(refreshToken: string): Promise<TokenPair> {
+    try {
+      return await authApi.refresh({ refreshToken });
+    } catch (error) {
+      const latest = tokenStore.getRefreshToken();
+      // Refresh tokens are single-use and shared between tabs through storage:
+      // if another tab rotated it first, retry ONCE with the newer token.
+      if (isRejection(error) && latest && latest !== refreshToken) {
+        return authApi.refresh({ refreshToken: latest });
+      }
+      throw error;
+    }
+  }
+
+  async function performRefresh(): Promise<RefreshOutcome> {
+    const refreshToken = tokenStore.getRefreshToken();
+    if (!refreshToken) {
+      // Removed since start-up (for example by a logout in another tab).
+      endSession();
+      return 'rejected';
+    }
+    const startedAt = epoch;
+    let tokens: TokenPair;
+    try {
+      tokens = await exchange(refreshToken);
+    } catch (error) {
+      // The session changed meanwhile (logout or new login): nothing to undo.
+      if (epoch !== startedAt) return 'rejected';
+      if (isRejection(error)) {
+        endSession();
+        return 'rejected';
+      }
+      return 'unavailable';
+    }
+    if (epoch !== startedAt) {
+      // Ended while refreshing: do not resurrect it, and revoke the new token.
+      revokeQuietly(tokens.refreshToken);
+      return 'rejected';
+    }
+    tokenStore.setTokens(tokens);
+    return 'refreshed';
+  }
+
+  /** Single-flight: concurrent callers share one refresh (tokens are single-use). */
+  function refresh(): Promise<RefreshOutcome> {
+    refreshInFlight ??= performRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+    return refreshInFlight;
+  }
+
+  async function execute<T>(
+    path: string,
+    options: ApiRequestOptions,
+  ): Promise<T | undefined> {
+    // Auth endpoints carry no bearer token and must never trigger a refresh,
+    // otherwise a 401 on login/refresh would loop.
+    if (path.startsWith('/auth/')) return http<T>(path, options);
+
+    const used = tokenStore.getAccessToken();
+    try {
+      return await http<T>(path, withToken(options, used));
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 401) throw error;
+      // A 401 means the server rejected the credentials before running the
+      // handler, so replaying the request once is safe.
+      const current = tokenStore.getAccessToken();
+      if (current === used) {
+        if (!tokenStore.getRefreshToken()) throw error;
+        if ((await refresh()) !== 'refreshed') throw error;
+      } else if (!current) {
+        throw error; // The session ended while the request was in flight.
+      } // else: another request already refreshed; just retry with its token.
+      return http<T>(path, withToken(options, tokenStore.getAccessToken()));
+    }
+  }
+
+  async function establish(tokens: TokenPair): Promise<AuthUser> {
+    epoch += 1; // Invalidates refreshes started by a previous session.
+    tokenStore.setTokens(tokens);
+    try {
+      const user = await authApi.me(tokens.accessToken);
+      setState({ status: 'authenticated', user });
+      return user;
+    } catch (error) {
+      endSession();
+      revokeQuietly(tokens.refreshToken);
+      throw error;
+    }
+  }
+
+  async function login(credentials: LoginRequest): Promise<AuthUser> {
+    return establish(await authApi.login(credentials));
+  }
+
+  async function doRestore(): Promise<void> {
+    if (state.status !== 'loading') return;
+    const outcome = await refresh();
+    if (outcome === 'unavailable') return suspendSession();
+    if (outcome === 'rejected') return; // endSession() already ran.
+    const accessToken = tokenStore.getAccessToken();
+    if (!accessToken) return;
+    try {
+      setState({
+        status: 'authenticated',
+        user: await authApi.me(accessToken),
+      });
+    } catch (error) {
+      if (isRejection(error)) endSession();
+      else suspendSession();
+    }
+  }
+
+  return {
+    getState: () => state,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    restore() {
+      restoreInFlight ??= doRestore();
+      return restoreInFlight;
+    },
+    login,
+    async register(input) {
+      await authApi.register(input);
+      try {
+        return await login({ email: input.email, password: input.password });
+      } catch (error) {
+        throw new RegistrationSignInError(error);
+      }
+    },
+    async logout() {
+      const refreshToken = tokenStore.getRefreshToken();
+      // Clear first: the user is signed out immediately even if the server hangs.
+      endSession();
+      if (!refreshToken) return;
+      try {
+        await authApi.logout({ refreshToken });
+      } catch {
+        // Best effort: the token expires on its own.
+      }
+    },
+    async request<T>(path: string, options: ApiRequestOptions = {}) {
+      return requireBody(await execute<T>(path, options));
+    },
+    async send(path, options = {}) {
+      await execute<unknown>(path, options);
+    },
+  };
+}
