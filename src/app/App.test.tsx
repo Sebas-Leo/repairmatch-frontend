@@ -12,7 +12,7 @@ describe('application routes', () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Good repairs start',
+      'RepairMatch frontend',
     );
     expect(screen.getByText(/not available yet/)).toBeInTheDocument();
     expect(
@@ -32,7 +32,7 @@ describe('application routes', () => {
     );
     await user.click(screen.getByRole('link', { name: 'Back to home' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Good repairs start',
+      'RepairMatch frontend',
     );
   });
 });

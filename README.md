@@ -24,7 +24,7 @@ This checks formatting, strict types, lint, unit/component tests with coverage a
 
 Create a short-lived branch, implement one small change with tests, then open a PR into `main`. CI's **Frontend verify** check must pass; no human approval or linked issue is required. Use Conventional Commits without attribution trailers. Check keyboard access and responsive layouts when changing UI. Read review findings critically; green checks are not proof of correctness.
 
-Automatic [Codex review](https://chatgpt.com/settings/code-review) is pending activation; CI remains required.
+Request Codex review by commenting `@codex review` on a PR; automatic triggering is not enabled yet.
 
 ## Structure
 
