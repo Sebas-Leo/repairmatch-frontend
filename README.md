@@ -1,10 +1,10 @@
-# RepairMatch frontend
+# Frontend de RepairMatch
 
-Minimal React + TypeScript foundation: home/404 routes, a JSON API client and automated checks. Product features are intentionally left for the team to build.
+Base mínima con React + TypeScript: rutas de inicio y página no encontrada (404), un cliente para la API JSON y verificaciones automatizadas. Las funcionalidades del producto se dejan intencionalmente para que las desarrolle el equipo.
 
-## Start locally
+## Iniciar en local
 
-Use Node.js 24 LTS (`.nvmrc`) and npm:
+Usa Node.js 24 LTS (`.nvmrc`) y npm:
 
 ```sh
 npm ci
@@ -12,47 +12,47 @@ cp .env.example .env
 npm run dev
 ```
 
-Open http://localhost:5173. The backend runs separately. Set its public API address in `.env` using `VITE_API_BASE_URL` (default: `http://localhost:8080/api`). All `VITE_*` values are visible in the browser: never put secrets there. Configure the backend to allow the frontend origin through CORS.
+Abre http://localhost:5173. El backend se ejecuta por separado. Configura la dirección pública de su API en `.env` mediante `VITE_API_BASE_URL` (por defecto: `http://localhost:8080/api`). Todos los valores `VITE_*` son visibles en el navegador: nunca coloques secretos allí. Configura CORS en el backend para permitir el origen del frontend.
 
-## Verify and contribute
+## Verificar y contribuir
 
 ```sh
 npm run verify
 ```
 
-This checks formatting, strict types, lint, unit/component tests with coverage and the production build. Use `npm run format` to format changes.
+Esto verifica el formato, los tipos estrictos, las reglas de análisis estático, las pruebas unitarias y de componentes con cobertura, y la compilación de producción. Usa `npm run format` para dar formato a los cambios.
 
-Create a short-lived branch, implement one small change with tests, then open a PR into `main`. CI's **Frontend verify** check must pass; no human approval or linked issue is required. Use Conventional Commits without attribution trailers. Check keyboard access and responsive layouts when changing UI. Read review findings critically; green checks are not proof of correctness.
+Crea una rama de corta duración, implementa un cambio pequeño con sus pruebas y abre una solicitud de cambios (PR) hacia `main`. La verificación **Frontend verify** de integración continua (CI) debe pasar; no se exige aprobación humana ni una incidencia vinculada. Usa Conventional Commits sin líneas de atribución. Comprueba el acceso por teclado y la adaptación a distintos tamaños de pantalla al modificar la interfaz. Evalúa críticamente los hallazgos de las revisiones: las verificaciones en verde no garantizan que todo sea correcto.
 
-Request Codex review by commenting `@codex review` on a PR; automatic triggering is not enabled yet.
+Solicita una revisión de Codex comentando `@codex review` en un PR; la activación automática todavía no está habilitada.
 
-## Structure
+## Estructura
 
-| Path                | Responsibility                   |
-| ------------------- | -------------------------------- |
-| `src/app`           | App shell, routes and styles     |
-| `src/pages`         | Route-level screens              |
-| `src/shared/api`    | JSON transport and HTTP errors   |
-| `src/shared/config` | Public environment configuration |
+| Ruta                | Responsabilidad                              |
+| ------------------- | -------------------------------------------- |
+| `src/app`           | Estructura de la aplicación, rutas y estilos |
+| `src/pages`         | Pantallas asociadas a las rutas              |
+| `src/shared/api`    | Transporte JSON y errores HTTP               |
+| `src/shared/config` | Configuración pública del entorno            |
 
-Add feature folders only when implementing real behavior. Keep tests beside the code they verify. Reuse the HTTP client and verify payloads against the separate backend; its response types are not runtime validation. Authentication and token storage are not implemented; agree on a secure design first. Authorization remains the backend's responsibility.
+Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. Mantén las pruebas junto al código que verifican. Reutiliza el cliente HTTP y contrasta los datos enviados y recibidos con el contrato del backend; los tipos de respuesta no validan los datos durante la ejecución. La autenticación y el almacenamiento de tokens no están implementados: acuerden primero un diseño seguro. La autorización sigue siendo responsabilidad del backend.
 
-## Initial work allocation
+## Reparto inicial del trabajo
 
-**Adjustable proposal, not a confirmed team agreement.** These modules are not implemented yet. Each owner delivers their module's UI, API integration, loading/error states and tests—not documentation or testing alone.
+**Propuesta ajustable, no un acuerdo confirmado del equipo.** Estos módulos todavía no están implementados. Cada responsable entrega la interfaz de su módulo, la integración con la API, los estados de carga y error, y las pruebas; no solamente documentación o pruebas.
 
-| Owner              | Proposed module                                          |
-| ------------------ | -------------------------------------------------------- |
-| Sebas-Leo          | Authentication/session and role-based navigation         |
-| AdrianPacheco12343 | Client requests and appliance catalog                    |
-| andrehcv           | Technician profile, service areas and reputation display |
-| becomon            | Proposals: opportunities, send, list and accept          |
-| camilaalfaro-afk   | Service tracking, status actions and ratings             |
+| Responsable        | Módulo propuesto                                                    |
+| ------------------ | ------------------------------------------------------------------- |
+| Sebas-Leo          | Autenticación, sesión y navegación según el rol                     |
+| AdrianPacheco12343 | Solicitudes del cliente y catálogo de electrodomésticos             |
+| andrehcv           | Perfil del técnico, zonas de servicio y visualización de reputación |
+| becomon            | Propuestas: oportunidades, envío, listado y aceptación              |
+| camilaalfaro-afk   | Seguimiento del servicio, cambios de estado y calificaciones        |
 
-Integration order: session → requests/profile → proposals → services. Confirm each flow against the backend contract before implementation and coordinate changes to shared code.
+Orden de integración: sesión → solicitudes/perfil → propuestas → servicios. Confirmen cada flujo con el contrato del backend antes de implementarlo y coordinen los cambios en el código compartido.
 
-Browser E2E tests are deferred to keep this starter light; unit tests do not cover real browser/backend integration. Reintroduce them with the first real session flow (proposed owner: Sebas-Leo).
+Las pruebas de extremo a extremo (E2E) en navegador se posponen para mantener ligera esta base; las pruebas unitarias no cubren la integración real entre navegador y backend. Reincorpórenlas con el primer flujo real de sesión (responsable propuesto: Sebas-Leo).
 
-## Deployment
+## Despliegue
 
-`npm run build` writes `dist/`. Set the production API URL before building, use HTTPS and configure the host to serve `index.html` for client-side routes. No deployment or live backend integration is verified yet.
+`npm run build` genera `dist/`. Configura la URL de la API de producción antes de compilar, usa HTTPS y configura el alojamiento para servir `index.html` en las rutas gestionadas por el frontend. Todavía no se ha verificado ningún despliegue ni la integración con un backend en ejecución.
