@@ -1,10 +1,10 @@
 # RepairMatch frontend
 
-A React + TypeScript single-page application for RepairMatch. This repository currently contains the application foundation, not a completed product: home and 404 pages, a JSON API client, automated checks, and no authentication or service-booking flows.
+Minimal React + TypeScript foundation: home/404 routes, a JSON API client and automated checks. Product features are intentionally left for the team to build.
 
 ## Start locally
 
-Use Node.js 24 LTS (see `.nvmrc`) and npm.
+Use Node.js 24 LTS (`.nvmrc`) and npm:
 
 ```sh
 npm ci
@@ -12,49 +12,47 @@ cp .env.example .env
 npm run dev
 ```
 
-Open http://localhost:5173. On PowerShell, use `Copy-Item .env.example .env` instead of `cp` if needed. The dev server fails if port 5173 is occupied, keeping the backend CORS origin predictable.
+Open http://localhost:5173. The backend runs separately. Set its public API address in `.env` using `VITE_API_BASE_URL` (default: `http://localhost:8080/api`). All `VITE_*` values are visible in the browser: never put secrets there. Configure the backend to allow the frontend origin through CORS.
 
-## Verify a change
+## Verify and contribute
 
 ```sh
 npm run verify
-npx playwright install chromium
-npm run test:e2e
 ```
 
-`verify` checks formatting, types, lint, unit/component tests with coverage, and a production build. `test:e2e` builds and smoke-tests the preview in desktop and mobile Chromium. The first [GitHub-hosted Linux CI run](https://github.com/Sebas-Leo/repairmatch-frontend/actions/runs/38665990795) passed on the published foundation: verification, both browser smoke checks, summary and artifact upload. The stable check is **Frontend verify**. These are deterministic checks, not an AI analysis or proof of correctness.
+This checks formatting, strict types, lint, unit/component tests with coverage and the production build. Use `npm run format` to format changes.
 
-Native automatic AI code review is **not active: setup is blocked/pending**. Saving the repository setting in [Codex code review settings](https://chatgpt.com/settings/code-review) failed, including a retry after publication. Do not assume future pull requests receive automatic AI review until activation is confirmed. Its availability and usage limits depend on that integration. No API key or paid API workflow is included here.
+Create a short-lived branch, implement one small change with tests, then open a PR into `main`. CI's **Frontend verify** check must pass; no human approval or linked issue is required. Use Conventional Commits without attribution trailers. Check keyboard access and responsive layouts when changing UI. Read review findings critically; green checks are not proof of correctness.
+
+Automatic [Codex review](https://chatgpt.com/settings/code-review) is pending activation; CI remains required.
 
 ## Structure
 
-| Path                | Responsibility                    |
-| ------------------- | --------------------------------- |
-| `src/app`           | Application shell, routes, styles |
-| `src/pages`         | Route-level screens               |
-| `src/shared/api`    | JSON transport and HTTP errors    |
-| `src/shared/config` | Public environment configuration  |
-| `e2e`               | Browser smoke checks              |
+| Path                | Responsibility                   |
+| ------------------- | -------------------------------- |
+| `src/app`           | App shell, routes and styles     |
+| `src/pages`         | Route-level screens              |
+| `src/shared/api`    | JSON transport and HTTP errors   |
+| `src/shared/config` | Public environment configuration |
 
-Add feature folders when a real feature exists. Do not add empty architectural layers in advance.
+Add feature folders only when implementing real behavior. Keep tests beside the code they verify. Reuse the HTTP client and verify payloads against the separate backend; its response types are not runtime validation. Authentication and token storage are not implemented; agree on a secure design first. Authorization remains the backend's responsibility.
 
-## Backend connection
+## Initial work allocation
 
-`VITE_API_BASE_URL` defaults to `http://localhost:8080/api`, the local backend address, **not a verified deployed service**. The backend must run separately. All `VITE_*` values are included in the browser bundle: never store secrets there. The backend currently permits local origins `http://localhost:5173` and `http://localhost:3000`; production origins must be configured on the backend.
+**Adjustable proposal, not a confirmed team agreement.** These modules are not implemented yet. Each owner delivers their module's UI, API integration, loading/error states and tests—not documentation or testing alone.
 
-The existing backend contract includes:
+| Owner              | Proposed module                                          |
+| ------------------ | -------------------------------------------------------- |
+| Sebas-Leo          | Authentication/session and role-based navigation         |
+| AdrianPacheco12343 | Client requests and appliance catalog                    |
+| andrehcv           | Technician profile, service areas and reputation display |
+| becomon            | Proposals: opportunities, send, list and accept          |
+| camilaalfaro-afk   | Service tracking, status actions and ratings             |
 
-- `POST /auth/login`: `{ email, password }` → `{ accessToken, tokenType, expiresIn, refreshToken, refreshExpiresIn }`.
-- `GET /users/me`: bearer-authenticated `{ id, name, email, role }`, with `CLIENT` or `TECHNICIAN` roles.
-- `POST /auth/refresh` and `POST /auth/logout`: `{ refreshToken }`; logout returns 204. Refresh rotates the previous token.
-- Errors can include `{ timestamp, status, error, message, path, errors, detail }`, where `errors` maps fields to messages. Catalog routes require authentication.
+Integration order: session → requests/profile → proposals → services. Confirm each flow against the backend contract before implementation and coordinate changes to shared code.
 
-The client accepts API paths such as `/users/me`, optional explicit bearer tokens, JSON bodies and `AbortSignal`. It returns `undefined` for empty success bodies and throws `ApiError` with `status` and `body` for HTTP failures. Network and cancellation errors remain their original errors. Generic response types document expectations; validate untrusted response shapes at the feature boundary when features are implemented.
+Browser E2E tests are deferred to keep this starter light; unit tests do not cover real browser/backend integration. Reintroduce them with the first real session flow (proposed owner: Sebas-Leo).
 
-No tokens are stored, cookies sent, or refresh attempts performed. Future authentication work must decide storage and threat model, and coordinate concurrent refreshes; do not add naive automatic retries. Frontend role checks are presentation only: authorization belongs on the server.
+## Deployment
 
-## Deployment boundary
-
-`npm run build` outputs `dist/`. Configure the production API URL **before** building, use HTTPS, and configure the static host to rewrite non-asset routes to `index.html` for BrowserRouter. There is no production deployment configured yet. Tests use mocked HTTP responses; a real backend integration test is still required before shipping API features.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution and review workflow.
+`npm run build` writes `dist/`. Set the production API URL before building, use HTTPS and configure the host to serve `index.html` for client-side routes. No deployment or live backend integration is verified yet.

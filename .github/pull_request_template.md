@@ -5,7 +5,7 @@
 ## Verification
 
 - [ ] `npm run verify`
-- [ ] Browser smoke checks when navigation/layout changes
+- [ ] Keyboard and responsive checks when navigation/layout changes
 - [ ] Backend contract checked when API behavior changes
 
 ## Risks and gaps
