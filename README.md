@@ -1,6 +1,6 @@
 # Frontend de RepairMatch
 
-Base con React + TypeScript: autenticación y sesión, rutas protegidas por rol, tipos y funciones de API para todo el contrato del backend, y verificaciones automatizadas. Las pantallas de cada funcionalidad se dejan intencionalmente para que las desarrolle el equipo.
+Base con React + TypeScript: autenticación y sesión, rutas protegidas por rol, cliente HTTP autenticado y verificaciones automatizadas. Las pantallas, los tipos y las funciones de API de cada funcionalidad los entrega cada responsable de módulo (ver «Reparto inicial del trabajo» y «Cómo agregar tu módulo»).
 
 ## Iniciar en local
 
@@ -21,7 +21,7 @@ Abre http://localhost:5173. El backend se ejecuta por separado. Configura la dir
 3. CORS: el backend solo acepta los orígenes de `CORS_ALLOWED_ORIGINS`; su valor por defecto ya incluye `http://localhost:5173` (el puerto fijo de `npm run dev`) y `http://localhost:3000`. Si cambias el origen del frontend, ajusta esa variable. Las credenciales de CORS están desactivadas: la API usa la cabecera `Authorization: Bearer`, no cookies.
 4. Abre http://localhost:5173, crea una cuenta en `/register` (cliente o técnico) e inicia sesión.
 
-El contrato de la API vive en `docs/API_CONTRACT.md` del repositorio del backend. Los tipos de `src/shared/api/types` lo reflejan; si el backend cambia, actualiza los tipos y sus pruebas.
+El contrato de la API vive en `docs/API_CONTRACT.md` del repositorio del backend. Los tipos compartidos de `src/shared/api/types` cubren solo autenticación y errores; cada módulo define los tipos de sus propios endpoints a partir de ese contrato.
 
 ## Verificar y contribuir
 
@@ -37,19 +37,52 @@ Solicita una revisión de Codex comentando `@codex review` en un PR; la activaci
 
 ## Estructura
 
-| Ruta                         | Responsabilidad                                                                                                      |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `src/app`                    | Layout, tabla de rutas (`router.tsx`), rutas de cada área (`clientRoutes.tsx`, `technicianRoutes.tsx`) y estilos     |
-| `src/pages`                  | Pantallas asociadas a las rutas (inicio de sesión, registro, inicio por rol, 404, no autorizado)                     |
-| `src/features/auth`          | Proveedor de sesión, `useAuth()`, guards de ruta, redirecciones y validación de formularios                          |
-| `src/features/<área>/api.ts` | Funciones tipadas de endpoints: `applianceTypes`, `requests`, `proposals`, `services`, `technicians`                 |
-| `src/shared/api`             | Transporte JSON y errores HTTP, cliente autenticado (`client.ts`), endpoints de auth y tipos del contrato (`types/`) |
-| `src/shared/auth`            | Almacén de tokens (`tokenStore.ts`) y sesión (`session.ts`), sin dependencias de React                               |
-| `src/shared/ui`              | Piezas mínimas y accesibles de formulario (`TextField`, `FormErrorSummary`, `LoadingState`)                          |
-| `src/shared/config`          | Configuración pública del entorno                                                                                    |
-| `src/test`                   | Utilidades de pruebas (API falsa en memoria y render de la app)                                                      |
+| Ruta                    | Responsabilidad                                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app`               | Layout, tabla de rutas (`router.tsx`), rutas de cada área (`clientRoutes.tsx`, `technicianRoutes.tsx`) y registro automático de rutas por módulo (`moduleRoutes.ts`) |
+| `src/pages`             | Pantallas asociadas a las rutas (inicio de sesión, registro, inicio por rol, 404, no autorizado)                                                                     |
+| `src/features/auth`     | Proveedor de sesión, `useAuth()`, guards de ruta, redirecciones y validación de formularios                                                                          |
+| `src/features/<módulo>` | Un módulo por responsable: pantallas, `api.ts`, tipos, `client.routes.tsx` / `technician.routes.tsx` y pruebas                                                       |
+| `src/shared/api`        | Transporte JSON y errores HTTP, cliente autenticado (`client.ts`), endpoints de auth y tipos del contrato (`types/`)                                                 |
+| `src/shared/auth`       | Almacén de tokens (`tokenStore.ts`) y sesión (`session.ts`), sin dependencias de React                                                                               |
+| `src/shared/ui`         | Piezas mínimas y accesibles de formulario (`TextField`, `FormErrorSummary`, `LoadingState`)                                                                          |
+| `src/shared/config`     | Configuración pública del entorno                                                                                                                                    |
+| `src/test`              | Utilidades de pruebas (API falsa en memoria y render de la app)                                                                                                      |
 
-Agrega carpetas por funcionalidad solo cuando implementes comportamiento real; las pantallas nuevas se registran en `clientRoutes.tsx` o `technicianRoutes.tsx`. Mantén las pruebas junto al código que verifican. Llama al backend con las funciones de `src/features/<área>/api.ts` (o con `api` de `src/shared/api/client.ts`), nunca con `fetch` directo, y contrasta los datos con el contrato del backend: los tipos de respuesta no validan los datos durante la ejecución. La autorización sigue siendo responsabilidad del backend; los guards de rutas solo deciden qué mostrar.
+Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. Mantén las pruebas junto al código que verifican. Llama al backend con `api` de `src/shared/api/client.ts`, nunca con `fetch` directo, y contrasta los datos con el contrato del backend: los tipos de respuesta no validan los datos durante la ejecución. La autorización sigue siendo responsabilidad del backend; los guards de rutas solo deciden qué mostrar.
+
+## Cómo agregar tu módulo
+
+1. Crea `src/features/<tu-módulo>/` (por ejemplo `requests`). Allí van tus pantallas, tus funciones de API (`api.ts`), tus tipos y tus pruebas.
+2. Llama al backend con el cliente autenticado, que ya adjunta el token y renueva la sesión en un 401:
+
+   ```ts
+   import { api } from '../../shared/api/client';
+
+   export const listMyRequests = () => api.request<MyRequest[]>('/requests');
+
+   export const cancelRequest = (id: number) =>
+     api.request<MyRequest>(`/requests/${id}/cancel`, { method: 'PATCH' });
+   ```
+
+   `api.request<T>(path, { method?, body? })` espera un cuerpo JSON en la respuesta; usa `api.send(...)` cuando la respuesta no tiene cuerpo (204).
+
+   Verifica rutas, métodos y cuerpos contra `docs/API_CONTRACT.md` del backend. Los errores llegan como `ApiError` (`status`, `message`, `errors`).
+
+3. Registra tus pantallas **sin editar archivos compartidos**: crea `client.routes.tsx` (área del cliente, `/client/...`) o `technician.routes.tsx` (área del técnico, `/technician/...`) dentro de tu carpeta con un `export default` de `RouteObject[]`. Se descubren automáticamente y sus rutas son relativas al área:
+
+   ```tsx
+   import type { RouteObject } from 'react-router';
+   import { RequestsPage } from './RequestsPage';
+
+   export default [
+     { path: 'requests', element: <RequestsPage /> },
+   ] satisfies RouteObject[];
+   ```
+
+4. Lee la sesión con `useAuth()` (`user`, `status`); nunca accedas a los tokens. El guard del área ya garantiza el rol, pero la autorización real la hace el backend.
+5. Las páginas de inicio (`ClientHomePage`, `TechnicianHomePage`) son marcadores de posición: el módulo dueño de cada flujo las reemplaza.
+6. Antes de abrir tu PR ejecuta `npm run verify`.
 
 ## Autenticación y sesión
 
@@ -60,7 +93,8 @@ Agrega carpetas por funcionalidad solo cuando implementes comportamiento real; l
 - **401 en una petición.** Las respuestas 401 simultáneas comparten **un solo** refresco; luego se reintenta la petición original **una vez**. Si el refresco es rechazado (400/401/403), se limpia la sesión y `status` pasa a `anonymous`. Si falla por red o 5xx no se borra el token guardado (no se sabe si sigue siendo válido). Nunca se refresca ni se envía Bearer en `/auth/*`, así que no hay bucles.
 - **Cierre de sesión.** Se limpia el estado local de inmediato y después se llama a `POST /auth/logout` sin esperar que tenga éxito.
 - **Rutas.** `/login`, `/register`, `/` (redirige según el rol), `/client/*` (solo `CLIENT`), `/technician/*` (solo `TECHNICIAN`), `/unauthorized` (rol incorrecto) y `*` (404). Un visitante anónimo es enviado a `/login` y, al iniciar sesión, vuelve a donde quería ir si su rol puede abrirlo; si no, va al inicio de su rol.
-- **Pendiente.** No se sincroniza el cierre de sesión entre pestañas (`storage` event) y las pruebas E2E siguen pospuestas (ver más abajo).
+- **Varias pestañas y tiempos de espera.** Si otra pestaña cierra sesión o cambia de cuenta (evento `storage`), esta pestaña pasa a `anonymous`. Las llamadas de autenticación tienen un tiempo de espera, y los resultados de operaciones que terminan después de un cierre o cambio de sesión se descartan.
+- **Pendiente.** Las pruebas E2E siguen pospuestas (ver más abajo).
 
 ## Reparto inicial del trabajo
 
