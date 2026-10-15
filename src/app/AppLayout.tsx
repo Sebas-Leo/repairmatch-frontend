@@ -1,8 +1,7 @@
-import { Link, Route, Routes } from 'react-router';
-import { HomePage } from '../pages/HomePage';
-import { NotFoundPage } from '../pages/NotFoundPage';
+import { Link, Outlet } from 'react-router';
 
-export function App() {
+/** Shell shared by every route: skip link, header, main landmark and footer. */
+export function AppLayout() {
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -20,10 +19,7 @@ export function App() {
         </span>
       </header>
       <main id="main-content" className="shell" tabIndex={-1}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+        <Outlet />
       </main>
       <footer className="site-footer shell">
         RepairMatch · Frontend foundation

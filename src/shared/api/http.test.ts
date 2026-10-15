@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, createHttpClient } from './http';
+import { ApiError, createHttpClient, requireBody } from './http';
 
 const request = createHttpClient('http://localhost:8080/api/');
 afterEach(() => vi.unstubAllGlobals());
@@ -129,4 +129,51 @@ describe('JSON HTTP client', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     },
   );
+
+  it('exposes backend field errors on ApiError and ignores malformed ones', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json(
+          {
+            status: 400,
+            message: 'Revisa los campos enviados',
+            errors: { email: 'Invalid email', odd: 42 },
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    await expect(request('/auth/register')).rejects.toMatchObject({
+      status: 400,
+      errors: { email: 'Invalid email' },
+    });
+  });
+
+  it.each([
+    [{ message: '', detail: 'Legacy detail' }, 'Legacy detail'],
+    [{ detail: 'Legacy detail' }, 'Legacy detail'],
+    [{ message: 42 }, 'Request failed (409)'],
+    [['not', 'a', 'record'], 'Request failed (409)'],
+  ])('derives the error message from %j', async (body, message) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(Response.json(body, { status: 409 })),
+    );
+    const error = await request('/requests').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 409, message, errors: {} });
+  });
+});
+
+describe('requireBody', () => {
+  it('returns present values, including falsy ones', () => {
+    expect(requireBody({ id: 1 })).toEqual({ id: 1 });
+    expect(requireBody(0)).toBe(0);
+    expect(requireBody([])).toEqual([]);
+  });
+
+  it('rejects an empty body as an ApiError', () => {
+    expect(() => requireBody(undefined)).toThrow(ApiError);
+  });
 });

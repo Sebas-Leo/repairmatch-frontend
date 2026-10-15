@@ -1,19 +1,19 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router';
-import { App } from './app/App';
-import { apiBaseUrl } from './shared/config/env';
+import { RouterProvider } from 'react-router/dom';
+import { createAppRouter } from './app/router';
+import { AuthProvider } from './features/auth/AuthProvider';
+import { appSession } from './shared/auth/appSession';
 import './app/styles.css';
 
-// Validate public configuration before rendering, even before API features exist.
-void apiBaseUrl;
+// Importing `appSession` validates the public API configuration before rendering.
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing application root');
 
 createRoot(root).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <AuthProvider session={appSession}>
+      <RouterProvider router={createAppRouter()} />
+    </AuthProvider>
   </StrictMode>,
 );
