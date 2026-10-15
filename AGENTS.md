@@ -6,7 +6,7 @@
 - Preserve unrelated work. Inspect the current directory and Git state before edits; do not change the backend repository from this frontend task.
 - Use React function components, strict TypeScript and the existing router/HTTP client. Add feature structure only when it has real behavior.
 - Keep credentials, real tokens and personal data out of code, logs, tests and `VITE_*` configuration. Never claim browser configuration is private.
-- Do not implement token persistence, refresh rotation, authentication or authorization implicitly. Server authorization is mandatory regardless of UI checks.
+- Authentication, token storage and refresh live in `src/shared/auth` and are documented in the README ("Autenticación y sesión"). Change that strategy deliberately and keep the README trade-off in sync; never read or write tokens from components or elsewhere. Server authorization is mandatory regardless of UI checks.
 - Run relevant tests and `npm run verify`. Distinguish executed checks from untested assumptions. Never report a backend integration, deployment or AI review as verified without evidence.
 - Use Conventional Commits. Never add `Co-Authored-By` or AI attribution. No mandatory human approval or linked issue is part of this workflow.
 
