@@ -7,7 +7,7 @@ import {
   type Routes,
 } from '../../test/fakeApi';
 import { createTestSession as setup } from '../../test/testSession';
-import { ApiError } from '../api/http';
+import { ApiError, isAbortError } from '../api/http';
 import { RegistrationSignInError } from './session';
 import type { TokenStore } from './tokenStore';
 
@@ -1001,5 +1001,105 @@ describe('auth timeouts', () => {
     });
     expect(await session.request('/requests')).toEqual([{ id: 1 }]);
     expect(api.callsTo('POST /auth/refresh')).toHaveLength(2);
+  });
+});
+
+describe('cancelling requests', () => {
+  const hang = () => new Promise<Response>(() => undefined);
+
+  it('rejects an in-flight request with an AbortError and leaves the session untouched', async () => {
+    const { api, session, tokenStore } = setup(
+      authedRoutes(new Set(['access-1']), { 'GET /slow': hang }),
+      { accessToken: 'access-1', refreshToken: 'refresh-1' },
+    );
+    const controller = new AbortController();
+    const pending = session
+      .request('/slow', { signal: controller.signal })
+      .catch((e: unknown) => e);
+    await vi.waitFor(() => expect(api.callsTo('GET /slow')).toHaveLength(1));
+
+    controller.abort();
+
+    const error = await pending;
+    expect(isAbortError(error)).toBe(true);
+    expect(error).toBe(controller.signal.reason);
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(0);
+    expect(tokenStore.getRefreshToken()).toBe('refresh-1');
+    expect(await session.request('/requests')).toEqual([{ id: 1 }]);
+  });
+
+  it('does not send a request whose signal is already aborted', async () => {
+    const { api, session } = setup({}, { accessToken: 'access-1' });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      session.request('/requests', { signal: controller.signal }),
+    ).rejects.toBe(controller.signal.reason);
+    expect(api.adapter).not.toHaveBeenCalled();
+  });
+
+  it('lets a caller cancel while others keep sharing the refresh, leaving nothing dangling', async () => {
+    const gate = deferred();
+    const { api, session, tokenStore } = setup(
+      authedRoutes(new Set(['access-new']), {
+        'POST /auth/refresh': async () => {
+          await gate.promise;
+          return Response.json(tokenPair('new'));
+        },
+      }),
+      { accessToken: 'access-old', refreshToken: 'refresh-old' },
+    );
+    const controller = new AbortController();
+    const cancelled = session
+      .request('/requests', { signal: controller.signal })
+      .catch((e: unknown) => e);
+    const survivor = session.request('/requests');
+    await vi.waitFor(() =>
+      expect(api.callsTo('POST /auth/refresh')).toHaveLength(1),
+    );
+    await tick(); // both 401s have reached the shared refresh
+
+    controller.abort();
+    gate.resolve();
+
+    expect(isAbortError(await cancelled)).toBe(true);
+    expect(await survivor).toEqual([{ id: 1 }]);
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(1);
+    expect(tokenStore.getRefreshToken()).toBe('refresh-new');
+
+    // The single-flight slot was released: nothing waits on a dead promise.
+    expect(await session.request('/requests')).toEqual([{ id: 1 }]);
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(1);
+  });
+
+  it('keeps a refresh going when its only waiter is cancelled', async () => {
+    const gate = deferred();
+    const { api, session, tokenStore } = setup(
+      authedRoutes(new Set(['access-new']), {
+        'POST /auth/refresh': async () => {
+          await gate.promise;
+          return Response.json(tokenPair('new'));
+        },
+      }),
+      { accessToken: 'access-old', refreshToken: 'refresh-old' },
+    );
+    const controller = new AbortController();
+    const cancelled = session
+      .request('/requests', { signal: controller.signal })
+      .catch((e: unknown) => e);
+    await vi.waitFor(() =>
+      expect(api.callsTo('POST /auth/refresh')).toHaveLength(1),
+    );
+
+    controller.abort();
+    gate.resolve();
+    expect(isAbortError(await cancelled)).toBe(true);
+
+    // The rotated token was still stored (the old one is already revoked).
+    await vi.waitFor(() =>
+      expect(tokenStore.getRefreshToken()).toBe('refresh-new'),
+    );
+    expect(await session.request('/requests')).toEqual([{ id: 1 }]);
+    expect(api.callsTo('POST /auth/refresh')).toHaveLength(1);
   });
 });
