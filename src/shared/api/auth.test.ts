@@ -1,19 +1,27 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clientUser,
-  installFakeApi,
+  createFakeBackend,
   TEST_API_BASE,
   tokenPair,
+  type Routes,
 } from '../../test/fakeApi';
 import { AUTH_REQUEST_TIMEOUT_MS, createAuthApi } from './auth';
-import { ApiError, createHttpClient } from './http';
+import { createAxiosClient } from './axiosClient';
+import { ApiError } from './http';
 
-const authApi = createAuthApi(createHttpClient(TEST_API_BASE));
-afterEach(() => vi.unstubAllGlobals());
+function setup(routes: Routes, options?: { timeoutMs?: number }) {
+  const api = createFakeBackend(routes);
+  const client = createAxiosClient({
+    baseURL: TEST_API_BASE,
+    adapter: api.adapter,
+  });
+  return { api, authApi: createAuthApi(client.request, options) };
+}
 
 describe('auth endpoints', () => {
   it('registers with POST /auth/register', async () => {
-    const api = installFakeApi({
+    const { api, authApi } = setup({
       'POST /auth/register': () => Response.json(clientUser, { status: 201 }),
     });
     const body = {
@@ -27,7 +35,7 @@ describe('auth endpoints', () => {
   });
 
   it('logs in and refreshes with the exact request bodies', async () => {
-    const api = installFakeApi({
+    const { api, authApi } = setup({
       'POST /auth/login': () => Response.json(tokenPair('login')),
       'POST /auth/refresh': () => Response.json(tokenPair('refresh')),
     });
@@ -40,7 +48,7 @@ describe('auth endpoints', () => {
   });
 
   it('logs out with the refresh token and accepts 204', async () => {
-    const api = installFakeApi({
+    const { api, authApi } = setup({
       'POST /auth/logout': () => new Response(null, { status: 204 }),
     });
     await expect(
@@ -50,7 +58,7 @@ describe('auth endpoints', () => {
   });
 
   it('reads the current user with the explicit access token', async () => {
-    const api = installFakeApi({
+    const { api, authApi } = setup({
       'GET /users/me': () => Response.json(clientUser),
     });
     expect(await authApi.me('access-1')).toEqual(clientUser);
@@ -58,7 +66,9 @@ describe('auth endpoints', () => {
   });
 
   it('rejects an empty body where one is required', async () => {
-    installFakeApi({ 'POST /auth/login': () => new Response(null) });
+    const { authApi } = setup({
+      'POST /auth/login': () => new Response(null),
+    });
     await expect(
       authApi.login({ email: 'a@example.test', password: 'x' }),
     ).rejects.toBeInstanceOf(ApiError);
@@ -69,11 +79,14 @@ describe('auth call timeouts', () => {
   afterEach(() => vi.useRealTimers());
 
   const hang = () => new Promise<Response>(() => undefined);
-  const calls: Array<[string, string, () => Promise<unknown>]> = [
+  type AuthApiUnderTest = ReturnType<typeof setup>['authApi'];
+  const calls: Array<
+    [string, string, (authApi: AuthApiUnderTest) => Promise<unknown>]
+  > = [
     [
       'register',
       'POST /auth/register',
-      () =>
+      (authApi) =>
         authApi.register({
           name: 'n',
           email: 'a@example.test',
@@ -84,28 +97,28 @@ describe('auth call timeouts', () => {
     [
       'login',
       'POST /auth/login',
-      () => authApi.login({ email: 'a@example.test', password: 'x' }),
+      (authApi) => authApi.login({ email: 'a@example.test', password: 'x' }),
     ],
     [
       'refresh',
       'POST /auth/refresh',
-      () => authApi.refresh({ refreshToken: 'r' }),
+      (authApi) => authApi.refresh({ refreshToken: 'r' }),
     ],
     [
       'logout',
       'POST /auth/logout',
-      () => authApi.logout({ refreshToken: 'r' }),
+      (authApi) => authApi.logout({ refreshToken: 'r' }),
     ],
-    ['me', 'GET /users/me', () => authApi.me('access-1')],
+    ['me', 'GET /users/me', (authApi) => authApi.me('access-1')],
   ];
 
   it.each(calls)(
     'aborts a stalled %s after 10 seconds with a TimeoutError',
     async (_name, route, call) => {
       vi.useFakeTimers();
-      installFakeApi({ [route]: hang });
+      const { authApi } = setup({ [route]: hang });
       let settled = false;
-      const outcome = call()
+      const outcome = call(authApi)
         .catch((error: unknown) => error)
         .finally(() => {
           settled = true;
@@ -120,25 +133,20 @@ describe('auth call timeouts', () => {
     },
   );
 
-  it('sends an abort signal and clears its timer when the call completes', async () => {
+  it('hands the timeout to the transport and leaves no timer behind when the call completes', async () => {
     vi.useFakeTimers();
-    const api = installFakeApi({
+    const { api, authApi } = setup({
       'POST /auth/login': () => Response.json(tokenPair('login')),
     });
     await authApi.login({ email: 'a@example.test', password: 'x' });
-    expect(api.fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(
-      AbortSignal,
-    );
+    expect(api.calls[0]?.config.timeout).toBe(AUTH_REQUEST_TIMEOUT_MS);
     expect(vi.getTimerCount()).toBe(0);
   });
 
   it('honours a custom timeout', async () => {
     vi.useFakeTimers();
-    installFakeApi({ 'POST /auth/login': hang });
-    const fast = createAuthApi(createHttpClient(TEST_API_BASE), {
-      timeoutMs: 50,
-    });
-    const outcome = fast
+    const { authApi } = setup({ 'POST /auth/login': hang }, { timeoutMs: 50 });
+    const outcome = authApi
       .login({ email: 'a@example.test', password: 'x' })
       .catch((error: unknown) => error);
     await vi.advanceTimersByTimeAsync(50);

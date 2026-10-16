@@ -94,7 +94,7 @@ describe('register form', () => {
     expect(
       screen.getByRole('group', { name: 'Account type' }),
     ).toHaveAccessibleDescription('Choose an account type.');
-    expect(api.fetchMock).not.toHaveBeenCalled();
+    expect(api.adapter).not.toHaveBeenCalled();
   });
 
   it('applies the backend password rules', async () => {
@@ -105,7 +105,7 @@ describe('register form', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Password needs an uppercase letter, a lowercase letter, a number and a symbol.',
     );
-    expect(api.fetchMock).not.toHaveBeenCalled();
+    expect(api.adapter).not.toHaveBeenCalled();
   });
 
   it('focuses the role choice from the summary link', async () => {

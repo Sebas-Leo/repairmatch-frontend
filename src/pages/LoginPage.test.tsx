@@ -53,7 +53,7 @@ describe('login form', () => {
     const email = screen.getByLabelText('Email');
     expect(email).toBeInvalid();
     expect(email).toHaveAccessibleDescription('Enter your email address.');
-    expect(api.fetchMock).not.toHaveBeenCalled();
+    expect(api.adapter).not.toHaveBeenCalled();
   });
 
   it('rejects a malformed email', async () => {
@@ -64,7 +64,7 @@ describe('login form', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Enter a valid email address.',
     );
-    expect(api.fetchMock).not.toHaveBeenCalled();
+    expect(api.adapter).not.toHaveBeenCalled();
   });
 
   it('moves focus to the offending field from the error summary', async () => {

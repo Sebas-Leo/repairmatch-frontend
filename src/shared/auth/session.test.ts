@@ -2,24 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clientUser,
   errorResponse,
-  installFakeApi,
-  TEST_API_BASE,
   tokenPair,
   type RecordedCall,
   type Routes,
 } from '../../test/fakeApi';
-import { ApiError, createHttpClient } from '../api/http';
-import { createSession, RegistrationSignInError } from './session';
-import {
-  createMemoryTokenStore,
-  type StoredTokens,
-  type TokenStore,
-} from './tokenStore';
+import { createTestSession as setup } from '../../test/testSession';
+import { ApiError } from '../api/http';
+import { RegistrationSignInError } from './session';
+import type { TokenStore } from './tokenStore';
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.useRealTimers();
-});
+afterEach(() => vi.useRealTimers());
 
 const credentials = { email: 'client@example.test', password: 'Test-pass-1' };
 const registration = {
@@ -27,19 +19,6 @@ const registration = {
   name: 'Test Client',
   role: 'CLIENT' as const,
 };
-
-function setup(
-  routes: Routes,
-  initial: Partial<StoredTokens> = {},
-  tokenStore: TokenStore = createMemoryTokenStore(initial),
-) {
-  const api = installFakeApi(routes);
-  const session = createSession({
-    http: createHttpClient(TEST_API_BASE),
-    tokenStore,
-  });
-  return { api, session, tokenStore };
-}
 
 function bearer(call: RecordedCall) {
   return call.headers.get('Authorization');
@@ -169,7 +148,7 @@ describe('restoring the session on start', () => {
     const { api, session } = setup({});
     expect(session.getState().status).toBe('anonymous');
     await session.restore();
-    expect(api.fetchMock).not.toHaveBeenCalled();
+    expect(api.adapter).not.toHaveBeenCalled();
   });
 
   it('refreshes once, rotates the stored token and loads the user', async () => {
@@ -269,7 +248,7 @@ describe('restoring the session on start', () => {
     tokenStore.clear(); // for example, a logout in another tab
     await session.restore();
     expect(session.getState().status).toBe('anonymous');
-    expect(api.fetchMock).not.toHaveBeenCalled();
+    expect(api.adapter).not.toHaveBeenCalled();
   });
 });
 
@@ -294,10 +273,10 @@ describe('authenticated requests', () => {
       body: { name: 'x' },
       signal,
     });
-    const options = api.fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(options.method).toBe('PATCH');
-    expect(options.body).toBe('{"name":"x"}');
-    expect(options.signal).toBe(signal);
+    const { config } = api.calls[0]!;
+    expect(config.method).toBe('patch');
+    expect(config.data).toBe('{"name":"x"}');
+    expect(config.signal).toBe(signal);
   });
 
   it('sends no Authorization header when there is no token', async () => {
@@ -620,7 +599,7 @@ describe('logout', () => {
   it('skips the server call when there is no refresh token', async () => {
     const { api, session } = setup({});
     await session.logout();
-    expect(api.fetchMock).not.toHaveBeenCalled();
+    expect(api.adapter).not.toHaveBeenCalled();
   });
 });
 

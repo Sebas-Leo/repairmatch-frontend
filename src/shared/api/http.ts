@@ -1,4 +1,4 @@
-import { apiBaseUrl, parseApiBaseUrl } from '../config/env';
+import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 
 /** Field name -> message, as sent in the backend `errors` map. */
 export type FieldErrors = Readonly<Record<string, string>>;
@@ -25,6 +25,11 @@ function extractMessage(body: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * The server answered with a non-2xx status (or a 2xx that is not JSON). It
+ * never keeps a reference to the request, so headers such as `Authorization`
+ * cannot leak through a logged error.
+ */
 export class ApiError extends Error {
   /** Per-field validation messages (empty unless the backend sent an `errors` map). */
   public readonly errors: FieldErrors;
@@ -40,65 +45,161 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * No HTTP answer arrived: offline, DNS, CORS, a blocked or redirected request.
+ * Whether the server saw the request is unknown, so it is not safe to assume it
+ * was not processed.
+ */
+export class NetworkError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = 'NetworkError';
+  }
+}
+
+/**
+ * True when the call was cancelled through its `AbortSignal`. That is the
+ * caller's own decision, not a failure: do not show it as an error.
+ * (A timeout rejects with a `TimeoutError` instead and IS a failure.)
+ */
+export function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === 'AbortError'
+  );
+}
+
+/**
+ * Parses a response body without throwing: JSON when it is JSON, the raw text
+ * otherwise (`json: false`). An empty body is valid and yields `undefined`.
+ */
+function parseBody(text: string): { data: unknown; json: boolean } {
+  if (!text.trim()) return { data: undefined, json: true };
+  try {
+    return { data: JSON.parse(text) as unknown, json: true };
+  } catch {
+    return { data: text, json: false };
+  }
+}
+
+/** Builds the `ApiError` of a non-2xx response from its raw body. */
+export function apiErrorFromResponse(
+  status: number,
+  rawBody: unknown,
+): ApiError {
+  const { data } = parseBody(typeof rawBody === 'string' ? rawBody : '');
+  return new ApiError(
+    status,
+    extractMessage(data) ?? `Request failed (${status})`,
+    data,
+  );
+}
+
 export interface HttpRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  /** Serialised to JSON on every attempt, so a replayed request resends it intact. */
   body?: unknown;
+  /**
+   * Cancels the call. A cancelled call rejects with an `AbortError`
+   * (see `isAbortError`); nothing else is left pending.
+   */
   signal?: AbortSignal;
-  token?: string;
   headers?: HeadersInit;
 }
 
+/** Options only the session's own auth calls need; feature code cannot pass them. */
+export interface RawRequestOptions extends HttpRequestOptions {
+  /**
+   * Bearer token for this one call (`GET /users/me` while signing in). A request
+   * that carries its own `Authorization` is never given the session's token and
+   * never triggers a refresh.
+   */
+  token?: string;
+  /** Aborts the call with a `TimeoutError` after this many milliseconds. */
+  timeoutMs?: number;
+}
+
 /** JSON transport only. T describes the expected contract; it is not runtime validation. */
-export function createHttpClient(baseUrl: string) {
-  const base = parseApiBaseUrl(baseUrl);
+export type HttpRequest = <T>(
+  path: string,
+  options?: RawRequestOptions,
+) => Promise<T | undefined>;
+
+/** Where the session stands when a request leaves; see `RequestAuthorizer`. */
+export interface RequestPass {
+  /** Changes whenever the session is replaced or ended (logout, new sign-in). */
+  readonly epoch: number;
+  /** The access token the request was sent with, if any. */
+  readonly accessToken: string | null;
+}
+
+/**
+ * What the HTTP layer asks of the session, so the session stays the single
+ * source of truth for tokens and refreshes and the transport knows no auth rules.
+ */
+export interface RequestAuthorizer {
+  /** Called synchronously as a request is sent. */
+  begin(): RequestPass;
+  /**
+   * Called when a request that began with `pass` got a 401. Resolves with the
+   * access token to replay it with (after a shared refresh if one is needed), or
+   * `null` when it must not be replayed. Never rejects.
+   */
+  recover(pass: RequestPass): Promise<string | null>;
+}
+
+/** The transport a session is built on. */
+export interface HttpTransport {
+  request: HttpRequest;
+  /** Connects the session: requests carry its token and a 401 refreshes through it. */
+  authenticate(authorizer: RequestAuthorizer): void;
+}
+
+function assertApiPath(path: string) {
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) {
+    throw new Error(
+      'API path must start with one slash and stay on the configured origin',
+    );
+  }
+}
+
+/**
+ * Turns an axios instance (see `axiosClient.ts`) into the JSON `HttpRequest`.
+ * Failures arrive already normalised by the instance's interceptors:
+ * `ApiError`, `NetworkError`, an `AbortError` or a `TimeoutError`.
+ */
+export function createHttpRequest(client: AxiosInstance): HttpRequest {
   return async function request<T>(
     path: string,
-    options: HttpRequestOptions = {},
+    options: RawRequestOptions = {},
   ): Promise<T | undefined> {
-    if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) {
-      throw new Error(
-        'API path must start with one slash and stay on the configured origin',
-      );
-    }
+    assertApiPath(path);
     const headers = new Headers(options.headers);
-    headers.set('Accept', 'application/json');
     if (options.token) headers.set('Authorization', `Bearer ${options.token}`);
-    if (options.body !== undefined)
-      headers.set('Content-Type', 'application/json');
-    const response = await fetch(`${base}${path}`, {
+    const config: AxiosRequestConfig = {
+      url: path,
       method: options.method ?? 'GET',
-      headers,
-      credentials: 'omit',
-      redirect: 'error',
-      ...(options.body !== undefined
-        ? { body: JSON.stringify(options.body) }
-        : {}),
+      headers: Object.fromEntries(headers.entries()),
+      ...(options.body !== undefined ? { data: options.body } : {}),
       ...(options.signal ? { signal: options.signal } : {}),
-    });
-    const text = response.status === 204 ? '' : await response.text();
-    let data: unknown;
-    if (text.trim()) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = text;
-        if (response.ok)
-          throw new ApiError(response.status, 'Expected a JSON response', data);
-      }
-    }
-    if (!response.ok) {
-      throw new ApiError(
-        response.status,
-        extractMessage(data) ?? `Request failed (${response.status})`,
-        data,
-      );
+      ...(options.timeoutMs !== undefined
+        ? { timeout: options.timeoutMs }
+        : {}),
+    };
+    // The instance asks for `responseType: 'text'`, so `data` is the raw body
+    // and JSON is parsed here, exactly once, for successes and failures alike.
+    const response = await client.request<string>(config);
+    const { data, json } = parseBody(
+      response.status === 204 ? '' : response.data,
+    );
+    if (!json) {
+      throw new ApiError(response.status, 'Expected a JSON response', data);
     }
     return data as T | undefined;
   };
 }
-
-/** Raw transport (no session handling). Feature code should use `api` from `./client`. */
-export type HttpRequest = ReturnType<typeof createHttpClient>;
 
 /** Narrows an expected JSON body; an empty 2xx response is a contract violation. */
 export function requireBody<T>(data: T | undefined): T {
@@ -107,5 +208,3 @@ export function requireBody<T>(data: T | undefined): T {
   }
   return data;
 }
-
-export const apiRequest: HttpRequest = createHttpClient(apiBaseUrl);
