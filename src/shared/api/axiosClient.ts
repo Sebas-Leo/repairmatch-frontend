@@ -3,6 +3,7 @@ import axios, {
   isAxiosError,
   type AxiosInstance,
   type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
 } from 'axios';
 import { parseApiBaseUrl } from '../config/env';
 import {
@@ -10,6 +11,7 @@ import {
   NetworkError,
   apiErrorFromResponse,
   createHttpRequest,
+  isAuthEndpoint,
   type HttpTransport,
   type RequestAuthorizer,
   type RequestPass,
@@ -43,11 +45,6 @@ export interface AxiosClient extends HttpTransport {
   readonly instance: AxiosInstance;
 }
 
-/** `/auth/*` calls carry no session token and never refresh, or a 401 there would loop. */
-function isAuthEndpoint(path: string | undefined): boolean {
-  return path?.startsWith('/auth/') ?? false;
-}
-
 // axios adds a form content type to these when none is set, so they keep the
 // JSON default even without a body.
 const METHODS_WITH_BODY = new Set(['post', 'put', 'patch']);
@@ -67,6 +64,43 @@ function signalReason(signal: unknown): unknown {
     : undefined;
 }
 
+function isAbortSignal(value: unknown): value is AbortSignal {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'aborted' in value &&
+    'addEventListener' in value &&
+    typeof value.addEventListener === 'function'
+  );
+}
+
+/** What a cancelled caller gets: the signal's own reason, else an `AbortError`. */
+function abortFailure(signal: unknown): unknown {
+  const reason = signalReason(signal);
+  return hasName(reason)
+    ? reason
+    : new DOMException('The request was aborted', 'AbortError');
+}
+
+/**
+ * Settles with `promise`, unless `signal` aborts first: then the caller gets
+ * its abort failure at once. `promise` keeps running (a shared refresh must
+ * not be cut short for the others) and its late result is simply dropped.
+ */
+function untilAborted<T>(
+  promise: Promise<T>,
+  signal: AbortSignal | undefined,
+): Promise<T> {
+  if (!signal) return promise;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(abortFailure(signal));
+    signal.addEventListener('abort', onAbort, { once: true });
+    void promise
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener('abort', onAbort));
+  });
+}
+
 /**
  * Normalises every axios failure so callers never see axios types (whose
  * `config` holds the Authorization header):
@@ -77,10 +111,7 @@ function signalReason(signal: unknown): unknown {
  */
 function toFailure(error: AxiosError): unknown {
   if (error.code === AxiosError.ERR_CANCELED) {
-    const reason = signalReason(error.config?.signal);
-    return hasName(reason)
-      ? reason
-      : new DOMException('The request was aborted', 'AbortError');
+    return abortFailure(error.config?.signal);
   }
   if (error.code === AxiosError.ETIMEDOUT) {
     const path = (error.config?.url ?? '').split('?')[0];
@@ -114,26 +145,45 @@ export function createAxiosClient({
   adapter = 'fetch',
 }: AxiosClientOptions): AxiosClient {
   let authorizer: RequestAuthorizer | null = null;
+  const apiBase = parseApiBaseUrl(baseURL);
+  const apiOrigin = new URL(apiBase).origin;
 
   const instance = axios.create({
-    baseURL: parseApiBaseUrl(baseURL),
+    baseURL: apiBase,
     timeout: timeoutMs,
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      // The fetch adapter adds `User-Agent: axios/x` unless it is `false`. A
+      // browser would send it, it is not CORS-safelisted, so it lands in the
+      // preflight, where the API (which allows only Authorization and
+      // Content-Type) answers 403: every call would fail as a NetworkError.
+      'User-Agent': false,
     },
+    // Never add `X-XSRF-TOKEN` from a cookie: same reason, and there are no cookies.
+    withXSRFToken: false,
     // The API authenticates with a Bearer header; its CORS has credentials off.
     withCredentials: false,
     // A request path can never replace the configured origin.
     allowAbsoluteUrls: false,
     // Raw body text: JSON is parsed once, in `createHttpRequest`.
     responseType: 'text',
-    // Distinguishes a timeout (ETIMEDOUT) from a browser abort (ECONNABORTED).
+    // Only the XHR adapter needs this to report a timeout as ETIMEDOUT (the fetch
+    // adapter always does); it keeps the timeout signal the same if one is swapped in.
     transitional: { clarifyTimeoutError: true },
     adapter,
     // fetch adapter only: a redirect would resend the request elsewhere.
     fetchOptions: { redirect: 'error' },
   });
+
+  /** Whether the resolved request URL (after baseURL, absolute URLs...) is the API's origin. */
+  function isApiOrigin(config: InternalAxiosRequestConfig): boolean {
+    try {
+      return new URL(instance.getUri(config), apiBase).origin === apiOrigin;
+    } catch {
+      return false;
+    }
+  }
 
   instance.interceptors.request.use(
     (config) => {
@@ -145,7 +195,10 @@ export function createAxiosClient({
         !authorizer ||
         config.replayed ||
         isAuthEndpoint(config.url) ||
-        config.headers.has('Authorization')
+        config.headers.has('Authorization') ||
+        // The bearer token goes only to the API itself, whatever `baseURL` or
+        // URL a direct caller of the instance supplies.
+        !isApiOrigin(config)
       ) {
         return config;
       }
@@ -175,7 +228,14 @@ export function createAxiosClient({
     ) {
       // A 401 means the server rejected the credentials before running the
       // handler, so replaying the request once is safe.
-      const token = await authorizer.recover(config.sessionPass);
+      // The caller may cancel while it waits for the refresh: it then gets its
+      // abort at once, and the replay is never sent.
+      const signal = isAbortSignal(config.signal) ? config.signal : undefined;
+      if (signal?.aborted) throw abortFailure(signal);
+      const token = await untilAborted(
+        authorizer.recover(config.sessionPass),
+        signal,
+      );
       if (token !== null) {
         config.replayed = true;
         config.headers.set('Authorization', `Bearer ${token}`);
