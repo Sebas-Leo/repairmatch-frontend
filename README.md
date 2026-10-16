@@ -43,13 +43,13 @@ Solicita una revisión de Codex comentando `@codex review` en un PR; la activaci
 | `src/pages`             | Pantallas asociadas a las rutas (inicio de sesión, registro, inicio por rol, 404, no autorizado)                                                                     |
 | `src/features/auth`     | Proveedor de sesión, `useAuth()`, guards de ruta, redirecciones y validación de formularios                                                                          |
 | `src/features/<módulo>` | Un módulo por responsable: pantallas, `api.ts`, tipos, `client.routes.tsx` / `technician.routes.tsx` y pruebas                                                       |
-| `src/shared/api`        | Transporte JSON y errores HTTP, cliente autenticado (`client.ts`), endpoints de auth y tipos del contrato (`types/`)                                                 |
+| `src/shared/api`        | Cliente axios (`axiosClient.ts`), transporte y errores (`http.ts`), cliente autenticado (`client.ts`), endpoints de auth y tipos (`types/`)                          |
 | `src/shared/auth`       | Almacén de tokens (`tokenStore.ts`) y sesión (`session.ts`), sin dependencias de React                                                                               |
 | `src/shared/ui`         | Piezas mínimas y accesibles de formulario (`TextField`, `FormErrorSummary`, `LoadingState`)                                                                          |
 | `src/shared/config`     | Configuración pública del entorno                                                                                                                                    |
 | `src/test`              | Utilidades de pruebas (API falsa en memoria y render de la app)                                                                                                      |
 
-Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. Mantén las pruebas junto al código que verifican. Llama al backend con `api` de `src/shared/api/client.ts`, nunca con `fetch` directo, y contrasta los datos con el contrato del backend: los tipos de respuesta no validan los datos durante la ejecución. La autorización sigue siendo responsabilidad del backend; los guards de rutas solo deciden qué mostrar.
+Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. Mantén las pruebas junto al código que verifican. Llama al backend con `api` de `src/shared/api/client.ts`, nunca con `fetch` ni `axios` directos, y contrasta los datos con el contrato del backend: los tipos de respuesta no validan los datos durante la ejecución. La autorización sigue siendo responsabilidad del backend; los guards de rutas solo deciden qué mostrar.
 
 ## Cómo agregar tu módulo
 
@@ -65,9 +65,9 @@ Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. M
      api.request<MyRequest>(`/requests/${id}/cancel`, { method: 'PATCH' });
    ```
 
-   `api.request<T>(path, { method?, body? })` espera un cuerpo JSON en la respuesta; usa `api.send(...)` cuando la respuesta no tiene cuerpo (204).
+   `api.request<T>(path, { method?, body?, signal? })` espera un cuerpo JSON en la respuesta; usa `api.send(...)` cuando la respuesta no tiene cuerpo (204). Acepta un `AbortSignal` para cancelar (ver «Cliente HTTP (axios)»).
 
-   Verifica rutas, métodos y cuerpos contra `docs/API_CONTRACT.md` del backend. Los errores llegan como `ApiError` (`status`, `message`, `errors`).
+   Verifica rutas, métodos y cuerpos contra `docs/API_CONTRACT.md` del backend. Los errores HTTP llegan como `ApiError` (`status`, `message`, `errors`, `body`).
 
 3. Registra tus pantallas **sin editar archivos compartidos**: crea `client.routes.tsx` (área del cliente, `/client/...`) o `technician.routes.tsx` (área del técnico, `/technician/...`) dentro de tu carpeta con un `export default` de `RouteObject[]`. Se descubren automáticamente y sus rutas son relativas al área:
 
@@ -90,11 +90,52 @@ Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. M
 - **Compromiso (XSS).** Cualquier script que se ejecute en este origen puede leer `localStorage` y robar el token de refresco. Una cookie `HttpOnly` lo evitaría, pero el backend usa la cabecera Bearer con CORS sin credenciales, así que hoy no es posible. Mitigaciones: el token de refresco rota en cada uso, `logout` lo revoca en el servidor, el de acceso no se persiste y no se renderiza HTML sin escapar. Cambiar de estrategia (`sessionStorage`, solo memoria, cookies) es tocar un archivo: implementa `TokenStore` y pásalo a `createSession` en `src/shared/auth/appSession.ts`.
 - **Inicio de sesión y registro.** El backend no devuelve tokens al registrar, por lo que `register` crea la cuenta y luego inicia sesión con las mismas credenciales. Después se carga `GET /users/me`.
 - **Al abrir la app.** Si hay token de refresco, se llama una sola vez a `POST /auth/refresh` (también con StrictMode) y se carga el usuario; mientras tanto `status` es `loading` y los guards muestran un estado de carga.
-- **401 en una petición.** Las respuestas 401 simultáneas comparten **un solo** refresco; luego se reintenta la petición original **una vez**. Si el refresco es rechazado (400/401/403), se limpia la sesión y `status` pasa a `anonymous`. Si falla por red o 5xx no se borra el token guardado (no se sabe si sigue siendo válido). Nunca se refresca ni se envía Bearer en `/auth/*`, así que no hay bucles.
+- **401 en una petición.** El interceptor de respuesta delega en la sesión: las respuestas 401 simultáneas comparten **un solo** refresco; luego se reintenta la petición original **una vez**. Si el refresco es rechazado (400/401/403), se limpia la sesión y `status` pasa a `anonymous`. Si falla por red o 5xx no se borra el token guardado (no se sabe si sigue siendo válido). Nunca se refresca ni se envía Bearer en `/auth/*`, así que no hay bucles.
 - **Cierre de sesión.** Se limpia el estado local de inmediato y después se llama a `POST /auth/logout` sin esperar que tenga éxito.
 - **Rutas.** `/login`, `/register`, `/` (redirige según el rol), `/client/*` (solo `CLIENT`), `/technician/*` (solo `TECHNICIAN`), `/unauthorized` (rol incorrecto) y `*` (404). Un visitante anónimo es enviado a `/login` y, al iniciar sesión, vuelve a donde quería ir si su rol puede abrirlo; si no, va al inicio de su rol.
 - **Varias pestañas y tiempos de espera.** Si otra pestaña cierra sesión o cambia de cuenta (evento `storage`), esta pestaña pasa a `anonymous`. Las llamadas de autenticación tienen un tiempo de espera, y los resultados de operaciones que terminan después de un cierre o cambio de sesión se descartan.
 - **Pendiente.** Las pruebas E2E siguen pospuestas (ver más abajo).
+
+## Cliente HTTP (axios)
+
+**Por qué axios.** La rúbrica y los materiales del curso piden una capa de cliente abstraída con axios: configuración centralizada (`baseURL`, cabeceras por defecto) e interceptores. Los interceptores son un único lugar para la autenticación, el refresco de tokens y la normalización de errores, y axios aporta timeout y cancelación integrados. **Compromiso:** una dependencia más frente a `fetch` (≈ +52 kB, +19 kB gzip en el bundle, medido con `vite build`). Los módulos no lo notan: `api.request` / `api.send` siguen siendo la API estable y **nunca** deben importar `axios` ni llamar a `fetch`.
+
+**Configuración central** (`src/shared/api/axiosClient.ts`, una sola instancia): `baseURL` desde `VITE_API_BASE_URL`; `Accept` y `Content-Type: application/json`; timeout de 30 s (10 s en las llamadas de auth); `withCredentials: false` (la API usa Bearer, sin cookies); las rutas absolutas no pueden cambiar de origen; se usa el adaptador `fetch` con `redirect: 'error'`, así que una redirección es un error y nunca se reenvía el token.
+
+**Interceptores y sesión.** Los interceptores no tienen reglas de autenticación propias; preguntan a la sesión (`RequestAuthorizer` en `http.ts`, implementado en `session.ts`), que sigue siendo la única fuente de verdad:
+
+- _Petición:_ adjunta `Authorization: Bearer <token en memoria>`. Nunca en `/auth/*` ni en una petición que ya trae su propio token.
+- _Respuesta:_ convierte todo fallo en un error propio y, ante un 401 de una llamada autenticada, pide a la sesión recuperarse (refresco único compartido, descarte de resultados tras logout o cambio de usuario) y reintenta **una sola vez**. Una petición reintentada nunca se reintenta de nuevo.
+
+**Errores que recibe un módulo** (nunca tipos de axios):
+
+| Error                                              | Cuándo                                                                       |
+| -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `ApiError` (`status`, `message`, `errors`, `body`) | La respuesta no es 2xx, o es 2xx pero no JSON                                |
+| `NetworkError`                                     | No hubo respuesta: sin conexión, CORS o redirección bloqueada                |
+| `TimeoutError` (`DOMException`)                    | Se superó el timeout                                                         |
+| `AbortError` (`DOMException`)                      | La cancelaste tú; `isAbortError(error)` es `true` y no se muestra como error |
+
+**Cancelación (`AbortController`).** Toda función de API debería aceptar `CallOptions` (`{ signal? }`, de `client.ts`) y pasarla a `api.request`. Cancela al desmontar:
+
+```ts
+// api.ts
+export const listMyRequests = (options?: CallOptions) =>
+  api.request<MyRequest[]>('/requests', options);
+
+// componente
+useEffect(() => {
+  const controller = new AbortController();
+  listMyRequests({ signal: controller.signal })
+    .then(setRequests)
+    .catch((error: unknown) => {
+      if (!isAbortError(error)) setError(error);
+    });
+  return () => controller.abort();
+}, []);
+```
+
+Cancelar no deja estado colgado: un refresco compartido en curso sigue (otros llamadores dependen de él) y su resultado se guarda; la petición cancelada no se reenvía.
 
 ## Reparto inicial del trabajo
 
@@ -114,4 +155,4 @@ Las pruebas de extremo a extremo (E2E) en navegador se posponen para mantener li
 
 ## Despliegue
 
-`npm run build` genera `dist/`. Configura la URL de la API de producción antes de compilar, usa HTTPS, configura `CORS_ALLOWED_ORIGINS` del backend con el origen desplegado del frontend y configura el alojamiento para servir `index.html` en las rutas gestionadas por el frontend. Todavía no se ha verificado ningún despliegue ni la integración con el backend real: el flujo de sesión se probó con pruebas automatizadas y, a mano en un navegador, contra una API simulada.
+`npm run build` genera `dist/`. Configura la URL de la API de producción antes de compilar, usa HTTPS, configura `CORS_ALLOWED_ORIGINS` del backend con el origen desplegado del frontend y configura el alojamiento para servir `index.html` en las rutas gestionadas por el frontend. Todavía no se ha verificado ningún despliegue ni la integración con el backend real: el flujo de sesión se probó con pruebas automatizadas y, tras migrar a axios, a mano en un navegador (servidor de desarrollo de Vite) contra una API simulada local con CORS: inicio de sesión, restauración al recargar, tres 401 simultáneos con un único refresco, cierre de sesión, cancelación, timeout y redirección bloqueada.
