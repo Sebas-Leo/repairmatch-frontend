@@ -1060,9 +1060,10 @@ describe('cancelling requests', () => {
     await tick(); // both 401s have reached the shared refresh
 
     controller.abort();
+    // The refresh is still pending, and the cancelled caller does not wait for it.
+    expect(isAbortError(await cancelled)).toBe(true);
     gate.resolve();
 
-    expect(isAbortError(await cancelled)).toBe(true);
     expect(await survivor).toEqual([{ id: 1 }]);
     expect(api.callsTo('POST /auth/refresh')).toHaveLength(1);
     expect(tokenStore.getRefreshToken()).toBe('refresh-new');
@@ -1092,8 +1093,8 @@ describe('cancelling requests', () => {
     );
 
     controller.abort();
+    expect(isAbortError(await cancelled)).toBe(true); // refresh still pending
     gate.resolve();
-    expect(isAbortError(await cancelled)).toBe(true);
 
     // The rotated token was still stored (the old one is already revoked).
     await vi.waitFor(() =>
@@ -1101,5 +1102,41 @@ describe('cancelling requests', () => {
     );
     expect(await session.request('/requests')).toEqual([{ id: 1 }]);
     expect(api.callsTo('POST /auth/refresh')).toHaveLength(1);
+  });
+
+  it('discards, and revokes, a refresh that finishes after its cancelled caller logged out', async () => {
+    const gate = deferred();
+    const { api, session, tokenStore } = setup(
+      authedRoutes(new Set(['access-new']), {
+        'POST /auth/refresh': async () => {
+          await gate.promise;
+          return Response.json(tokenPair('new'));
+        },
+        'POST /auth/logout': () => new Response(null, { status: 204 }),
+      }),
+      { accessToken: 'access-old', refreshToken: 'refresh-old' },
+    );
+    const controller = new AbortController();
+    const cancelled = session
+      .request('/requests', { signal: controller.signal })
+      .catch((e: unknown) => e);
+    await vi.waitFor(() =>
+      expect(api.callsTo('POST /auth/refresh')).toHaveLength(1),
+    );
+
+    controller.abort();
+    expect(isAbortError(await cancelled)).toBe(true);
+    await session.logout();
+    gate.resolve();
+
+    await vi.waitFor(() =>
+      expect(api.callsTo('POST /auth/logout').map((c) => c.body)).toEqual([
+        { refreshToken: 'refresh-old' },
+        { refreshToken: 'refresh-new' }, // the orphaned replacement is revoked
+      ]),
+    );
+    expect(tokenStore.getAccessToken()).toBeNull();
+    expect(tokenStore.getRefreshToken()).toBeNull();
+    expect(session.getState().status).toBe('anonymous');
   });
 });

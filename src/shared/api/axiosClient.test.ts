@@ -1,6 +1,7 @@
 import {
   AxiosError,
   CanceledError,
+  type AxiosAdapter,
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +11,7 @@ import {
   TEST_API_BASE,
   type Routes,
 } from '../../test/fakeApi';
+import { stubFetch, untilAborted } from '../../test/fakeFetch';
 import { createAxiosClient, DEFAULT_REQUEST_TIMEOUT_MS } from './axiosClient';
 import {
   ApiError,
@@ -190,6 +192,89 @@ describe('request interceptor', () => {
     expect(auth.recover).not.toHaveBeenCalled();
   });
 
+  describe('bearer token and origin', () => {
+    /** Records what leaves; every call succeeds. */
+    function recording() {
+      const sent: InternalAxiosRequestConfig[] = [];
+      const adapter: AxiosAdapter = async (config) => {
+        sent.push(config);
+        return {
+          data: '{}',
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+          request: {},
+        };
+      };
+      const client = createAxiosClient({ baseURL: TEST_API_BASE, adapter });
+      const auth = fakeAuthorizer();
+      client.authenticate(auth);
+      return { sent, client, auth };
+    }
+
+    it.each([
+      [
+        'a per-call baseURL',
+        { url: '/x', baseURL: 'https://evil.example/api' },
+      ],
+      [
+        'an absolute URL',
+        { url: 'https://evil.example/x', allowAbsoluteUrls: true },
+      ],
+      [
+        'a protocol-relative URL',
+        { url: '//evil.example/x', allowAbsoluteUrls: true },
+      ],
+      [
+        'the same host on another port',
+        { url: 'http://localhost:9999/x', allowAbsoluteUrls: true },
+      ],
+      [
+        'the same host on another scheme',
+        { url: 'https://localhost:8080/x', allowAbsoluteUrls: true },
+      ],
+    ])('never sends the bearer token to %s', async (_name, config) => {
+      const { sent, client, auth } = recording();
+      await client.instance.request(config);
+      expect(sent).toHaveLength(1);
+      expect(sent[0]?.headers.has('Authorization')).toBe(false);
+      expect(auth.begin).not.toHaveBeenCalled();
+    });
+
+    it('still sends it to an absolute URL on the API origin', async () => {
+      const { sent, client } = recording();
+      await client.instance.request({
+        url: `${TEST_API_BASE}/requests`,
+        allowAbsoluteUrls: true,
+      });
+      expect(sent[0]?.headers.get('Authorization')).toBe('Bearer access-1');
+    });
+
+    it('does not attach it when the URL cannot be resolved', async () => {
+      const { sent, client } = recording();
+      await client.instance
+        .request({ url: 'http://[bad', allowAbsoluteUrls: true })
+        .catch(() => undefined);
+      expect(sent.every((c) => !c.headers.has('Authorization'))).toBe(true);
+    });
+
+    it.each([
+      '/x/../auth/login',
+      '/x/%2e%2e/auth/login',
+      '/%41uth/login',
+      '/AUTH/login',
+    ])(
+      'treats %s as an auth endpoint: no token, no consultation',
+      async (url) => {
+        const { sent, client, auth } = recording();
+        await client.instance.request({ url });
+        expect(sent[0]?.headers.has('Authorization')).toBe(false);
+        expect(auth.begin).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   it('adds nothing before a session is connected', async () => {
     const { api, client } = setup({ 'GET /a': unauthorized });
     await expect(client.request('/a')).rejects.toMatchObject({ status: 401 });
@@ -306,30 +391,118 @@ describe('response interceptor', () => {
     expect(api.calls.map((call) => call.config.timeout)).toEqual([321, 321]);
   });
 
-  it('lets a cancellation during recovery win: the replay is never sent', async () => {
-    const { api, client } = setup({ 'GET /requests': unauthorized });
-    let release!: (token: string) => void;
-    const auth = fakeAuthorizer();
-    auth.recover.mockImplementation(
-      () =>
-        new Promise<string>((done) => {
-          release = done;
-        }),
+  describe('cancelling while the session recovers', () => {
+    /** A recovery the test releases by hand. */
+    function pendingRecovery() {
+      const auth = fakeAuthorizer();
+      let release!: (token: string | null) => void;
+      auth.recover.mockImplementation(
+        () =>
+          new Promise<string | null>((done) => {
+            release = done;
+          }),
+      );
+      return { auth, release: (token: string | null) => release(token) };
+    }
+
+    it.each([
+      ['a fresh token', 'access-2'],
+      ['a refusal', null],
+    ])(
+      'rejects the caller at once, before recovery ends with %s, and never replays',
+      async (_name, outcome) => {
+        const { api, client } = setup({ 'GET /requests': unauthorized });
+        const { auth, release } = pendingRecovery();
+        client.authenticate(auth);
+        const controller = new AbortController();
+        const settled = client
+          .request('/requests', { signal: controller.signal })
+          .catch((e: unknown) => e);
+        await vi.waitFor(() => expect(auth.recover).toHaveBeenCalledTimes(1));
+
+        controller.abort();
+        // The recovery is still running; the caller must not wait for it.
+        const error = await settled;
+        expect(isAbortError(error)).toBe(true);
+        expect(error).toBe(controller.signal.reason);
+        expect(error).not.toBeInstanceOf(ApiError);
+
+        release(outcome); // the shared refresh finishes later: nothing happens
+        await new Promise((done) => setTimeout(done, 10));
+        expect(api.calls).toHaveLength(1); // only the original attempt went out
+        expect(auth.recover).toHaveBeenCalledTimes(1);
+      },
     );
-    client.authenticate(auth);
-    const controller = new AbortController();
-    const pending = client
-      .request('/requests', { signal: controller.signal })
-      .catch((e: unknown) => e);
-    await vi.waitFor(() => expect(auth.recover).toHaveBeenCalledTimes(1));
 
-    controller.abort();
-    release('access-2');
+    it('answers with a custom abort reason as is', async () => {
+      const { client } = setup({ 'GET /requests': unauthorized });
+      const { auth } = pendingRecovery();
+      client.authenticate(auth);
+      const controller = new AbortController();
+      const settled = client
+        .request('/requests', { signal: controller.signal })
+        .catch((e: unknown) => e);
+      await vi.waitFor(() => expect(auth.recover).toHaveBeenCalledTimes(1));
+      const reason = new DOMException('Page closed', 'TimeoutError');
+      controller.abort(reason);
+      expect(await settled).toBe(reason);
+    });
 
-    const error = await pending;
-    expect(isAbortError(error)).toBe(true);
-    expect(error).toBe(controller.signal.reason);
-    expect(api.calls).toHaveLength(1); // only the original attempt went out
+    it('does not even start a recovery for a caller that cancelled as the 401 arrived', async () => {
+      const { api, client } = setup({ 'GET /requests': unauthorized });
+      const auth = fakeAuthorizer();
+      client.authenticate(auth);
+      const controller = new AbortController();
+      const error = await client.instance
+        .request({
+          url: '/requests',
+          signal: controller.signal,
+          // Runs after axios's own cancellation check and before our handler.
+          transformResponse: [
+            (body: unknown) => {
+              controller.abort();
+              return body;
+            },
+          ],
+        })
+        .catch((e: unknown) => e);
+      expect(isAbortError(error)).toBe(true);
+      expect(auth.recover).not.toHaveBeenCalled();
+      expect(api.calls).toHaveLength(1);
+    });
+
+    it('keeps a listener on the signal only while it waits for the recovery', async () => {
+      const { client } = setup({ 'GET /requests': unauthorized });
+      const { auth, release } = pendingRecovery();
+      client.authenticate(auth);
+      const controller = new AbortController();
+      let outstanding = 0;
+      const add = controller.signal.addEventListener.bind(controller.signal);
+      const remove = controller.signal.removeEventListener.bind(
+        controller.signal,
+      );
+      vi.spyOn(controller.signal, 'addEventListener').mockImplementation(
+        (...args: Parameters<typeof add>) => {
+          if (args[0] === 'abort') outstanding += 1;
+          add(...args);
+        },
+      );
+      vi.spyOn(controller.signal, 'removeEventListener').mockImplementation(
+        (...args: Parameters<typeof remove>) => {
+          if (args[0] === 'abort') outstanding -= 1;
+          remove(...args);
+        },
+      );
+      const settled = client
+        .request('/requests', { signal: controller.signal })
+        .catch((e: unknown) => e);
+      await vi.waitFor(() => expect(auth.recover).toHaveBeenCalledTimes(1));
+      expect(outstanding).toBe(1); // only the wait for the recovery
+
+      release(null);
+      await settled;
+      expect(outstanding).toBe(0);
+    });
   });
 
   it('passes errors that are not transport failures straight through', async () => {
@@ -378,28 +551,6 @@ describe('failure normalization', () => {
 });
 
 describe('production wire format (real axios fetch adapter, stubbed fetch)', () => {
-  /** The fetch adapter hands `fetch` a `Request`; this stands in for the network. */
-  function stubFetch(
-    handler: (request: Request) => Response | Promise<Response>,
-  ) {
-    const fetchMock = vi.fn((request: Request) =>
-      Promise.resolve().then(() => handler(request)),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    return {
-      fetchMock,
-      requests: () => fetchMock.mock.calls.map(([request]) => request),
-    };
-  }
-  /** Like a real `fetch`: rejects with the reason as soon as the signal aborts. */
-  const untilAborted = (request: Request) =>
-    new Promise<Response>((_resolve, reject) => {
-      if (request.signal.aborted) return reject(request.signal.reason);
-      request.signal.addEventListener('abort', () =>
-        reject(request.signal.reason),
-      );
-    });
-
   it('sends omit-credentials, no-redirect JSON requests to the API base', async () => {
     const { requests } = stubFetch(async (request) =>
       Response.json({ echoed: await request.json() }),
@@ -419,6 +570,57 @@ describe('production wire format (real axios fetch adapter, stubbed fetch)', () 
     expect(request.redirect).toBe('error');
     expect(request.headers.get('Accept')).toBe('application/json');
     expect(request.headers.get('Content-Type')).toBe('application/json');
+  });
+
+  describe('headers on the wire', () => {
+    // What the API's CORS preflight accepts: anything else makes every call fail.
+    const ALLOWED = ['accept', 'authorization', 'content-type'];
+    const names = (request: Request) => [...request.headers.keys()].sort();
+
+    it.each([
+      ['an anonymous GET', undefined, 'GET'],
+      ['an authenticated GET', 'session', 'GET'],
+      ['an authenticated POST with a body', 'session', 'POST'],
+      ['an authenticated PATCH without a body', 'session', 'PATCH'],
+      ['a DELETE', 'session', 'DELETE'],
+      ['a call with its own token', 'explicit', 'GET'],
+    ] as const)(
+      'sends only CORS-allowed header names on %s',
+      async (_name, auth, method) => {
+        const { requests } = stubFetch(() => Response.json({}));
+        const client = createAxiosClient({ baseURL: TEST_API_BASE });
+        if (auth === 'session') client.authenticate(fakeAuthorizer());
+        await client.request('/requests', {
+          method,
+          ...(method === 'POST' ? { body: { a: 1 } } : {}),
+          ...(auth === 'explicit' ? { token: 'explicit' } : {}),
+        });
+        const sent = names(requests()[0]!);
+        expect(sent.filter((name) => !ALLOWED.includes(name))).toEqual([]);
+        expect(sent).toContain('accept');
+      },
+    );
+
+    it('does not add a User-Agent, which browsers would put in the preflight', async () => {
+      const { requests } = stubFetch(() => Response.json({}));
+      await createAxiosClient({ baseURL: TEST_API_BASE }).request('/a');
+      expect(requests()[0]?.headers.has('User-Agent')).toBe(false);
+    });
+
+    it('does not add an XSRF header from a cookie, even on the page origin', async () => {
+      document.cookie = 'XSRF-TOKEN=cookie-value; path=/';
+      try {
+        const { requests } = stubFetch(() => Response.json({}));
+        const client = createAxiosClient({
+          baseURL: `${window.location.origin}/api`,
+        });
+        await client.request('/a');
+        expect(names(requests()[0]!)).toEqual(['accept']);
+      } finally {
+        document.cookie =
+          'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      }
+    });
   });
 
   it.each(['https://evil.example/x', '//evil.example/x'])(
@@ -463,19 +665,48 @@ describe('production wire format (real axios fetch adapter, stubbed fetch)', () 
     );
   });
 
-  it('times out through the adapter with a TimeoutError', async () => {
+  it('times out through the adapter with a TimeoutError, exactly at the limit', async () => {
     vi.useFakeTimers();
     stubFetch(untilAborted);
     const client = createAxiosClient({ baseURL: TEST_API_BASE });
+    let settled = false;
     const pending = client
       .request('/slow', { timeoutMs: 40 })
-      .catch((e: unknown) => e);
-    await vi.advanceTimersByTimeAsync(40);
+      .catch((e: unknown) => e)
+      .finally(() => {
+        settled = true;
+      });
+
+    await vi.advanceTimersByTimeAsync(39);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+
     expect(await pending).toMatchObject({
       name: 'TimeoutError',
       message: 'Request to /slow timed out',
     });
-    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('holds one timeout timer while in flight and clears it once the call completes', async () => {
+    vi.useFakeTimers();
+    let answer!: () => void;
+    const { requests } = stubFetch(
+      () =>
+        new Promise<Response>((done) => {
+          answer = () => done(Response.json({ ok: true }));
+        }),
+    );
+    const client = createAxiosClient({ baseURL: TEST_API_BASE });
+    const call = client.request('/slow', { timeoutMs: 5_000 });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(vi.getTimerCount()).toBe(1); // the timeout, armed
+
+    answer();
+    await call;
+
+    expect(vi.getTimerCount()).toBe(0); // cleared by the success
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(requests()[0]?.signal.aborted).toBe(false); // no late abort
   });
 
   it('cancels through the adapter with the signal reason', async () => {

@@ -6,6 +6,7 @@ import {
   tokenPair,
   type Routes,
 } from '../../test/fakeApi';
+import { stubFetch, untilAborted } from '../../test/fakeFetch';
 import { AUTH_REQUEST_TIMEOUT_MS, createAuthApi } from './auth';
 import { createAxiosClient } from './axiosClient';
 import { ApiError } from './http';
@@ -76,7 +77,10 @@ describe('auth endpoints', () => {
 });
 
 describe('auth call timeouts', () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   const hang = () => new Promise<Response>(() => undefined);
   type AuthApiUnderTest = ReturnType<typeof setup>['authApi'];
@@ -129,18 +133,60 @@ describe('auth call timeouts', () => {
       await vi.advanceTimersByTimeAsync(1);
 
       expect(await outcome).toMatchObject({ name: 'TimeoutError' });
-      expect(vi.getTimerCount()).toBe(0);
     },
   );
 
-  it('hands the timeout to the transport and leaves no timer behind when the call completes', async () => {
-    vi.useFakeTimers();
+  it('hands the auth timeout to the transport', async () => {
     const { api, authApi } = setup({
       'POST /auth/login': () => Response.json(tokenPair('login')),
     });
     await authApi.login({ email: 'a@example.test', password: 'x' });
     expect(api.calls[0]?.config.timeout).toBe(AUTH_REQUEST_TIMEOUT_MS);
-    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  describe('with the real fetch adapter', () => {
+    const realAuthApi = () =>
+      createAuthApi(createAxiosClient({ baseURL: TEST_API_BASE }).request);
+
+    it('arms one timer per call and clears it when the call completes', async () => {
+      vi.useFakeTimers();
+      let answer!: () => void;
+      const { requests } = stubFetch(
+        () =>
+          new Promise<Response>((done) => {
+            answer = () => done(Response.json(tokenPair('login')));
+          }),
+      );
+      const call = realAuthApi().login({
+        email: 'a@example.test',
+        password: 'x',
+      });
+      await vi.advanceTimersByTimeAsync(10);
+      expect(vi.getTimerCount()).toBe(1); // the 10 s timeout, armed
+
+      answer();
+      await call;
+
+      expect(vi.getTimerCount()).toBe(0); // cleared by the success
+      await vi.advanceTimersByTimeAsync(AUTH_REQUEST_TIMEOUT_MS * 2);
+      expect(requests()[0]?.signal.aborted).toBe(false); // no late abort
+    });
+
+    it('rejects a stalled call with a TimeoutError at the limit, not before', async () => {
+      vi.useFakeTimers();
+      stubFetch(untilAborted);
+      let settled = false;
+      const outcome = realAuthApi()
+        .refresh({ refreshToken: 'r' })
+        .catch((error: unknown) => error)
+        .finally(() => {
+          settled = true;
+        });
+      await vi.advanceTimersByTimeAsync(AUTH_REQUEST_TIMEOUT_MS - 1);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await outcome).toMatchObject({ name: 'TimeoutError' });
+    });
   });
 
   it('honours a custom timeout', async () => {
