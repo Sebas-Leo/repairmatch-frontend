@@ -65,7 +65,7 @@ Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. M
      api.request<MyRequest>(`/requests/${id}/cancel`, { method: 'PATCH' });
    ```
 
-   `api.request<T>(path, { method?, body?, signal? })` espera un cuerpo JSON en la respuesta; usa `api.send(...)` cuando la respuesta no tiene cuerpo (204). Acepta un `AbortSignal` para cancelar (ver «Cliente HTTP (axios)»).
+   `api.request<T>(path, { method?, body?, signal? })` espera un cuerpo JSON en la respuesta; usa `api.send(...)` cuando la respuesta no tiene cuerpo (204). El `body` es un valor JSON (no `FormData` ni `Blob`). Acepta un `AbortSignal` para cancelar (ver «Cliente HTTP (axios)»).
 
    Verifica rutas, métodos y cuerpos contra `docs/API_CONTRACT.md` del backend. Los errores HTTP llegan como `ApiError` (`status`, `message`, `errors`, `body`).
 
@@ -98,23 +98,25 @@ Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. M
 
 ## Cliente HTTP (axios)
 
-**Por qué axios.** La rúbrica y los materiales del curso piden una capa de cliente abstraída con axios: configuración centralizada (`baseURL`, cabeceras por defecto) e interceptores. Los interceptores son un único lugar para la autenticación, el refresco de tokens y la normalización de errores, y axios aporta timeout y cancelación integrados. **Compromiso:** una dependencia más frente a `fetch` (≈ +52 kB, +19 kB gzip en el bundle, medido con `vite build`). Los módulos no lo notan: `api.request` / `api.send` siguen siendo la API estable y **nunca** deben importar `axios` ni llamar a `fetch`.
+**Por qué axios.** La rúbrica y los materiales del curso piden una capa de cliente abstraída con axios: configuración centralizada (`baseURL`, cabeceras por defecto) e interceptores. Los interceptores son un único lugar para la autenticación, el refresco de tokens y la normalización de errores, y axios aporta timeout y cancelación integrados. **Compromiso:** una dependencia más frente a `fetch`: según `npm run build`, el bundle pasa de 330,84 kB (104,29 kB gzip) a 384,36 kB (123,75 kB gzip), es decir +53,5 kB (+19,5 kB gzip). Los módulos no lo notan: `api.request` / `api.send` siguen siendo la API estable y **nunca** deben importar `axios` ni llamar a `fetch`.
 
-**Configuración central** (`src/shared/api/axiosClient.ts`, una sola instancia): `baseURL` desde `VITE_API_BASE_URL`; `Accept` y `Content-Type: application/json`; timeout de 30 s (10 s en las llamadas de auth); `withCredentials: false` (la API usa Bearer, sin cookies); las rutas absolutas no pueden cambiar de origen; se usa el adaptador `fetch` con `redirect: 'error'`, así que una redirección es un error y nunca se reenvía el token.
+**Configuración central** (`src/shared/api/axiosClient.ts`, una sola instancia): `baseURL` desde `VITE_API_BASE_URL`; `Accept` y `Content-Type: application/json`; timeout de 30 s (10 s en las llamadas de auth); `withCredentials: false` (la API usa Bearer, sin cookies); las rutas absolutas no pueden cambiar de origen; se usa el adaptador `fetch` con `redirect: 'error'`, así que una redirección es un error y nunca se reenvía el token. El cuerpo (`body`) se serializa siempre con `JSON.stringify` (una cadena `'123'` viaja como `"123"`); `Blob`, `FormData`, binarios y streams se rechazan. Se rechazan también las rutas con segmentos `.`/`..` o `%2e`/`%2f`.
+
+**Cabeceras: el gotcha de CORS.** El adaptador `fetch` de axios añade por defecto `User-Agent: axios/x` (y `X-XSRF-TOKEN` si hay una cookie). Según el navegador, esas cabeceras irían al preflight CORS porque no son «seguras», y el backend solo permite `Authorization` y `Content-Type`: el preflight fallaría y **cada llamada** terminaría en `NetworkError`. Por eso la instancia las desactiva (`'User-Agent': false`, `withXSRFToken: false`) y una prueba comprueba que lo único que sale es `Accept`, `Authorization` y `Content-Type`.
 
 **Interceptores y sesión.** Los interceptores no tienen reglas de autenticación propias; preguntan a la sesión (`RequestAuthorizer` en `http.ts`, implementado en `session.ts`), que sigue siendo la única fuente de verdad:
 
-- _Petición:_ adjunta `Authorization: Bearer <token en memoria>`. Nunca en `/auth/*` ni en una petición que ya trae su propio token.
+- _Petición:_ adjunta `Authorization: Bearer <token en memoria>`, solo si la URL final tiene el origen de la API (ni con otro `baseURL` ni con una URL absoluta de otro origen). Nunca en `/auth/*` (se evalúa la ruta ya normalizada: `/x/../auth/login` o `/%41uth/login` cuentan como `/auth/*`) ni en una petición que ya trae su propio token.
 - _Respuesta:_ convierte todo fallo en un error propio y, ante un 401 de una llamada autenticada, pide a la sesión recuperarse (refresco único compartido, descarte de resultados tras logout o cambio de usuario) y reintenta **una sola vez**. Una petición reintentada nunca se reintenta de nuevo.
 
 **Errores que recibe un módulo** (nunca tipos de axios):
 
-| Error                                              | Cuándo                                                                       |
-| -------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `ApiError` (`status`, `message`, `errors`, `body`) | La respuesta no es 2xx, o es 2xx pero no JSON                                |
-| `NetworkError`                                     | No hubo respuesta: sin conexión, CORS o redirección bloqueada                |
-| `TimeoutError` (`DOMException`)                    | Se superó el timeout                                                         |
-| `AbortError` (`DOMException`)                      | La cancelaste tú; `isAbortError(error)` es `true` y no se muestra como error |
+| Error                                              | Cuándo                                                                   |
+| -------------------------------------------------- | ------------------------------------------------------------------------ |
+| `ApiError` (`status`, `message`, `errors`, `body`) | La respuesta no es 2xx, o es 2xx pero no JSON                            |
+| `NetworkError`                                     | No hubo respuesta: sin conexión, CORS o redirección bloqueada            |
+| `TimeoutError` (`DOMException`)                    | Se superó el timeout                                                     |
+| `AbortError` (`DOMException`)                      | La cancelaste con tu `AbortSignal`; no se muestra como error (ver abajo) |
 
 **Cancelación (`AbortController`).** Toda función de API debería aceptar `CallOptions` (`{ signal? }`, de `client.ts`) y pasarla a `api.request`. Cancela al desmontar:
 
@@ -135,7 +137,9 @@ useEffect(() => {
 }, []);
 ```
 
-Cancelar no deja estado colgado: un refresco compartido en curso sigue (otros llamadores dependen de él) y su resultado se guarda; la petición cancelada no se reenvía.
+**Contrato de la cancelación.** Una llamada cancelada rechaza con el _motivo de la señal_: con `controller.abort()` (sin argumentos, o con algo que no es un error) recibes un `AbortError` y `isAbortError(error)` es `true`; si abortas con tu propio motivo (`controller.abort(reason)`) recibes **ese motivo tal cual**, y `isAbortError` solo es `true` cuando su `name` es `AbortError` (un `TimeoutError` es un fallo, no una cancelación).
+
+Cancelar rechaza **de inmediato**, también si la petición está esperando un refresco tras un 401 (no espera a que termine). El refresco compartido que ya está en curso **no se cancela** (otros llamadores dependen de él): sigue en segundo plano, su resultado se guarda y se libera el estado; si mientras tanto hubo un cierre de sesión o un cambio de usuario, se descarta y el token nuevo se revoca. La petición cancelada nunca se reenvía.
 
 ## Reparto inicial del trabajo
 
@@ -155,4 +159,4 @@ Las pruebas de extremo a extremo (E2E) en navegador se posponen para mantener li
 
 ## Despliegue
 
-`npm run build` genera `dist/`. Configura la URL de la API de producción antes de compilar, usa HTTPS, configura `CORS_ALLOWED_ORIGINS` del backend con el origen desplegado del frontend y configura el alojamiento para servir `index.html` en las rutas gestionadas por el frontend. Todavía no se ha verificado ningún despliegue ni la integración con el backend real: el flujo de sesión se probó con pruebas automatizadas y, tras migrar a axios, a mano en un navegador (servidor de desarrollo de Vite) contra una API simulada local con CORS: inicio de sesión, restauración al recargar, tres 401 simultáneos con un único refresco, cierre de sesión, cancelación, timeout y redirección bloqueada.
+`npm run build` genera `dist/`. Configura la URL de la API de producción antes de compilar, usa HTTPS, configura `CORS_ALLOWED_ORIGINS` del backend con el origen desplegado del frontend y configura el alojamiento para servir `index.html` en las rutas gestionadas por el frontend. Todavía no se ha verificado ningún despliegue ni la integración con el backend real: el flujo de sesión se probó con pruebas automatizadas y, tras migrar a axios, a mano en un navegador (servidor de desarrollo de Vite) contra una API simulada local con CORS: inicio de sesión, restauración al recargar, tres 401 simultáneos con un único refresco, cierre de sesión, cancelación, timeout y redirección bloqueada (el preflight CORS no se probó contra el backend real).
