@@ -2,8 +2,10 @@ import { createAuthApi } from '../api/auth';
 import {
   ApiError,
   requireBody,
-  type HttpRequest,
   type HttpRequestOptions,
+  type HttpTransport,
+  type RequestAuthorizer,
+  type RequestPass,
 } from '../api/http';
 import type {
   LoginRequest,
@@ -23,7 +25,7 @@ export type SessionState =
   | { readonly status: 'authenticated'; readonly user: AuthUser };
 
 /** Per-request options. The session owns the token, so callers cannot pass one. */
-export type ApiRequestOptions = Omit<HttpRequestOptions, 'token'>;
+export type ApiRequestOptions = HttpRequestOptions;
 
 /** Registration succeeded but the automatic sign-in that follows it did not. */
 export class RegistrationSignInError extends Error {
@@ -56,7 +58,11 @@ export interface Session {
 }
 
 export interface SessionDependencies {
-  http: HttpRequest;
+  /**
+   * The HTTP transport. The session plugs itself into it (`authenticate`), so
+   * every request carries its token and a 401 refreshes through it.
+   */
+  http: HttpTransport;
   tokenStore: TokenStore;
 }
 
@@ -79,22 +85,17 @@ function isRejection(error: unknown): boolean {
   return error instanceof ApiError && [400, 401, 403].includes(error.status);
 }
 
-function withToken(
-  options: ApiRequestOptions,
-  token: string | null,
-): HttpRequestOptions {
-  return token ? { ...options, token } : options;
-}
-
 /**
- * Framework-agnostic session: token lifecycle, restore on start, single-flight
- * refresh and an authenticated request wrapper. React only subscribes to it.
+ * Framework-agnostic session: token lifecycle, restore on start and the
+ * single-flight refresh. It is also the single source of truth for request
+ * authentication: the transport's interceptors only ask it (`RequestAuthorizer`).
+ * React only subscribes to it.
  */
 export function createSession({
   http,
   tokenStore,
 }: SessionDependencies): Session {
-  const authApi = createAuthApi(http);
+  const authApi = createAuthApi(http.request);
   const listeners = new Set<() => void>();
   let state: SessionState = tokenStore.getRefreshToken() ? LOADING : ANONYMOUS;
   // Bumped whenever the session is replaced or ended, so stale async results
@@ -193,38 +194,33 @@ export function createSession({
     return refreshInFlight;
   }
 
-  async function execute<T>(
-    path: string,
-    options: ApiRequestOptions,
-  ): Promise<T | undefined> {
-    // Auth endpoints carry no bearer token and must never trigger a refresh,
-    // otherwise a 401 on login/refresh would loop.
-    if (path.startsWith('/auth/')) return http<T>(path, options);
-
-    const used = tokenStore.getAccessToken();
-    const startedAt = epoch;
-    try {
-      return await http<T>(path, withToken(options, used));
-    } catch (error) {
-      if (!(error instanceof ApiError) || error.status !== 401) throw error;
-      // The session was ended or replaced while the request was in flight
-      // (logout, another sign-in): never replay it under a different identity.
-      if (epoch !== startedAt) throw error;
-      // A 401 means the server rejected the credentials before running the
-      // handler, so replaying the request once is safe.
-      if (tokenStore.getAccessToken() === used) {
-        if (!tokenStore.getRefreshToken()) {
-          // The persisted token is gone (another tab signed out): this session
-          // is over here too, so guards send the user to /login.
-          if (used !== null) endSession();
-          throw error;
-        }
-        if ((await refresh()) !== 'refreshed' || epoch !== startedAt)
-          throw error;
-      } // else: another request already refreshed; just retry with its token.
-      return http<T>(path, withToken(options, tokenStore.getAccessToken()));
-    }
+  /**
+   * A request that began with `pass` got a 401. Resolves with the access token
+   * to replay it with, or `null` when it must be surfaced as is.
+   */
+  async function recover(pass: RequestPass): Promise<string | null> {
+    // The session was ended or replaced while the request was in flight
+    // (logout, another sign-in): never replay it under a different identity.
+    if (epoch !== pass.epoch) return null;
+    if (tokenStore.getAccessToken() === pass.accessToken) {
+      if (!tokenStore.getRefreshToken()) {
+        // The persisted token is gone (another tab signed out): this session
+        // is over here too, so guards send the user to /login.
+        if (pass.accessToken !== null) endSession();
+        return null;
+      }
+      if ((await refresh()) !== 'refreshed' || epoch !== pass.epoch) {
+        return null;
+      }
+    } // else: another request already refreshed; just retry with its token.
+    return tokenStore.getAccessToken();
   }
+
+  const authorizer: RequestAuthorizer = {
+    begin: () => ({ epoch, accessToken: tokenStore.getAccessToken() }),
+    recover,
+  };
+  http.authenticate(authorizer);
 
   async function establish(tokens: TokenPair): Promise<AuthUser> {
     epoch += 1; // Invalidates refreshes started by a previous session.
@@ -309,10 +305,10 @@ export function createSession({
       }
     },
     async request<T>(path: string, options: ApiRequestOptions = {}) {
-      return requireBody(await execute<T>(path, options));
+      return requireBody(await http.request<T>(path, options));
     },
     async send(path, options = {}) {
-      await execute<unknown>(path, options);
+      await http.request<unknown>(path, options);
     },
   };
 }

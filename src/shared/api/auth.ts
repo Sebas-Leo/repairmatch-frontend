@@ -1,4 +1,4 @@
-import { requireBody, type HttpRequest, type HttpRequestOptions } from './http';
+import { requireBody, type HttpRequest, type RawRequestOptions } from './http';
 import type {
   LoginRequest,
   RefreshRequest,
@@ -13,7 +13,7 @@ export const AUTH_REQUEST_TIMEOUT_MS = 10_000;
 /**
  * Raw auth endpoints. They never attach a stored token and never trigger a
  * refresh; session handling lives in `shared/auth/session.ts`, which is the
- * only intended caller. Every call aborts after `AUTH_REQUEST_TIMEOUT_MS`.
+ * only intended caller. Every call times out after `AUTH_REQUEST_TIMEOUT_MS`.
  */
 export interface AuthApi {
   /** POST /auth/register (201). Returns the user only: it does NOT sign in. */
@@ -32,24 +32,10 @@ export function createAuthApi(
   request: HttpRequest,
   { timeoutMs = AUTH_REQUEST_TIMEOUT_MS }: { timeoutMs?: number } = {},
 ): AuthApi {
-  // A plain AbortController + setTimeout (not AbortSignal.timeout) so it also
-  // works under fake timers and in every test environment.
-  async function call<T>(
-    path: string,
-    options: HttpRequestOptions,
-  ): Promise<T | undefined> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      controller.abort(
-        new DOMException(`Request to ${path} timed out`, 'TimeoutError'),
-      );
-    }, timeoutMs);
-    try {
-      return await request<T>(path, { ...options, signal: controller.signal });
-    } finally {
-      clearTimeout(timer);
-    }
-  }
+  // The transport enforces the timeout (rejecting with a `TimeoutError`), so a
+  // hung server can neither freeze the caller nor leave a timer behind.
+  const call = <T>(path: string, options: RawRequestOptions) =>
+    request<T>(path, { ...options, timeoutMs });
 
   return {
     async register(body) {

@@ -1,3 +1,10 @@
+import {
+  AxiosError,
+  CanceledError,
+  type AxiosAdapter,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import { vi } from 'vitest';
 import type { TokenPair, UserResponse } from '../shared/api/types';
 
@@ -11,11 +18,16 @@ export interface RecordedCall {
   query: URLSearchParams;
   headers: Headers;
   body: unknown;
+  /** The axios config the adapter received (timeout, signal, ...). */
+  config: InternalAxiosRequestConfig;
 }
 
 export type RouteHandler = (call: RecordedCall) => Response | Promise<Response>;
 
-/** Keys look like `POST /auth/login`. Unknown routes answer 404. */
+/**
+ * Keys look like `POST /auth/login`. Unknown routes answer 404. A handler that
+ * throws stands for a dead network (offline, DNS, CORS).
+ */
 export type Routes = Record<string, RouteHandler>;
 
 export function errorResponse(
@@ -61,41 +73,125 @@ export const technicianUser: UserResponse = {
   role: 'TECHNICIAN',
 };
 
-/** Replaces global `fetch` with an in-memory backend. Remember `vi.unstubAllGlobals()`. */
-export function installFakeApi(routes: Routes) {
+function toHeaders(config: InternalAxiosRequestConfig): Headers {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(config.headers.toJSON(true))) {
+    headers.set(name, value);
+  }
+  return headers;
+}
+
+/** What the real adapters do after the answer arrives: non-2xx rejects. */
+function settle(
+  config: InternalAxiosRequestConfig,
+  response: AxiosResponse<string>,
+): AxiosResponse<string> {
+  if (!config.validateStatus || config.validateStatus(response.status)) {
+    return response;
+  }
+  throw new AxiosError(
+    `Request failed with status code ${response.status}`,
+    response.status < 500
+      ? AxiosError.ERR_BAD_REQUEST
+      : AxiosError.ERR_BAD_RESPONSE,
+    config,
+    response.request,
+    response,
+  );
+}
+
+/**
+ * An in-memory backend behind an axios adapter, so tests exercise the real
+ * instance, interceptors and session without any network. Like a real adapter
+ * it honours the config's `signal` (rejecting with a `CanceledError`) and
+ * `timeout` (rejecting with `ETIMEDOUT`), and returns the raw body text.
+ */
+export function createFakeBackend(routes: Routes) {
   const calls: RecordedCall[] = [];
   const base = new URL(TEST_API_BASE);
-  const fetchMock = vi.fn(
-    async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const url = new URL(String(input));
-      const call: RecordedCall = {
-        method: init?.method ?? 'GET',
-        path: url.pathname.slice(base.pathname.length),
-        query: url.searchParams,
-        headers: new Headers(init?.headers),
-        body:
-          typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
-      };
-      calls.push(call);
+
+  const adapter = vi.fn<AxiosAdapter>(async (config) => {
+    const url = new URL(`${config.baseURL ?? ''}${config.url ?? ''}`);
+    const call: RecordedCall = {
+      method: (config.method ?? 'get').toUpperCase(),
+      path: url.pathname.slice(base.pathname.length),
+      query: url.searchParams,
+      headers: toHeaders(config),
+      body:
+        typeof config.data === 'string' ? JSON.parse(config.data) : undefined,
+      config,
+    };
+    calls.push(call);
+
+    const respond = async (): Promise<AxiosResponse<string>> => {
       const handler = routes[`${call.method} ${call.path}`];
-      const respond = async () =>
-        handler ? handler(call) : errorResponse(404, 'Ruta no encontrada');
-      const signal = init?.signal;
-      if (!signal) return respond();
-      // Like a real fetch, reject as soon as the caller's signal aborts.
-      return new Promise<Response>((resolve, reject) => {
-        if (signal.aborted) return reject(signal.reason);
-        signal.addEventListener('abort', () => reject(signal.reason), {
-          once: true,
-        });
-        respond().then(resolve, reject);
+      let response: Response;
+      try {
+        response = handler
+          ? await handler(call)
+          : errorResponse(404, 'Ruta no encontrada');
+      } catch (cause) {
+        throw AxiosError.from(
+          cause instanceof Error ? cause : new Error(String(cause)),
+          AxiosError.ERR_NETWORK,
+          config,
+        );
+      }
+      const text = response.status === 204 ? '' : await response.text();
+      return settle(config, {
+        data: text,
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers),
+        config,
+        request: {},
       });
-    },
-  );
-  vi.stubGlobal('fetch', fetchMock);
+    };
+
+    const { timeout } = config;
+    // axios types the signal loosely (listeners are optional); it is an AbortSignal.
+    const signal = config.signal as AbortSignal | undefined;
+    if (signal?.aborted) throw new CanceledError(undefined, config);
+    return new Promise<AxiosResponse<string>>((resolve, reject) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const onAbort = () => {
+        cleanup();
+        reject(new CanceledError(undefined, config));
+      };
+      const cleanup = () => {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+      };
+      signal?.addEventListener('abort', onAbort, { once: true });
+      if (timeout) {
+        timer = setTimeout(() => {
+          cleanup();
+          reject(
+            new AxiosError(
+              `timeout of ${timeout}ms exceeded`,
+              AxiosError.ETIMEDOUT,
+              config,
+            ),
+          );
+        }, timeout);
+      }
+      respond().then(
+        (response) => {
+          cleanup();
+          resolve(response);
+        },
+        (error: unknown) => {
+          cleanup();
+          reject(error);
+        },
+      );
+    });
+  });
+
   return {
     calls,
-    fetchMock,
+    /** Pass as `adapter` to `createAxiosClient`. */
+    adapter,
     callsTo: (key: string) =>
       calls.filter((call) => `${call.method} ${call.path}` === key),
   };
