@@ -1,4 +1,4 @@
-import { createHttpClient } from '../shared/api/http';
+import { createAxiosClient } from '../shared/api/axiosClient';
 import type { UserResponse } from '../shared/api/types';
 import { createSession } from '../shared/auth/session';
 import {
@@ -7,7 +7,7 @@ import {
   type TokenStore,
 } from '../shared/auth/tokenStore';
 import {
-  installFakeApi,
+  createFakeBackend,
   TEST_API_BASE,
   tokenPair,
   type Routes,
@@ -30,9 +30,9 @@ export function createTestSession(
   initial: Partial<StoredTokens> = {},
   tokenStore: TokenStore = createMemoryTokenStore(initial),
 ) {
-  const api = installFakeApi(routes);
+  const api = createFakeBackend(routes);
   const session = createSession({
-    http: createHttpClient(TEST_API_BASE),
+    http: createAxiosClient({ baseURL: TEST_API_BASE, adapter: api.adapter }),
     tokenStore,
   });
   return { api, session, tokenStore };

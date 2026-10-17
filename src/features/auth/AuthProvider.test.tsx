@@ -31,7 +31,7 @@ describe('AuthProvider', () => {
       </AuthProvider>,
     );
     expect(screen.getByTestId('status')).toHaveTextContent('anonymous');
-    expect(api.fetchMock).not.toHaveBeenCalled();
+    expect(api.adapter).not.toHaveBeenCalled();
   });
 
   it('restores a persisted session once, even under StrictMode', async () => {
