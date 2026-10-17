@@ -207,9 +207,8 @@ describe('layout', () => {
 describe('createAppRouter', () => {
   it('builds a browser router over the same route table', () => {
     const router = createAppRouter();
-    expect(router.routes[0]?.children?.map((route) => route.path)).toContain(
-      'login',
-    );
+    const pageRoutes = router.routes[0]?.children?.[0]?.children;
+    expect(pageRoutes?.map((route) => route.path)).toContain('login');
     router.dispose();
   });
 });

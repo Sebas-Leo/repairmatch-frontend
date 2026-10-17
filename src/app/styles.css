@@ -54,7 +54,8 @@ a {
   font-size: 0.875rem;
 }
 .home,
-.not-found {
+.not-found,
+.error-page {
   padding-block: clamp(40px, 8vw, 80px);
 }
 h1 {
@@ -148,18 +149,26 @@ button:disabled {
   font-size: 0.875rem;
 }
 .field-error,
-.error-summary {
+.error-summary,
+.error-state {
   color: #9b1c1c;
 }
-.error-summary {
+.error-summary,
+.error-state {
   border: 2px solid #9b1c1c;
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 20px;
 }
-.error-summary-title {
+.error-summary-title,
+.error-state-title {
   margin: 0;
   font-weight: 700;
+}
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
 }
 .error-summary ul {
   margin: 8px 0 0;
