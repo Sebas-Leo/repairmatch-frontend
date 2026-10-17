@@ -10,15 +10,12 @@ import {
   type RegisterValues,
 } from '../features/auth/validation';
 import { RegistrationSignInError } from '../shared/auth/session';
+import { useReportFormError } from '../shared/hooks/useReportFormError';
 import {
   FormErrorSummary,
   type SummaryField,
 } from '../shared/ui/FormErrorSummary';
-import {
-  feedbackFromError,
-  hasFeedback,
-  useFormFeedback,
-} from '../shared/ui/formFeedback';
+import { hasFeedback, useFormFeedback } from '../shared/ui/formFeedback';
 import { LoadingState } from '../shared/ui/LoadingState';
 import { TextField } from '../shared/ui/TextField';
 
@@ -46,6 +43,7 @@ export function RegisterPage() {
   const auth = useAuth();
   const location = useLocation();
   const { feedback, summaryRef, show, clear } = useFormFeedback();
+  const reportError = useReportFormError(show);
   const [values, setValues] = useState<RegisterValues>({
     name: '',
     email: '',
@@ -84,15 +82,15 @@ export function RegisterPage() {
         role: values.role,
       });
     } catch (error) {
-      show(
-        error instanceof RegistrationSignInError
-          ? {
-              message:
-                'Your account was created, but we could not sign you in. Try signing in from the sign-in page.',
-              fieldErrors: {},
-            }
-          : feedbackFromError(error),
-      );
+      if (error instanceof RegistrationSignInError) {
+        show({
+          message:
+            'Your account was created, but we could not sign you in. Try signing in from the sign-in page.',
+          fieldErrors: {},
+        });
+      } else {
+        reportError(error);
+      }
       setSubmitting(false);
     }
   }

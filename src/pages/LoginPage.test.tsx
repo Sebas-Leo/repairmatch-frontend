@@ -126,7 +126,7 @@ describe('login form', () => {
     );
   });
 
-  it('explains a network failure', async () => {
+  it('explains a network failure in the summary and in a toast', async () => {
     const user = userEvent.setup();
     const { session } = createTestSession(
       authRoutes(clientUser, {
@@ -137,9 +137,35 @@ describe('login form', () => {
     );
     renderApp(session, '/login');
     await fillAndSubmit(user);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'We could not reach the server',
+
+    const message = await screen.findByText(
+      'We could not reach the server. Check your connection and try again.',
     );
+    // The toast is extra: focus still goes to the form's error summary.
+    expect(message.closest('[role="alert"]')).toHaveFocus();
+    expect(screen.getByText('Connection problem')).toBeInTheDocument();
+    expect(screen.getAllByRole('alert')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+  });
+
+  it('replaces internal server text with friendly copy', async () => {
+    const user = userEvent.setup();
+    const { session } = createTestSession(
+      authRoutes(clientUser, {
+        'POST /auth/login': () =>
+          errorResponse(503, 'upstream database is down'),
+      }),
+    );
+    renderApp(session, '/login');
+    await fillAndSubmit(user);
+
+    expect(
+      await screen.findByText(
+        'Something went wrong on our side. Try again in a few moments.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Server error')).toBeInTheDocument();
+    expect(screen.queryByText(/upstream database/)).not.toBeInTheDocument();
   });
 
   it('disables the form while submitting', async () => {

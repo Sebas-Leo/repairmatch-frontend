@@ -183,7 +183,7 @@ describe('register form', () => {
     );
   });
 
-  it('explains a network failure', async () => {
+  it('explains a network failure in the summary and in a toast', async () => {
     const user = userEvent.setup();
     const { session } = createTestSession(
       routesFor(clientUser, {
@@ -194,9 +194,32 @@ describe('register form', () => {
     );
     renderApp(session, '/register');
     await fillAndSubmit(user);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'We could not reach the server',
+
+    const message = await screen.findByText(
+      'We could not reach the server. Check your connection and try again.',
     );
+    // The toast is extra: focus still goes to the form's error summary.
+    expect(message.closest('[role="alert"]')).toHaveFocus();
+    expect(screen.getByText('Connection problem')).toBeInTheDocument();
+    expect(screen.getAllByRole('alert')).toHaveLength(2);
+  });
+
+  it('asks the user to wait after too many attempts', async () => {
+    const user = userEvent.setup();
+    const { session } = createTestSession(
+      routesFor(clientUser, {
+        'POST /auth/register': () => errorResponse(429, 'Rate limit exceeded'),
+      }),
+    );
+    renderApp(session, '/register');
+    await fillAndSubmit(user);
+
+    expect(
+      await screen.findByText(
+        'You are doing that too often. Wait a moment and try again.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Too many attempts')).toBeInTheDocument();
   });
 
   it('disables the form while submitting', async () => {

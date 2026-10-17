@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ApiError } from '../api/http';
+import { ApiError, NetworkError } from '../api/http';
 import { FormErrorSummary } from './FormErrorSummary';
 import { feedbackFromError, hasFeedback } from './formFeedback';
 
@@ -13,7 +13,9 @@ describe('form feedback helpers', () => {
   });
 
   it('shows backend text and field errors as-is', () => {
+    // Built like the client builds it: the backend text lives in the body.
     const error = new ApiError(400, 'Revisa los campos enviados', {
+      message: 'Revisa los campos enviados',
       errors: { email: 'Bad' },
     });
     expect(feedbackFromError(error)).toEqual({
@@ -22,10 +24,31 @@ describe('form feedback helpers', () => {
     });
   });
 
-  it('turns anything else into a connectivity message', () => {
-    expect(feedbackFromError(new TypeError('Failed to fetch'))).toEqual({
+  it('explains a connectivity failure', () => {
+    expect(
+      feedbackFromError(new NetworkError('Network request failed')),
+    ).toEqual({
       message:
         'We could not reach the server. Check your connection and try again.',
+      fieldErrors: {},
+    });
+  });
+
+  it('hides internal server text behind friendly copy', () => {
+    const error = new ApiError(500, 'NullPointerException at Foo.java:42', {
+      message: 'NullPointerException at Foo.java:42',
+    });
+    expect(feedbackFromError(error)).toEqual({
+      message: 'Something went wrong on our side. Try again in a few moments.',
+      fieldErrors: {},
+    });
+  });
+
+  // The client reports connectivity problems as NetworkError, so any other
+  // stray error must not be blamed on the connection.
+  it('does not blame the connection for an unexpected error', () => {
+    expect(feedbackFromError(new TypeError('x is not a function'))).toEqual({
+      message: 'Something went wrong. If it keeps happening, reload the page.',
       fieldErrors: {},
     });
   });
