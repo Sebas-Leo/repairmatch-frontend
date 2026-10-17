@@ -12,16 +12,18 @@ async function fillAndSubmit(
   email = 'client@example.test',
   password = 'Test-pass-1',
 ) {
-  if (email) await user.type(screen.getByLabelText('Email'), email);
+  // Pages are lazy: the first query waits for the page to download.
+  const emailField = await screen.findByLabelText('Email');
+  if (email) await user.type(emailField, email);
   if (password) await user.type(screen.getByLabelText('Password'), password);
   await user.click(screen.getByRole('button', { name: 'Sign in' }));
 }
 
 describe('login form', () => {
-  it('is an accessible form with labelled fields', () => {
+  it('is an accessible form with labelled fields', async () => {
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'Sign in',
     );
     expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
@@ -44,7 +46,7 @@ describe('login form', () => {
     const { session, api } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
 
-    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
 
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent('Email: Enter your email address.');
@@ -71,7 +73,7 @@ describe('login form', () => {
     const user = userEvent.setup();
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
-    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
     await user.click(
       within(screen.getByRole('alert')).getByRole('link', {
         name: 'Password: Enter your password.',
@@ -269,9 +271,9 @@ describe('after signing in', () => {
     );
     renderApp(session, '/login');
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Checking your session',
-    );
+    expect(
+      await screen.findByText('Checking your session…'),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
 
     release();

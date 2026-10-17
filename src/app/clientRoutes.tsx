@@ -1,12 +1,14 @@
 import type { RouteObject } from 'react-router';
-import { NotFoundPage } from '../pages/NotFoundPage';
-import { ClientHomePage } from '../pages/ClientHomePage';
+import { lazyPage } from '../shared/routing/lazyPage';
 import { collectModuleRoutes, type RouteModule } from './moduleRoutes';
+import { notFoundRoute } from './notFoundRoute';
 
 /**
  * Screens contributed by feature modules: any `src/features/<module>/client.routes.tsx`
  * with a default export of `RouteObject[]` is picked up automatically, so
- * teammates never edit this file and cannot conflict with each other.
+ * teammates never edit this file and cannot conflict with each other. Module
+ * files are loaded eagerly (they only declare routes); their pages should use
+ * `lazyPage` so each screen downloads on first use.
  */
 const moduleRoutes = collectModuleRoutes(
   import.meta.glob<RouteModule>('../features/*/client.routes.tsx', {
@@ -20,7 +22,13 @@ const moduleRoutes = collectModuleRoutes(
  * client URLs get a 404 inside the guard.
  */
 export const clientRoutes: RouteObject[] = [
-  { index: true, element: <ClientHomePage /> },
+  {
+    index: true,
+    element: lazyPage(
+      () => import('../pages/ClientHomePage'),
+      'ClientHomePage',
+    ),
+  },
   ...moduleRoutes,
-  { path: '*', element: <NotFoundPage /> },
+  notFoundRoute,
 ];

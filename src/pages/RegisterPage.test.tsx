@@ -28,7 +28,9 @@ async function fillAndSubmit(
     role = 'Client',
   }: FormValues = {},
 ) {
-  if (name) await user.type(screen.getByLabelText('Name'), name);
+  // Pages are lazy: the first query waits for the page to download.
+  const nameField = await screen.findByLabelText('Name');
+  if (name) await user.type(nameField, name);
   if (email) await user.type(screen.getByLabelText('Email'), email);
   if (password) await user.type(screen.getByLabelText('Password'), password);
   if (role)
@@ -44,10 +46,10 @@ function routesFor(user: typeof clientUser, extra: Routes = {}) {
 }
 
 describe('register form', () => {
-  it('is an accessible form with a labelled role choice', () => {
+  it('is an accessible form with a labelled role choice', async () => {
     const { session } = createTestSession(routesFor(clientUser));
     renderApp(session, '/register');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'Create your account',
     );
     expect(screen.getByLabelText('Name')).toBeInTheDocument();
@@ -78,7 +80,9 @@ describe('register form', () => {
     const { session, api } = createTestSession(routesFor(clientUser));
     renderApp(session, '/register');
 
-    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Create account' }),
+    );
 
     const alert = screen.getByRole('alert');
     for (const message of [
@@ -112,7 +116,9 @@ describe('register form', () => {
     const user = userEvent.setup();
     const { session } = createTestSession(routesFor(clientUser));
     renderApp(session, '/register');
-    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Create account' }),
+    );
     await user.click(
       screen.getByRole('link', {
         name: 'Account type: Choose an account type.',
@@ -311,7 +317,9 @@ describe('after registering', () => {
       { refreshToken: 'refresh-persisted' },
     );
     renderApp(session, '/register');
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Checking your session…'),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
     release();
     await screen.findByRole('heading', { name: 'Client home' });
