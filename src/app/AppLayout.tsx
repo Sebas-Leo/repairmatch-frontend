@@ -1,16 +1,19 @@
 import { Suspense } from 'react';
 import { Link, Outlet } from 'react-router';
+import { ToastProvider } from '../shared/toast/ToastProvider';
 import { LoadingState } from '../shared/ui/LoadingState';
 
 /**
  * Shell shared by every route: skip link, header, main landmark and footer.
+ * It also hosts the toasts (`useToast()`): the layout outlives navigation, so a
+ * toast raised just before a redirect is still shown on the next page.
  * The `Suspense` boundary around the outlet is a safety net: anything that
  * suspends without a boundary of its own shows the loading state inside
  * `<main>` instead of blanking the whole shell.
  */
 export function AppLayout() {
   return (
-    <>
+    <ToastProvider>
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
@@ -33,6 +36,6 @@ export function AppLayout() {
       <footer className="site-footer shell">
         RepairMatch · Frontend foundation
       </footer>
-    </>
+    </ToastProvider>
   );
 }

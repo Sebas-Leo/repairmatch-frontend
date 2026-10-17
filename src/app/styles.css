@@ -186,3 +186,71 @@ button:disabled {
 .loading-state {
   padding-block: 40px;
 }
+
+/* Toasts: a fixed corner stack that never blocks the page behind it. */
+.toast-viewport {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(24rem, 100%);
+  padding: 12px 16px;
+  background: #fff;
+  color: #193632;
+  border: 2px solid #193632;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgb(25 54 50 / 20%);
+}
+.toast-success {
+  border-color: #1f6f4a;
+}
+.toast-error {
+  border-color: #9b1c1c;
+}
+.toast-icon {
+  flex: none;
+  width: 1.5rem;
+  text-align: center;
+  font-weight: 700;
+}
+.toast-success .toast-icon {
+  color: #1f6f4a;
+}
+.toast-error .toast-icon {
+  color: #9b1c1c;
+}
+.toast-message {
+  flex: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.toast-close {
+  flex: none;
+  min-width: 32px;
+  min-height: 32px;
+  margin: -4px -8px 0 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+}
