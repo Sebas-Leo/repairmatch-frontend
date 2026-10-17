@@ -4,6 +4,7 @@ import { useAuth } from '../features/auth/authContext';
 import { resolvePostLoginTarget } from '../features/auth/redirects';
 import { validateLogin } from '../features/auth/validation';
 import { useReportFormError } from '../shared/hooks/useReportFormError';
+import { useSubmitGuard } from '../shared/hooks/useSubmitGuard';
 import {
   FormErrorSummary,
   type SummaryField,
@@ -24,7 +25,19 @@ export function LoginPage() {
   const reportError = useReportFormError(show);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const { run: submit, isSubmitting } = useSubmitGuard(async () => {
+    const errors = validateLogin({ email, password });
+    if (Object.keys(errors).length > 0) {
+      show({ fieldErrors: errors as Record<string, string> });
+      return;
+    }
+    clear();
+    try {
+      await auth.login({ email: email.trim(), password });
+    } catch (error) {
+      reportError(error);
+    }
+  });
 
   if (auth.status === 'loading') {
     return <LoadingState label="Checking your session…" />;
@@ -39,22 +52,9 @@ export function LoginPage() {
     );
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
-    const errors = validateLogin({ email, password });
-    if (Object.keys(errors).length > 0) {
-      show({ fieldErrors: errors as Record<string, string> });
-      return;
-    }
-    clear();
-    setSubmitting(true);
-    try {
-      await auth.login({ email: email.trim(), password });
-    } catch (error) {
-      reportError(error);
-      setSubmitting(false);
-    }
+    void submit();
   }
 
   return (
@@ -68,7 +68,7 @@ export function LoginPage() {
         />
       ) : null}
       <form onSubmit={handleSubmit} noValidate className="form">
-        <fieldset disabled={submitting} className="form-fields">
+        <fieldset disabled={isSubmitting} className="form-fields">
           <legend className="visually-hidden">Sign-in details</legend>
           <TextField
             id="login-email"
@@ -90,8 +90,8 @@ export function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
             error={feedback?.fieldErrors.password}
           />
-          <button type="submit" aria-busy={submitting}>
-            {submitting ? 'Signing in…' : 'Sign in'}
+          <button type="submit" aria-busy={isSubmitting}>
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
           </button>
         </fieldset>
       </form>

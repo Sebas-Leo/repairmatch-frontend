@@ -48,7 +48,8 @@ describe('form feedback helpers', () => {
   // stray error must not be blamed on the connection.
   it('does not blame the connection for an unexpected error', () => {
     expect(feedbackFromError(new TypeError('x is not a function'))).toEqual({
-      message: 'Something went wrong. If it keeps happening, reload the page.',
+      message:
+        'Something went wrong. Try again, and reload the page if it keeps happening.',
       fieldErrors: {},
     });
   });

@@ -1,7 +1,12 @@
-import { screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clientUser, errorResponse, technicianUser } from '../test/fakeApi';
+import {
+  clientUser,
+  errorResponse,
+  technicianUser,
+  tokenPair,
+} from '../test/fakeApi';
 import { authRoutes, createTestSession } from '../test/testSession';
 import { renderApp } from '../test/renderApp';
 
@@ -202,6 +207,42 @@ describe('login form', () => {
     expect(
       await screen.findByRole('heading', { name: 'Client home' }),
     ).toBeInTheDocument();
+  });
+
+  it('sends one request when submitted twice before the form re-renders', async () => {
+    const user = userEvent.setup();
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    const { session, api } = createTestSession(
+      authRoutes(clientUser, {
+        'POST /auth/login': async () => {
+          await gate;
+          return Response.json(tokenPair('login'));
+        },
+      }),
+    );
+    renderApp(session, '/login');
+    await user.type(
+      await screen.findByLabelText('Email'),
+      'client@example.test',
+    );
+    await user.type(screen.getByLabelText('Password'), 'Test-pass-1');
+    const form = screen
+      .getByRole('button', { name: 'Sign in' })
+      .closest('form');
+
+    // Both events land in the same batch, so the disabled fieldset is not
+    // rendered yet: only the submit guard can stop the second one.
+    act(() => {
+      fireEvent.submit(form!);
+      fireEvent.submit(form!);
+    });
+    release();
+
+    await screen.findByRole('heading', { name: 'Client home' });
+    expect(api.callsTo('POST /auth/login')).toHaveLength(1);
   });
 
   it('sends the trimmed email and the untouched password', async () => {

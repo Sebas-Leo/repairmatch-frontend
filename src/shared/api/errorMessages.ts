@@ -102,10 +102,12 @@ const COPY: Record<ApiErrorKind, Copy> = {
     message: 'Something went wrong on our side. Try again in a few moments.',
     retryable: true,
   },
+  // Cannot tell what failed, so asking again is offered rather than ruled out.
   unknown: {
     title: 'Something went wrong',
-    message: 'Something went wrong. If it keeps happening, reload the page.',
-    retryable: false,
+    message:
+      'Something went wrong. Try again, and reload the page if it keeps happening.',
+    retryable: true,
   },
 };
 

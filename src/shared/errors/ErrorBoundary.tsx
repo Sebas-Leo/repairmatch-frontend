@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { ErrorState } from '../ui/ErrorState';
 
 export interface ErrorBoundaryFallbackProps {
   /** What was thrown. Log it or classify it; do not render it, it can hold internals. */
@@ -23,18 +24,6 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   /** Wrapped so that a thrown `undefined` still counts as a failure. */
   failure: { error: unknown } | null;
-}
-
-function DefaultFallback({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div role="alert" className="error-state">
-      <p className="error-state-title">Something went wrong</p>
-      <p>This part of the page could not be shown. Try again.</p>
-      <button type="button" onClick={onRetry}>
-        Try again
-      </button>
-    </div>
-  );
 }
 
 /**
@@ -70,7 +59,11 @@ export class ErrorBoundary extends Component<
       return fallback({ error: failure.error, reset: this.reset });
     }
     return fallback === undefined ? (
-      <DefaultFallback onRetry={this.reset} />
+      <ErrorState
+        title="Something went wrong"
+        message="This part of the page could not be shown. Try again."
+        onRetry={this.reset}
+      />
     ) : (
       fallback
     );

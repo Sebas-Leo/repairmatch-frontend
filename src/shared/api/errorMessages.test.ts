@@ -31,8 +31,8 @@ describe('describeApiError by HTTP status', () => {
     [502, 'server', true],
     [503, 'server', true],
     [504, 'server', true],
-    [418, 'unknown', false],
-    [405, 'unknown', false],
+    [418, 'unknown', true],
+    [405, 'unknown', true],
   ])('maps %i to %s (retryable: %s)', (status, kind, retryable) => {
     const description = describeApiError(failure(status));
 
@@ -145,7 +145,7 @@ describe('failures without an HTTP answer', () => {
     ['undefined', undefined],
   ])('describes %s as unknown without leaking it', (_name, error) => {
     const description = describeApiError(error);
-    expect(description).toMatchObject({ kind: 'unknown', retryable: false });
+    expect(description).toMatchObject({ kind: 'unknown', retryable: true });
     expect(description.message).not.toMatch(/boom/);
   });
 });

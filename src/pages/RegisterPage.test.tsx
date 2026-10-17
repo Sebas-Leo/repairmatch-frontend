@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -247,6 +247,41 @@ describe('register form', () => {
 
     release();
     await screen.findByRole('heading', { name: 'Client home' });
+  });
+
+  it('sends one request when submitted twice before the form re-renders', async () => {
+    const user = userEvent.setup();
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    const { session, api } = createTestSession(
+      routesFor(clientUser, {
+        'POST /auth/register': async () => {
+          await gate;
+          return Response.json(clientUser, { status: 201 });
+        },
+      }),
+    );
+    renderApp(session, '/register');
+    await user.type(await screen.findByLabelText('Name'), 'Test Client');
+    await user.type(screen.getByLabelText('Email'), 'client@example.test');
+    await user.type(screen.getByLabelText('Password'), 'Test-pass-1');
+    await user.click(screen.getByRole('radio', { name: /Client/ }));
+    const form = screen
+      .getByRole('button', { name: 'Create account' })
+      .closest('form');
+
+    // Both events land in the same batch, so the disabled fieldset is not
+    // rendered yet: only the submit guard can stop the second one.
+    act(() => {
+      fireEvent.submit(form!);
+      fireEvent.submit(form!);
+    });
+    release();
+
+    await screen.findByRole('heading', { name: 'Client home' });
+    expect(api.callsTo('POST /auth/register')).toHaveLength(1);
   });
 });
 

@@ -73,6 +73,7 @@ describe('useReportFormError', () => {
     ['a timeout', new DOMException('timed out', 'TimeoutError'), 'timed out'],
     ['a 429', apiError(429), 'Too many attempts'],
     ['a 503', apiError(503, { message: 'internal' }), 'Server error'],
+    ['an unexpected error', new Error('boom'), 'Something went wrong'],
   ])('raises a toast for %s', async (_name, error, title) => {
     await fail(error);
     expect(screen.getByRole('alert')).toHaveTextContent(title);
@@ -82,7 +83,6 @@ describe('useReportFormError', () => {
     ['a 401', apiError(401)],
     ['a 403', apiError(403)],
     ['a 409', apiError(409)],
-    ['an unknown error', new Error('boom')],
   ])('does not raise a toast for %s', async (_name, error) => {
     const show = await fail(error);
     expect(show).toHaveBeenCalledTimes(1);

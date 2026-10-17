@@ -11,6 +11,7 @@ import {
 } from '../features/auth/validation';
 import { RegistrationSignInError } from '../shared/auth/session';
 import { useReportFormError } from '../shared/hooks/useReportFormError';
+import { useSubmitGuard } from '../shared/hooks/useSubmitGuard';
 import {
   FormErrorSummary,
   type SummaryField,
@@ -50,30 +51,13 @@ export function RegisterPage() {
     password: '',
     role: '',
   });
-  const [submitting, setSubmitting] = useState(false);
-
-  if (auth.status === 'loading') {
-    return <LoadingState label="Checking your session…" />;
-  }
-  if (auth.status === 'authenticated') {
-    return (
-      <Navigate
-        to={resolvePostLoginTarget(location.state, auth.user.role)}
-        replace
-      />
-    );
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (submitting) return;
+  const { run: submit, isSubmitting } = useSubmitGuard(async () => {
     const errors = validateRegister(values);
     if (Object.keys(errors).length > 0 || !values.role) {
       show({ fieldErrors: errors });
       return;
     }
     clear();
-    setSubmitting(true);
     try {
       await auth.register({
         name: values.name.trim(),
@@ -91,8 +75,24 @@ export function RegisterPage() {
       } else {
         reportError(error);
       }
-      setSubmitting(false);
     }
+  });
+
+  if (auth.status === 'loading') {
+    return <LoadingState label="Checking your session…" />;
+  }
+  if (auth.status === 'authenticated') {
+    return (
+      <Navigate
+        to={resolvePostLoginTarget(location.state, auth.user.role)}
+        replace
+      />
+    );
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void submit();
   }
 
   const fieldError = (name: string) => feedback?.fieldErrors[name];
@@ -109,7 +109,7 @@ export function RegisterPage() {
         />
       ) : null}
       <form onSubmit={handleSubmit} noValidate className="form">
-        <fieldset disabled={submitting} className="form-fields">
+        <fieldset disabled={isSubmitting} className="form-fields">
           <legend className="visually-hidden">Registration details</legend>
           <TextField
             id="register-name"
@@ -176,8 +176,8 @@ export function RegisterPage() {
               </p>
             ) : null}
           </fieldset>
-          <button type="submit">
-            {submitting ? 'Creating account…' : 'Create account'}
+          <button type="submit" aria-busy={isSubmitting}>
+            {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </fieldset>
       </form>
