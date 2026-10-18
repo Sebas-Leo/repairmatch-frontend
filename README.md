@@ -257,20 +257,27 @@ Devuelve `{ kind, title, message, retryable, fieldErrors }`: el título corto (p
 
 ```tsx
 function NewRequestForm() {
-  // values y show salen de useState y useFormFeedback
-  const { run: save, isSubmitting } = useSubmitGuard(async () => {
-    try {
-      await createRequest(values);
-    } catch (error) {
-      show(feedbackFromError(error));
-    }
-  });
+  // values, validate y show salen de useState, de tu validación y de useFormFeedback
+  const { run: save, isSubmitting } = useSubmitGuard(
+    async (input: NewRequest) => {
+      try {
+        await createRequest(input);
+      } catch (error) {
+        show(feedbackFromError(error));
+      }
+    },
+  );
 
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        void save();
+        const errors = validate(values);
+        if (Object.keys(errors).length > 0) {
+          show({ fieldErrors: errors });
+          return;
+        }
+        void save(values);
       }}
     >
       <fieldset disabled={isSubmitting}>{/* campos y botón */}</fieldset>
@@ -279,7 +286,7 @@ function NewRequestForm() {
 }
 ```
 
-`run` ejecuta la acción de una en una: una segunda llamada mientras la primera sigue pendiente se ignora (resuelve `undefined`). La comprobación es síncrona (una referencia, no estado), así que también frena un doble clic o un Enter repetido que llegan antes de que React vuelva a renderizar con `isSubmitting`. Si la acción rechaza, la guarda se libera y el error llega a quien llamó a `run`: trátalo dentro de la acción. No actualiza estado después de desmontarse (por ejemplo, tras una redirección). Úsalo en todo lo que no deba enviarse dos veces: crear, aceptar, calificar.
+`run` ejecuta la acción de una en una: una segunda llamada mientras la primera sigue pendiente se ignora (resuelve `undefined`). La comprobación es síncrona (una referencia, no estado), así que también frena un doble clic o un Enter repetido que llegan antes de que React vuelva a renderizar con `isSubmitting`. Valida **antes** de llamar a `run`, como en el ejemplo: así un formulario inválido no activa `isSubmitting` ni hace parpadear el botón y los campos. Si la acción rechaza, la guarda se libera y el error llega a quien llamó a `run`: trátalo dentro de la acción. No actualiza estado después de desmontarse (por ejemplo, tras una redirección). Úsalo en todo lo que no deba enviarse dos veces: crear, aceptar, calificar.
 
 ### Fallos al cargar y reintento (`ErrorState`)
 

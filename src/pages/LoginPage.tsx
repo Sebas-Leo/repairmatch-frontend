@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation } from 'react-router';
 import { useAuth } from '../features/auth/authContext';
 import { resolvePostLoginTarget } from '../features/auth/redirects';
 import { validateLogin } from '../features/auth/validation';
+import type { LoginRequest } from '../shared/api/types';
 import { useSubmitGuard } from '../shared/hooks/useSubmitGuard';
 import {
   FormErrorSummary,
@@ -27,19 +28,16 @@ export function LoginPage() {
   const { feedback, summaryRef, show, clear } = useFormFeedback();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { run: submit, isSubmitting } = useSubmitGuard(async () => {
-    const errors = validateLogin({ email, password });
-    if (Object.keys(errors).length > 0) {
-      show({ fieldErrors: errors as Record<string, string> });
-      return;
-    }
-    clear();
-    try {
-      await auth.login({ email: email.trim(), password });
-    } catch (error) {
-      show(feedbackFromError(error));
-    }
-  });
+  const { run: submit, isSubmitting } = useSubmitGuard(
+    async (credentials: LoginRequest) => {
+      clear();
+      try {
+        await auth.login(credentials);
+      } catch (error) {
+        show(feedbackFromError(error));
+      }
+    },
+  );
 
   if (auth.status === 'loading') {
     return <LoadingState label="Checking your session…" />;
@@ -54,9 +52,16 @@ export function LoginPage() {
     );
   }
 
+  // Validation happens before the submit guard, so an invalid form never
+  // flashes the busy state.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void submit();
+    const errors = validateLogin({ email, password });
+    if (Object.keys(errors).length > 0) {
+      show({ fieldErrors: errors as Record<string, string> });
+      return;
+    }
+    void submit({ email: email.trim(), password });
   }
 
   return (

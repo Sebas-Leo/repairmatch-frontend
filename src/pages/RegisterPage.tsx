@@ -9,6 +9,7 @@ import {
   validateRegister,
   type RegisterValues,
 } from '../features/auth/validation';
+import type { RegisterRequest } from '../shared/api/types';
 import { RegistrationSignInError } from '../shared/auth/session';
 import { useSubmitGuard } from '../shared/hooks/useSubmitGuard';
 import {
@@ -53,32 +54,24 @@ export function RegisterPage() {
     password: '',
     role: '',
   });
-  const { run: submit, isSubmitting } = useSubmitGuard(async () => {
-    const errors = validateRegister(values);
-    if (Object.keys(errors).length > 0 || !values.role) {
-      show({ fieldErrors: errors });
-      return;
-    }
-    clear();
-    try {
-      await auth.register({
-        name: values.name.trim(),
-        email: values.email.trim(),
-        password: values.password,
-        role: values.role,
-      });
-    } catch (error) {
-      if (error instanceof RegistrationSignInError) {
-        show({
-          message:
-            'Your account was created, but we could not sign you in. Try signing in from the sign-in page.',
-          fieldErrors: {},
-        });
-      } else {
-        show(feedbackFromError(error));
+  const { run: submit, isSubmitting } = useSubmitGuard(
+    async (input: RegisterRequest) => {
+      clear();
+      try {
+        await auth.register(input);
+      } catch (error) {
+        if (error instanceof RegistrationSignInError) {
+          show({
+            message:
+              'Your account was created, but we could not sign you in. Try signing in from the sign-in page.',
+            fieldErrors: {},
+          });
+        } else {
+          show(feedbackFromError(error));
+        }
       }
-    }
-  });
+    },
+  );
 
   if (auth.status === 'loading') {
     return <LoadingState label="Checking your session…" />;
@@ -92,9 +85,21 @@ export function RegisterPage() {
     );
   }
 
+  // Validation happens before the submit guard, so an invalid form never
+  // flashes the busy state.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void submit();
+    const errors = validateRegister(values);
+    if (Object.keys(errors).length > 0 || !values.role) {
+      show({ fieldErrors: errors });
+      return;
+    }
+    void submit({
+      name: values.name.trim(),
+      email: values.email.trim(),
+      password: values.password,
+      role: values.role,
+    });
   }
 
   const fieldError = (name: string) => feedback?.fieldErrors[name];

@@ -63,6 +63,29 @@ describe('login form', () => {
     expect(api.adapter).not.toHaveBeenCalled();
   });
 
+  it('does not flash the busy state when the form is invalid', async () => {
+    const user = userEvent.setup();
+    const { session } = createTestSession(authRoutes(clientUser));
+    renderApp(session, '/login');
+    const submit = await screen.findByRole('button', { name: 'Sign in' });
+
+    const changes: string[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const { attributeName } of records) changes.push(`${attributeName}`);
+    });
+    observer.observe(document.body, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['aria-busy', 'disabled'],
+    });
+    await user.click(submit);
+    await screen.findByRole('alert');
+    await new Promise((done) => setTimeout(done, 0));
+    observer.disconnect();
+
+    expect(changes).toEqual([]);
+  });
+
   it('rejects a malformed email', async () => {
     const user = userEvent.setup();
     const { session, api } = createTestSession(authRoutes(clientUser));

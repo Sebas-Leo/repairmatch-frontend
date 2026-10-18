@@ -101,6 +101,31 @@ describe('register form', () => {
     expect(api.adapter).not.toHaveBeenCalled();
   });
 
+  it('does not flash the busy state when the form is invalid', async () => {
+    const user = userEvent.setup();
+    const { session } = createTestSession(routesFor(clientUser));
+    renderApp(session, '/register');
+    const submit = await screen.findByRole('button', {
+      name: 'Create account',
+    });
+
+    const changes: string[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const { attributeName } of records) changes.push(`${attributeName}`);
+    });
+    observer.observe(document.body, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['aria-busy', 'disabled'],
+    });
+    await user.click(submit);
+    await screen.findByRole('alert');
+    await new Promise((done) => setTimeout(done, 0));
+    observer.disconnect();
+
+    expect(changes).toEqual([]);
+  });
+
   it('applies the backend password rules', async () => {
     const user = userEvent.setup();
     const { session, api } = createTestSession(routesFor(clientUser));
