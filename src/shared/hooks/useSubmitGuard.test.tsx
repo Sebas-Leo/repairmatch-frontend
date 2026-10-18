@@ -124,22 +124,20 @@ describe('useSubmitGuard', () => {
     expect(second).toHaveBeenCalledTimes(1);
   });
 
-  it('settles quietly when the component unmounts mid-flight', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const gate = deferred<string>();
-    const { result, unmount } = renderHook(() =>
-      useSubmitGuard(() => gate.promise),
+  it('keeps the identity of run across renders and state changes', async () => {
+    const { result, rerender } = renderHook(
+      ({ action }) => useSubmitGuard(action),
+      { initialProps: { action: async () => 'first' } },
     );
+    const { run } = result.current;
 
-    let pending!: Promise<string | undefined>;
-    act(() => {
-      pending = result.current.run();
+    rerender({ action: async () => 'second' });
+    expect(result.current.run).toBe(run);
+
+    await act(async () => {
+      await run();
     });
-    unmount();
-    gate.resolve('late');
-
-    await expect(pending).resolves.toBe('late');
-    expect(error).not.toHaveBeenCalled();
+    expect(result.current.run).toBe(run);
   });
 
   it('keeps working under StrictMode, which mounts effects twice', async () => {

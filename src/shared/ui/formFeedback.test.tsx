@@ -1,8 +1,41 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, renderHook, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ApiError, NetworkError } from '../api/http';
 import { FormErrorSummary } from './FormErrorSummary';
-import { feedbackFromError, hasFeedback } from './formFeedback';
+import {
+  feedbackFromError,
+  hasFeedback,
+  useFormFeedback,
+} from './formFeedback';
+
+describe('useFormFeedback', () => {
+  it('shows and clears feedback', () => {
+    const { result } = renderHook(() => useFormFeedback());
+    expect(result.current.feedback).toBeNull();
+
+    act(() => result.current.show({ message: 'Oops', fieldErrors: {} }));
+    expect(result.current.feedback).toEqual({
+      message: 'Oops',
+      fieldErrors: {},
+    });
+
+    act(() => result.current.clear());
+    expect(result.current.feedback).toBeNull();
+  });
+
+  it('keeps show, clear and the summary ref stable, so they can be dependencies', () => {
+    const { result, rerender } = renderHook(() => useFormFeedback());
+    const { show, clear, summaryRef } = result.current;
+
+    rerender();
+    act(() => result.current.show({ message: 'Oops', fieldErrors: {} }));
+    act(() => result.current.clear());
+
+    expect(result.current.show).toBe(show);
+    expect(result.current.clear).toBe(clear);
+    expect(result.current.summaryRef).toBe(summaryRef);
+  });
+});
 
 describe('form feedback helpers', () => {
   it('detects when there is something to show', () => {

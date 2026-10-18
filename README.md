@@ -286,7 +286,7 @@ function NewRequestForm() {
 }
 ```
 
-`run` ejecuta la acción de una en una: una segunda llamada mientras la primera sigue pendiente se ignora (resuelve `undefined`). La comprobación es síncrona (una referencia, no estado), así que también frena un doble clic o un Enter repetido que llegan antes de que React vuelva a renderizar con `isSubmitting`. Valida **antes** de llamar a `run`, como en el ejemplo: así un formulario inválido no activa `isSubmitting` ni hace parpadear el botón y los campos. Si la acción rechaza, la guarda se libera y el error llega a quien llamó a `run`: trátalo dentro de la acción. No actualiza estado después de desmontarse (por ejemplo, tras una redirección). Úsalo en todo lo que no deba enviarse dos veces: crear, aceptar, calificar.
+`run` ejecuta la acción de una en una: una segunda llamada mientras la primera sigue pendiente se ignora (resuelve `undefined`). La comprobación es síncrona (una referencia, no estado), así que también frena un doble clic o un Enter repetido que llegan antes de que React vuelva a renderizar con `isSubmitting`. Valida **antes** de llamar a `run`, como en el ejemplo: así un formulario inválido no activa `isSubmitting` ni hace parpadear el botón y los campos. Si la acción rechaza, la guarda se libera y el error llega a quien llamó a `run`: trátalo dentro de la acción. `run` mantiene su identidad entre renderizados (siempre llama a la acción del último renderizado), así que puedes ponerlo en arrays de dependencias; lo mismo vale para `show` y `clear` de `useFormFeedback()`. Úsalo en todo lo que no deba enviarse dos veces: crear, aceptar, calificar.
 
 ### Fallos al cargar y reintento (`ErrorState`)
 

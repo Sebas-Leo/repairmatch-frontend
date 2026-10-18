@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * Runs an async action one call at a time: a second call while the first is
@@ -7,25 +7,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * before React has re-rendered with `isSubmitting`.
  *
  * Use it for anything that must not be sent twice (create, pay, accept) and
- * disable the controls with `isSubmitting` as feedback. A rejection of the
+ * disable the controls with `isSubmitting` as feedback. Validate before calling
+ * `run`, so an invalid form does not flash the busy state. A rejection of the
  * action is passed on to the caller after the guard is released, so handle
- * errors inside the action or around `run`. State is not touched once the
- * component has unmounted (for example after a redirect).
+ * errors inside the action or around `run`.
+ *
+ * `run` keeps its identity across renders (it always calls the action of the
+ * latest render), so it is safe in dependency arrays.
  */
 export function useSubmitGuard<Args extends unknown[], Result>(
   action: (...args: Args) => Promise<Result>,
 ) {
   const running = useRef(false);
-  const mounted = useRef(true);
+  const latestAction = useRef(action);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Set to true again on every mount: StrictMode runs the cleanup in between.
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
+  useLayoutEffect(() => {
+    latestAction.current = action;
+  });
 
   const run = useCallback(
     async (...args: Args): Promise<Result | undefined> => {
@@ -33,13 +32,13 @@ export function useSubmitGuard<Args extends unknown[], Result>(
       running.current = true;
       setIsSubmitting(true);
       try {
-        return await action(...args);
+        return await latestAction.current(...args);
       } finally {
         running.current = false;
-        if (mounted.current) setIsSubmitting(false);
+        setIsSubmitting(false);
       }
     },
-    [action],
+    [],
   );
 
   return { run, isSubmitting };

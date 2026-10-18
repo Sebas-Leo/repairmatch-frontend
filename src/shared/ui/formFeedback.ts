@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { describeApiError } from '../api/errorMessages';
 
 /** What a failed or invalid submit shows: one summary plus per-field messages. */
@@ -39,15 +39,14 @@ export function useFormFeedback() {
     if (version > 0) summaryRef.current?.focus();
   }, [version]);
 
-  return {
-    feedback,
-    summaryRef,
-    show(next: FormFeedback) {
-      setFeedback(next);
-      setVersion((current) => current + 1);
-    },
-    clear() {
-      setFeedback(null);
-    },
-  };
+  // Stable, so they can go in dependency arrays.
+  const show = useCallback((next: FormFeedback) => {
+    setFeedback(next);
+    setVersion((current) => current + 1);
+  }, []);
+  const clear = useCallback(() => {
+    setFeedback(null);
+  }, []);
+
+  return { feedback, summaryRef, show, clear };
 }
