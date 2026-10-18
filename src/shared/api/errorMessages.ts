@@ -111,9 +111,10 @@ const COPY: Record<ApiErrorKind, Copy> = {
   },
 };
 
-// The backend writes these messages for the user and they name the exact
-// problem ("that email is already registered"), so they win over the generic
-// copy. Text from 5xx answers is internal and never shown.
+// The kinds the user can fix. The backend writes their message and per-field
+// errors for the user and they name the exact problem ("that email is already
+// registered"), so they win over the generic copy. Anything the backend says
+// in a 429, 5xx or unexpected answer is internal and is never exposed.
 const SERVER_TEXT_KINDS: ReadonlySet<ApiErrorKind> = new Set([
   'validation',
   'unauthorized',
@@ -161,21 +162,22 @@ function kindOf(error: unknown): ApiErrorKind {
 /**
  * Turns whatever a call rejected with into text for the user, so every screen
  * explains failures the same way. Never shows internals (stack, status line,
- * 5xx bodies). A `cancelled` call was the caller's own decision: do not show it.
+ * 5xx bodies): the backend's text and field errors come through only for the
+ * errors the user can fix. A `cancelled` call was the caller's own decision: do
+ * not show it.
  */
 export function describeApiError(error: unknown): ApiErrorDescription {
   const kind = kindOf(error);
   const copy = COPY[kind];
-  const apiError = error instanceof ApiError ? error : undefined;
-  const serverText =
-    apiError && SERVER_TEXT_KINDS.has(kind)
-      ? serverMessageOf(apiError)
+  const userFixable =
+    error instanceof ApiError && SERVER_TEXT_KINDS.has(kind)
+      ? error
       : undefined;
   return {
     kind,
     title: copy.title,
-    message: serverText ?? copy.message,
+    message: (userFixable && serverMessageOf(userFixable)) ?? copy.message,
     retryable: copy.retryable,
-    fieldErrors: apiError?.errors ?? NO_FIELD_ERRORS,
+    fieldErrors: userFixable?.errors ?? NO_FIELD_ERRORS,
   };
 }

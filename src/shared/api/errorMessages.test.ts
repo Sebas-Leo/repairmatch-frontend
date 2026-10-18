@@ -95,6 +95,30 @@ describe('the backend message', () => {
     });
   });
 
+  it.each([408, 429, 500, 503, 418])(
+    'exposes no field errors for a %i, whatever the body holds',
+    (status) => {
+      const description = describeApiError(
+        failure(status, {
+          message: 'internal',
+          errors: { x: 'internal stack trace at Foo.java:42' },
+        }),
+      );
+      expect(description.fieldErrors).toEqual({});
+      expect(JSON.stringify(description)).not.toMatch(/internal|Foo\.java/);
+    },
+  );
+
+  it.each([401, 403, 404, 409])(
+    'keeps the field errors of a %i, which the user can act on',
+    (status) => {
+      expect(
+        describeApiError(failure(status, { errors: { name: 'Taken' } }))
+          .fieldErrors,
+      ).toEqual({ name: 'Taken' });
+    },
+  );
+
   it('has no field errors otherwise', () => {
     expect(describeApiError(failure(500)).fieldErrors).toEqual({});
     expect(describeApiError(new NetworkError('x')).fieldErrors).toEqual({});
