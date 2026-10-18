@@ -131,7 +131,7 @@ describe('login form', () => {
     );
   });
 
-  it('explains a network failure in the summary and in a toast', async () => {
+  it('explains a network failure in the one error summary', async () => {
     const user = userEvent.setup();
     const { session } = createTestSession(
       authRoutes(clientUser, {
@@ -143,13 +143,9 @@ describe('login form', () => {
     renderApp(session, '/login');
     await fillAndSubmit(user);
 
-    const message = await screen.findByText(
-      'We could not reach the server. Check your connection and try again.',
-    );
-    // The toast is extra: focus still goes to the form's error summary.
-    expect(message.closest('[role="alert"]')).toHaveFocus();
-    expect(screen.getByText('Connection problem')).toBeInTheDocument();
-    expect(screen.getAllByRole('alert')).toHaveLength(2);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('We could not reach the server');
+    expect(alert).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
   });
 
@@ -164,12 +160,9 @@ describe('login form', () => {
     renderApp(session, '/login');
     await fillAndSubmit(user);
 
-    expect(
-      await screen.findByText(
-        'Something went wrong on our side. Try again in a few moments.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Server error')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Something went wrong on our side. Try again in a few moments.',
+    );
     expect(screen.queryByText(/upstream database/)).not.toBeInTheDocument();
   });
 

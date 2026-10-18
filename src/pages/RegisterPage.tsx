@@ -10,13 +10,16 @@ import {
   type RegisterValues,
 } from '../features/auth/validation';
 import { RegistrationSignInError } from '../shared/auth/session';
-import { useReportFormError } from '../shared/hooks/useReportFormError';
 import { useSubmitGuard } from '../shared/hooks/useSubmitGuard';
 import {
   FormErrorSummary,
   type SummaryField,
 } from '../shared/ui/FormErrorSummary';
-import { hasFeedback, useFormFeedback } from '../shared/ui/formFeedback';
+import {
+  feedbackFromError,
+  hasFeedback,
+  useFormFeedback,
+} from '../shared/ui/formFeedback';
 import { LoadingState } from '../shared/ui/LoadingState';
 import { TextField } from '../shared/ui/TextField';
 
@@ -44,7 +47,6 @@ export function RegisterPage() {
   const auth = useAuth();
   const location = useLocation();
   const { feedback, summaryRef, show, clear } = useFormFeedback();
-  const reportError = useReportFormError(show);
   const [values, setValues] = useState<RegisterValues>({
     name: '',
     email: '',
@@ -73,7 +75,7 @@ export function RegisterPage() {
           fieldErrors: {},
         });
       } else {
-        reportError(error);
+        show(feedbackFromError(error));
       }
     }
   });

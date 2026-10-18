@@ -48,7 +48,7 @@ Solicita una revisión de Codex comentando `@codex review` en un PR; la activaci
 | `src/shared/routing`    | `lazyPage`: carga diferida de pantallas                                                                                                                                             |
 | `src/shared/errors`     | `ErrorBoundary` para aislar fallos de renderizado                                                                                                                                   |
 | `src/shared/toast`      | `ToastProvider` y `useToast()`                                                                                                                                                      |
-| `src/shared/hooks`      | `useSubmitGuard` (anti doble envío) y `useReportFormError` (errores de formulario)                                                                                                  |
+| `src/shared/hooks`      | `useSubmitGuard` (anti doble envío)                                                                                                                                                 |
 | `src/shared/ui`         | Piezas mínimas y accesibles de formulario y estado (`TextField`, `FormErrorSummary`, `LoadingState`, `ErrorState`)                                                                  |
 | `src/shared/config`     | Configuración pública del entorno                                                                                                                                                   |
 | `src/test`              | Utilidades de pruebas (API falsa en memoria y render de la app)                                                                                                                     |
@@ -208,7 +208,9 @@ toast.dismiss(id);
 
 `success`, `error` e `info` reciben el mensaje y, opcionalmente, `{ durationMs }` (por defecto 5 s, 8 s en errores; `0` lo mantiene hasta que se cierre) y devuelven un id para `toast.dismiss(id)`. Se muestran como máximo 3 a la vez (el más antiguo cede su lugar), se detienen mientras tienen el puntero o el foco encima y se cierran con su botón o con Esc. Los errores se anuncian al instante (`role="alert"`) y el resto de forma educada (`aria-live="polite"`).
 
-El `ToastProvider` está en `AppLayout`: ya funciona en las pantallas y en las pruebas con `renderApp`. Para probar un componente aislado envuélvelo en `<ToastProvider>`. Un aviso desaparece, así que no pongas en él información que el usuario necesite conservar; los errores que debe corregir en un formulario van en el resumen de errores (`FormErrorSummary`).
+El `ToastProvider` está en `AppLayout`: ya funciona en las pantallas y en las pruebas con `renderApp`. Para probar un componente aislado envuélvelo en `<ToastProvider>`.
+
+**Cuándo usar un aviso y cuándo el resumen de errores.** Un aviso es para resultados que no bloquean al usuario y que puede perderse sin consecuencias: un éxito («Request cancelled»), una novedad, un fallo en segundo plano de algo que no está en un formulario. Desaparece solo, así que no pongas en él información que el usuario necesite conservar. Los errores de un formulario (validación, credenciales incorrectas, fallo de red al enviar) van **solo** en el `FormErrorSummary`: es el aviso accesible, recibe el foco y se queda hasta que se corrige. Un aviso de error además lo repetiría y el lector de pantalla lo leería dos veces.
 
 ### Mensajes por código HTTP (`describeApiError`)
 
@@ -241,27 +243,26 @@ Devuelve `{ kind, title, message, retryable, fieldErrors }`: el título corto (p
 | `server`             | HTTP 5xx                                                       | sí          |
 | `unknown`            | cualquier otro (no se sabe qué falló)                          | sí          |
 
-- `message` es el texto del backend en 400, 401, 403, 404, 409 y 422 cuando lo envió (nombra el problema exacto, por ejemplo «El correo ya está registrado»); si no, un texto genérico. En el resto (red, 429, 5xx, desconocido) siempre es un texto genérico: el texto del backend no se muestra.
+- `message` es el texto del backend en 400, 401, 403, 404, 409 y 422 cuando lo envió (nombra el problema exacto, por ejemplo «El correo ya está registrado»); si no, un texto genérico. Lo mismo vale para `fieldErrors`. En el resto (red, 429, 5xx, desconocido) el mensaje siempre es genérico y `fieldErrors` está vacío: nada de lo que el backend diga en esos casos se muestra.
 - `retryable` dice si volver a pedirlo puede funcionar, no que repetirlo sea seguro: tras un fallo de red o un timeout el servidor puede haber procesado ya un `POST`. Antes de reintentar una creación, comprueba el estado o hazla idempotente.
-- En formularios usa `useReportFormError(show)` con el `show` de `useFormFeedback()`. Muestra el resumen accesible (con el foco) y, en fallos transitorios (red, timeout, 429, 5xx), añade un aviso; los errores que el usuario debe corregir no generan aviso.
+- En formularios, muestra el error en el `FormErrorSummary` con `feedbackFromError(error)` (usa `describeApiError`) y el `show` de `useFormFeedback()`, que mueve el foco al resumen. No añadas un aviso:
 
   ```tsx
   const { feedback, summaryRef, show, clear } = useFormFeedback();
-  const reportError = useReportFormError(show);
   // ...en el catch del envío:
-  reportError(error);
+  show(feedbackFromError(error));
   ```
 
 ### Evitar envíos dobles (`useSubmitGuard`)
 
 ```tsx
 function NewRequestForm() {
-  // values y reportError salen de useState y useReportFormError
+  // values y show salen de useState y useFormFeedback
   const { run: save, isSubmitting } = useSubmitGuard(async () => {
     try {
       await createRequest(values);
     } catch (error) {
-      reportError(error);
+      show(feedbackFromError(error));
     }
   });
 

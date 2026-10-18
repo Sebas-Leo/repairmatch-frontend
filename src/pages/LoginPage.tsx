@@ -3,13 +3,16 @@ import { Link, Navigate, useLocation } from 'react-router';
 import { useAuth } from '../features/auth/authContext';
 import { resolvePostLoginTarget } from '../features/auth/redirects';
 import { validateLogin } from '../features/auth/validation';
-import { useReportFormError } from '../shared/hooks/useReportFormError';
 import { useSubmitGuard } from '../shared/hooks/useSubmitGuard';
 import {
   FormErrorSummary,
   type SummaryField,
 } from '../shared/ui/FormErrorSummary';
-import { hasFeedback, useFormFeedback } from '../shared/ui/formFeedback';
+import {
+  feedbackFromError,
+  hasFeedback,
+  useFormFeedback,
+} from '../shared/ui/formFeedback';
 import { LoadingState } from '../shared/ui/LoadingState';
 import { TextField } from '../shared/ui/TextField';
 
@@ -22,7 +25,6 @@ export function LoginPage() {
   const auth = useAuth();
   const location = useLocation();
   const { feedback, summaryRef, show, clear } = useFormFeedback();
-  const reportError = useReportFormError(show);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { run: submit, isSubmitting } = useSubmitGuard(async () => {
@@ -35,7 +37,7 @@ export function LoginPage() {
     try {
       await auth.login({ email: email.trim(), password });
     } catch (error) {
-      reportError(error);
+      show(feedbackFromError(error));
     }
   });
 
