@@ -11,10 +11,12 @@ interface ErrorStateProps {
   /** Replaces the text derived from `error`. */
   message?: string;
   /**
-   * Shows a "Try again" button that calls this. With an `error`, the button is
-   * left out when asking again cannot help (403, 404, a validation error...).
+   * Shows a button that calls this. With an `error`, the button is left out
+   * when asking again cannot help (403, 404, a validation error...).
    */
   onRetry?: () => void;
+  /** Text of the button. Defaults to "Try again". */
+  retryLabel?: string;
 }
 
 /**
@@ -26,6 +28,7 @@ export function ErrorState({
   title,
   message,
   onRetry,
+  retryLabel = 'Try again',
 }: ErrorStateProps) {
   const description = describeApiError(error);
   if (description.kind === 'cancelled') return null;
@@ -37,7 +40,7 @@ export function ErrorState({
       <p>{message ?? description.message}</p>
       {canRetry ? (
         <button type="button" onClick={onRetry}>
-          Try again
+          {retryLabel}
         </button>
       ) : null}
     </div>

@@ -128,6 +128,42 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('Recovered')).toBeInTheDocument();
   });
 
+  describe('when a lazy page fails to download', () => {
+    function FailedDownload(): never {
+      throw new TypeError(
+        'Failed to fetch dynamically imported module: https://app.test/assets/Page-3f9a.js',
+      );
+    }
+
+    it('offers only a reload, since rendering again cannot fix it', async () => {
+      const user = userEvent.setup();
+      const onReload = vi.fn();
+      render(
+        <ErrorBoundary onReload={onReload}>
+          <FailedDownload />
+        </ErrorBoundary>,
+      );
+
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('A new version may be available');
+      expect(alert).not.toHaveTextContent('app.test');
+      expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+
+      await user.click(screen.getByRole('button', { name: 'Reload page' }));
+      expect(onReload).toHaveBeenCalledTimes(1);
+    });
+
+    it('still lets a custom fallback decide', () => {
+      render(
+        <ErrorBoundary fallback={<p>Custom fallback</p>}>
+          <FailedDownload />
+        </ErrorBoundary>,
+      );
+      expect(screen.getByText('Custom fallback')).toBeInTheDocument();
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+  });
+
   it('can render nothing when the fallback is null', () => {
     const { container } = render(
       <ErrorBoundary fallback={null}>

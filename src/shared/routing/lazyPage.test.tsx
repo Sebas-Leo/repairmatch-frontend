@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { ErrorBoundary } from '../errors/ErrorBoundary';
 import { lazyPage } from './lazyPage';
 
 function Hello() {
@@ -62,6 +63,26 @@ describe('lazyPage', () => {
     rerender(element);
 
     expect(screen.getByRole('heading', { name: 'Hello page' })).toBeVisible();
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('remembers a failed download, so only a page reload can recover', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const load = vi.fn(() =>
+      Promise.reject<{ Hello: typeof Hello }>(new TypeError('offline')),
+    );
+    const element = (
+      <ErrorBoundary fallback={<p>Download failed</p>}>
+        {lazyPage(load, 'Hello')}
+      </ErrorBoundary>
+    );
+
+    const first = render(element);
+    expect(await screen.findByText('Download failed')).toBeInTheDocument();
+    first.unmount();
+    render(element);
+
+    expect(await screen.findByText('Download failed')).toBeInTheDocument();
     expect(load).toHaveBeenCalledTimes(1);
   });
 

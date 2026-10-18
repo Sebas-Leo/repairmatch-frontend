@@ -22,6 +22,22 @@ describe('ErrorState', () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
+  it('can name the action of the button', async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    render(
+      <ErrorState
+        message="Could not load."
+        onRetry={onRetry}
+        retryLabel="Reload page"
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Reload page' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it('has no retry button without onRetry', () => {
     render(<ErrorState message="Could not load." />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

@@ -7,6 +7,7 @@ import {
   type RouteObject,
 } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { lazyPage } from '../shared/routing/lazyPage';
 import { RootErrorPage, RouteErrorPage } from './RouteErrorPage';
 
 beforeEach(() => {
@@ -109,6 +110,60 @@ describe('RouteErrorPage', () => {
     expect(alert).toHaveTextContent('Something went wrong');
     expect(screen.getByRole('button', { name: 'Reload page' })).toBeVisible();
     expect(screen.queryByText(/stack trace/)).toBeNull();
+  });
+});
+
+describe('a page that fails to download', () => {
+  // React.lazy remembers a failed download, so going home and back (or a
+  // retry) would fail again: only a reload is offered.
+  it.each([
+    [
+      'Chrome',
+      'Failed to fetch dynamically imported module: https://app.test/assets/RequestsPage-3f9a.js',
+    ],
+    ['Safari', 'Importing a module script failed.'],
+    [
+      'Firefox',
+      'error loading dynamically imported module: https://app.test/assets/RequestsPage-3f9a.js',
+    ],
+  ])('offers only a reload (%s)', async (_browser, message) => {
+    const user = userEvent.setup();
+    const onReload = vi.fn();
+    function FailedDownload(): never {
+      throw new TypeError(message);
+    }
+    renderBroken(
+      { element: <FailedDownload /> },
+      <RouteErrorPage onReload={onReload} />,
+    );
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('A new version may be available');
+    expect(screen.queryByText(/app\.test/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Go to home' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Reload page' }));
+    expect(onReload).toHaveBeenCalledTimes(1);
+  });
+
+  it('recognises the failure of a real lazyPage download', async () => {
+    renderBroken({
+      element: lazyPage(
+        () =>
+          Promise.reject<{ Page: () => null }>(
+            new TypeError(
+              'Failed to fetch dynamically imported module: https://app.test/assets/Page.js',
+            ),
+          ),
+        'Page',
+      ),
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'A new version may be available',
+    );
+    expect(screen.queryByRole('link', { name: 'Go to home' })).toBeNull();
   });
 });
 

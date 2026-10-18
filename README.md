@@ -183,7 +183,7 @@ En las pruebas, la primera pintura de una pantalla es asíncrona: espera con `fi
 
 ### Errores de pantalla (`errorElement` y `ErrorBoundary`)
 
-Para las pantallas de ruta no tienes que hacer nada: el `errorElement` del router captura los errores de renderizado, de descarga de la pantalla y de ruta, y muestra `RouteErrorPage` dentro del layout. Es un mensaje amable sin stack ni detalles internos, anunciado (`role="alert"`), con el foco puesto en él y con «Reload page» y «Go to home».
+Para las pantallas de ruta no tienes que hacer nada: el `errorElement` del router captura los errores de renderizado, de descarga de la pantalla y de ruta, y muestra `RouteErrorPage` dentro del layout. Es un mensaje amable sin stack ni detalles internos, anunciado (`role="alert"`), con el foco puesto en él y con «Reload page» y «Go to home». Si lo que falló es la **descarga** de una pantalla (se cayó la red o un despliegue nuevo reemplazó el archivo), `React.lazy` recuerda el fallo y volver a intentarlo o ir al inicio fallaría igual: en ese caso solo se ofrece «Reload page», con el texto «A new version may be available». `isChunkLoadError(error)` (`src/shared/errors/chunkLoadError.ts`) detecta ese caso por si lo necesitas.
 
 Usa `ErrorBoundary` para aislar una parte de una pantalla, de modo que su fallo no tumbe el resto:
 
@@ -193,7 +193,7 @@ Usa `ErrorBoundary` para aislar una parte de una pantalla, de modo que su fallo 
 </ErrorBoundary>
 ```
 
-Sin `fallback` muestra un `ErrorState` con «Try again». `fallback` acepta un elemento o una función `({ error, reset }) => ...`; `onError` sirve para registrar el fallo y `onReset` para limpiar estado antes de volver a renderizar. Un `ErrorBoundary` solo captura errores de renderizado: los de manejadores de eventos y de código asíncrono se tratan donde ocurren (ver `describeApiError`).
+Sin `fallback` muestra un `ErrorState` con «Try again» (o con «Reload page» si lo que falló fue la descarga de una pantalla). `fallback` acepta un elemento o una función `({ error, reset }) => ...`; `onError` sirve para registrar el fallo y `onReset` para limpiar estado antes de volver a renderizar. Un `ErrorBoundary` solo captura errores de renderizado: los de manejadores de eventos y de código asíncrono se tratan donde ocurren (ver `describeApiError`).
 
 ### Avisos (`useToast`)
 

@@ -1,16 +1,31 @@
 import { useEffect, useRef } from 'react';
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
+import { isChunkLoadError } from '../shared/errors/chunkLoadError';
+import { reloadPage } from '../shared/errors/reloadPage';
 
 interface ErrorCopy {
   eyebrow: string;
   title: string;
   message: string;
   /** Whether loading the page again can help. */
-  retryable: boolean;
+  reload: boolean;
+  /** Whether going home is offered. */
+  home: boolean;
 }
 
 /** Friendly copy only: nothing from the error itself (message, stack, response body) is shown. */
 function copyFor(error: unknown): ErrorCopy {
+  if (isChunkLoadError(error)) {
+    // Going home would render the same lazy page again and fail the same way.
+    return {
+      eyebrow: 'Page failed to load',
+      title: 'A new version may be available',
+      message:
+        'This page could not be loaded, possibly because the app was updated. Reload the page to get the latest version.',
+      reload: true,
+      home: false,
+    };
+  }
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
       return {
@@ -18,14 +33,16 @@ function copyFor(error: unknown): ErrorCopy {
         title: 'This page is not here.',
         message:
           'The address may be incorrect, or this page may not exist yet.',
-        retryable: false,
+        reload: false,
+        home: true,
       };
     }
     return {
       eyebrow: `${error.status} / Error`,
       title: 'Something went wrong',
       message: 'This page could not be loaded. Try again in a few moments.',
-      retryable: true,
+      reload: true,
+      home: true,
     };
   }
   return {
@@ -33,7 +50,8 @@ function copyFor(error: unknown): ErrorCopy {
     title: 'Something went wrong',
     message:
       'An unexpected problem stopped this page from loading. Reload the page or go back to the home page.',
-    retryable: true,
+    reload: true,
+    home: true,
   };
 }
 
@@ -42,19 +60,15 @@ interface RouteErrorPageProps {
   onReload?: () => void;
 }
 
-const reloadWindow = () => window.location.reload();
-
 /**
  * Router `errorElement`: what a visitor sees when a page throws while
  * rendering, fails to download or answers a route error. It takes focus and is
  * announced (`role="alert"`), like the form error summary.
  */
-export function RouteErrorPage({
-  onReload = reloadWindow,
-}: RouteErrorPageProps) {
+export function RouteErrorPage({ onReload = reloadPage }: RouteErrorPageProps) {
   const error = useRouteError();
   const alertRef = useRef<HTMLElement>(null);
-  const { eyebrow, title, message, retryable } = copyFor(error);
+  const { eyebrow, title, message, reload, home } = copyFor(error);
 
   useEffect(() => {
     alertRef.current?.focus();
@@ -72,14 +86,16 @@ export function RouteErrorPage({
       <h1 id="route-error-title">{title}</h1>
       <p>{message}</p>
       <div className="error-actions">
-        {retryable ? (
+        {reload ? (
           <button type="button" onClick={onReload}>
             Reload page
           </button>
         ) : null}
-        <Link className="button-link" to="/">
-          Go to home
-        </Link>
+        {home ? (
+          <Link className="button-link" to="/">
+            Go to home
+          </Link>
+        ) : null}
       </div>
     </section>
   );
