@@ -1,6 +1,6 @@
 # Frontend de RepairMatch
 
-Base con React + TypeScript: autenticación y sesión, rutas protegidas por rol, cliente HTTP autenticado y verificaciones automatizadas. Las pantallas, los tipos y las funciones de API de cada funcionalidad los entrega cada responsable de módulo (ver «Reparto inicial del trabajo» y «Cómo agregar tu módulo»).
+Base con React + TypeScript: autenticación y sesión, rutas protegidas por rol, cliente HTTP autenticado, piezas compartidas de experiencia de usuario (carga diferida, errores, avisos y reintentos) y verificaciones automatizadas. Las pantallas, los tipos y las funciones de API de cada funcionalidad los entrega cada responsable de módulo (ver «Reparto inicial del trabajo» y «Cómo agregar tu módulo»).
 
 ## Iniciar en local
 
@@ -37,17 +37,21 @@ Solicita una revisión de Codex comentando `@codex review` en un PR; la activaci
 
 ## Estructura
 
-| Ruta                    | Responsabilidad                                                                                                                                                      |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app`               | Layout, tabla de rutas (`router.tsx`), rutas de cada área (`clientRoutes.tsx`, `technicianRoutes.tsx`) y registro automático de rutas por módulo (`moduleRoutes.ts`) |
-| `src/pages`             | Pantallas asociadas a las rutas (inicio de sesión, registro, inicio por rol, 404, no autorizado)                                                                     |
-| `src/features/auth`     | Proveedor de sesión, `useAuth()`, guards de ruta, redirecciones y validación de formularios                                                                          |
-| `src/features/<módulo>` | Un módulo por responsable: pantallas, `api.ts`, tipos, `client.routes.tsx` / `technician.routes.tsx` y pruebas                                                       |
-| `src/shared/api`        | Cliente axios (`axiosClient.ts`), transporte y errores (`http.ts`), cliente autenticado (`client.ts`), endpoints de auth y tipos (`types/`)                          |
-| `src/shared/auth`       | Almacén de tokens (`tokenStore.ts`) y sesión (`session.ts`), sin dependencias de React                                                                               |
-| `src/shared/ui`         | Piezas mínimas y accesibles de formulario (`TextField`, `FormErrorSummary`, `LoadingState`)                                                                          |
-| `src/shared/config`     | Configuración pública del entorno                                                                                                                                    |
-| `src/test`              | Utilidades de pruebas (API falsa en memoria y render de la app)                                                                                                      |
+| Ruta                    | Responsabilidad                                                                                                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app`               | Layout, tabla de rutas (`router.tsx`), rutas de cada área (`clientRoutes.tsx`, `technicianRoutes.tsx`) y registro automático de rutas por módulo (`moduleRoutes.ts`)                |
+| `src/pages`             | Pantallas asociadas a las rutas (inicio de sesión, registro, inicio por rol, 404, no autorizado) y la pantalla de error de ruta (`RouteErrorPage`)                                  |
+| `src/features/auth`     | Proveedor de sesión, `useAuth()`, guards de ruta, redirecciones y validación de formularios                                                                                         |
+| `src/features/<módulo>` | Un módulo por responsable: pantallas, `api.ts`, tipos, `client.routes.tsx` / `technician.routes.tsx` y pruebas                                                                      |
+| `src/shared/api`        | Cliente axios (`axiosClient.ts`), transporte y errores (`http.ts`), cliente autenticado (`client.ts`), mensajes de error (`errorMessages.ts`), endpoints de auth y tipos (`types/`) |
+| `src/shared/auth`       | Almacén de tokens (`tokenStore.ts`) y sesión (`session.ts`), sin dependencias de React                                                                                              |
+| `src/shared/routing`    | `lazyPage`: carga diferida de pantallas                                                                                                                                             |
+| `src/shared/errors`     | `ErrorBoundary` para aislar fallos de renderizado                                                                                                                                   |
+| `src/shared/toast`      | `ToastProvider` y `useToast()`                                                                                                                                                      |
+| `src/shared/hooks`      | `useSubmitGuard` (anti doble envío)                                                                                                                                                 |
+| `src/shared/ui`         | Piezas mínimas y accesibles de formulario y estado (`TextField`, `FormErrorSummary`, `LoadingState`, `ErrorState`)                                                                  |
+| `src/shared/config`     | Configuración pública del entorno                                                                                                                                                   |
+| `src/test`              | Utilidades de pruebas (API falsa en memoria y render de la app)                                                                                                                     |
 
 Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. Mantén las pruebas junto al código que verifican. Llama al backend con `api` de `src/shared/api/client.ts`, nunca con `fetch` ni `axios` directos, y contrasta los datos con el contrato del backend: los tipos de respuesta no validan los datos durante la ejecución. La autorización sigue siendo responsabilidad del backend; los guards de rutas solo deciden qué mostrar.
 
@@ -69,20 +73,24 @@ Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. M
 
    Verifica rutas, métodos y cuerpos contra `docs/API_CONTRACT.md` del backend. Los errores HTTP llegan como `ApiError` (`status`, `message`, `errors`, `body`).
 
-3. Registra tus pantallas **sin editar archivos compartidos**: crea `client.routes.tsx` (área del cliente, `/client/...`) o `technician.routes.tsx` (área del técnico, `/technician/...`) dentro de tu carpeta con un `export default` de `RouteObject[]`. Se descubren automáticamente y sus rutas son relativas al área:
+3. Registra tus pantallas **sin editar archivos compartidos**: crea `client.routes.tsx` (área del cliente, `/client/...`) o `technician.routes.tsx` (área del técnico, `/technician/...`) dentro de tu carpeta con un `export default` de `RouteObject[]`. Se descubren automáticamente y sus rutas son relativas al área. Carga cada pantalla con `lazyPage` para que se descargue solo cuando se visita (ver «Experiencia de usuario compartida»):
 
    ```tsx
    import type { RouteObject } from 'react-router';
-   import { RequestsPage } from './RequestsPage';
+   import { lazyPage } from '../../shared/routing/lazyPage';
 
    export default [
-     { path: 'requests', element: <RequestsPage /> },
+     {
+       path: 'requests',
+       element: lazyPage(() => import('./RequestsPage'), 'RequestsPage'),
+     },
    ] satisfies RouteObject[];
    ```
 
 4. Lee la sesión con `useAuth()` (`user`, `status`); nunca accedas a los tokens. El guard del área ya garantiza el rol, pero la autorización real la hace el backend.
 5. Las páginas de inicio (`ClientHomePage`, `TechnicianHomePage`) son marcadores de posición: el módulo dueño de cada flujo las reemplaza.
-6. Antes de abrir tu PR ejecuta `npm run verify`.
+6. Muestra los estados de carga, error y reintento con las piezas compartidas (`LoadingState`, `ErrorState`, `describeApiError`, `useToast`, `useSubmitGuard`) en lugar de crear las tuyas.
+7. Antes de abrir tu PR ejecuta `npm run verify`.
 
 ## Autenticación y sesión
 
@@ -118,6 +126,8 @@ Agrega carpetas por funcionalidad solo cuando implementes comportamiento real. M
 | `TimeoutError` (`DOMException`)                    | Se superó el timeout                                                     |
 | `AbortError` (`DOMException`)                      | La cancelaste con tu `AbortSignal`; no se muestra como error (ver abajo) |
 
+Para mostrar estos errores al usuario no escribas textos propios: `describeApiError` los traduce a mensajes amigables (ver «Experiencia de usuario compartida»).
+
 **Cancelación (`AbortController`).** Toda función de API debería aceptar `CallOptions` (`{ signal? }`, de `client.ts`) y pasarla a `api.request`. Cancela al desmontar:
 
 ```ts
@@ -140,6 +150,152 @@ useEffect(() => {
 **Contrato de la cancelación.** Una llamada cancelada rechaza con el _motivo de la señal_: con `controller.abort()` (sin argumentos, o con algo que no es un error) recibes un `AbortError` y `isAbortError(error)` es `true`; si abortas con tu propio motivo (`controller.abort(reason)`) recibes **ese motivo tal cual**, y `isAbortError` solo es `true` cuando su `name` es `AbortError` (un `TimeoutError` es un fallo, no una cancelación).
 
 Cancelar rechaza **de inmediato**, también si la petición está esperando un refresco tras un 401 (no espera a que termine). El refresco compartido que ya está en curso **no se cancela** (otros llamadores dependen de él): sigue en segundo plano, su resultado se guarda y se libera el estado; si mientras tanto hubo un cierre de sesión o un cambio de usuario, se descarta y el token nuevo se revoca. La petición cancelada nunca se reenvía.
+
+## Experiencia de usuario compartida
+
+La carga diferida, los errores, los avisos, los mensajes por código HTTP y los reintentos ya están resueltos para todos los módulos. Úsalos en lugar de crear los tuyos: así toda la aplicación se comporta y se lee igual.
+
+| Necesito...                                           | Usa                       |
+| ----------------------------------------------------- | ------------------------- |
+| Cargar una pantalla solo cuando se visita             | `lazyPage`                |
+| Aislar un componente que puede fallar al renderizarse | `ErrorBoundary`           |
+| Avisar de un resultado fuera de un formulario         | `useToast()`              |
+| Explicar un error de la API al usuario                | `describeApiError(error)` |
+| Evitar enviar dos veces una acción                    | `useSubmitGuard(action)`  |
+| Mostrar que algo no cargó y permitir reintentar       | `ErrorState`              |
+
+### Carga diferida (`lazyPage`)
+
+`lazyPage(() => import('./RequestsPage'), 'RequestsPage')` devuelve un elemento de ruta que descarga la pantalla la primera vez que se visita. El segundo argumento es el nombre de su `export` (no hace falta `export default`). El elemento lleva su propio `Suspense` con `LoadingState`, así que el layout (cabecera y pie) sigue en pantalla mientras carga; un tercer argumento opcional cambia ese fallback.
+
+```tsx
+export default [
+  {
+    path: 'requests',
+    element: lazyPage(() => import('./RequestsPage'), 'RequestsPage'),
+  },
+] satisfies RouteObject[];
+```
+
+Llámalo al declarar las rutas (a nivel de módulo), nunca dentro de un componente: cada llamada crea un componente nuevo y la pantalla se remontaría en cada renderizado. Los archivos `*.routes.tsx` se siguen importando de forma anticipada (solo declaran rutas); lo que se difiere es la pantalla.
+
+En las pruebas, la primera pintura de una pantalla es asíncrona: espera con `findBy*` (por ejemplo `await screen.findByRole(...)`) antes de las comprobaciones síncronas.
+
+### Errores de pantalla (`errorElement` y `ErrorBoundary`)
+
+Para las pantallas de ruta no tienes que hacer nada: el `errorElement` del router captura los errores de renderizado, de descarga de la pantalla y de ruta, y muestra `RouteErrorPage` dentro del layout. Es un mensaje amable sin stack ni detalles internos, anunciado (`role="alert"`), con el foco puesto en él y con «Reload page» y «Go to home». Si lo que falló es la **descarga** de una pantalla (se cayó la red o un despliegue nuevo reemplazó el archivo), `React.lazy` recuerda el fallo y volver a intentarlo o ir al inicio fallaría igual: en ese caso solo se ofrece «Reload page», con el texto «A new version may be available». `isChunkLoadError(error)` (`src/shared/errors/chunkLoadError.ts`) detecta ese caso por si lo necesitas.
+
+Usa `ErrorBoundary` para aislar una parte de una pantalla, de modo que su fallo no tumbe el resto:
+
+```tsx
+<ErrorBoundary>
+  <ReputationChart data={data} />
+</ErrorBoundary>
+```
+
+Sin `fallback` muestra un `ErrorState` con «Try again» (o con «Reload page» si lo que falló fue la descarga de una pantalla). `fallback` acepta un elemento o una función `({ error, reset }) => ...`; `onError` sirve para registrar el fallo y `onReset` para limpiar estado antes de volver a renderizar. Un `ErrorBoundary` solo captura errores de renderizado: los de manejadores de eventos y de código asíncrono se tratan donde ocurren (ver `describeApiError`).
+
+### Avisos (`useToast`)
+
+```tsx
+const toast = useToast();
+
+toast.success('Request cancelled');
+toast.error('Could not save your changes', { durationMs: 0 }); // hasta cerrarlo
+const id = toast.info('Syncing…');
+toast.dismiss(id);
+```
+
+`success`, `error` e `info` reciben el mensaje y, opcionalmente, `{ durationMs }` (por defecto 5 s, 8 s en errores; `0` lo mantiene hasta que se cierre) y devuelven un id para `toast.dismiss(id)`. Se muestran como máximo 3 a la vez (el más antiguo cede su lugar), se detienen mientras tienen el puntero o el foco encima y se cierran con su botón o con Esc. Los errores se anuncian al instante (`role="alert"`) y el resto de forma educada (`aria-live="polite"`).
+
+El `ToastProvider` está en `AppLayout`: ya funciona en las pantallas y en las pruebas con `renderApp`. Para probar un componente aislado envuélvelo en `<ToastProvider>`.
+
+**Cuándo usar un aviso y cuándo el resumen de errores.** Un aviso es para resultados que no bloquean al usuario y que puede perderse sin consecuencias: un éxito («Request cancelled»), una novedad, un fallo en segundo plano de algo que no está en un formulario. Desaparece solo, así que no pongas en él información que el usuario necesite conservar. Los errores de un formulario (validación, credenciales incorrectas, fallo de red al enviar) van **solo** en el `FormErrorSummary`: es el aviso accesible, recibe el foco y se queda hasta que se corrige. Un aviso de error además lo repetiría y el lector de pantalla lo leería dos veces.
+
+### Mensajes por código HTTP (`describeApiError`)
+
+```ts
+async function handleCancel(id: number) {
+  try {
+    await cancelRequest(id);
+    toast.success('Request cancelled');
+  } catch (error) {
+    const { kind, message } = describeApiError(error);
+    if (kind === 'cancelled') return; // la cancelaste tú: no se muestra
+    toast.error(message);
+  }
+}
+```
+
+Devuelve `{ kind, title, message, retryable, fieldErrors }`: el título corto (para un aviso), el mensaje completo y los errores por campo de una validación (vacío en otros casos). Según el `kind`:
+
+| `kind`               | Cuándo                                                         | `retryable` |
+| -------------------- | -------------------------------------------------------------- | ----------- |
+| `offline`, `network` | `NetworkError` (`offline` si el navegador dice que no hay red) | sí          |
+| `timeout`            | `TimeoutError` o HTTP 408                                      | sí          |
+| `cancelled`          | `AbortError`: no se muestra                                    | no          |
+| `validation`         | HTTP 400 y 422; conserva `fieldErrors`                         | no          |
+| `unauthorized`       | HTTP 401                                                       | no          |
+| `forbidden`          | HTTP 403                                                       | no          |
+| `not-found`          | HTTP 404                                                       | no          |
+| `conflict`           | HTTP 409                                                       | no          |
+| `rate-limited`       | HTTP 429                                                       | sí          |
+| `server`             | HTTP 5xx                                                       | sí          |
+| `unknown`            | cualquier otro (no se sabe qué falló)                          | sí          |
+
+- `message` es el texto del backend en 400, 401, 403, 404, 409 y 422 cuando lo envió (nombra el problema exacto, por ejemplo «El correo ya está registrado»); si no, un texto genérico. Lo mismo vale para `fieldErrors`. En el resto (red, 429, 5xx, desconocido) el mensaje siempre es genérico y `fieldErrors` está vacío: nada de lo que el backend diga en esos casos se muestra.
+- `retryable` dice si volver a pedirlo puede funcionar, no que repetirlo sea seguro: tras un fallo de red o un timeout el servidor puede haber procesado ya un `POST`. Antes de reintentar una creación, comprueba el estado o hazla idempotente.
+- En formularios, muestra el error en el `FormErrorSummary` con `feedbackFromError(error)` (usa `describeApiError`) y el `show` de `useFormFeedback()`, que mueve el foco al resumen. No añadas un aviso:
+
+  ```tsx
+  const { feedback, summaryRef, show, clear } = useFormFeedback();
+  // ...en el catch del envío:
+  show(feedbackFromError(error));
+  ```
+
+### Evitar envíos dobles (`useSubmitGuard`)
+
+```tsx
+function NewRequestForm() {
+  // values, validate y show salen de useState, de tu validación y de useFormFeedback
+  const { run: save, isSubmitting } = useSubmitGuard(
+    async (input: NewRequest) => {
+      try {
+        await createRequest(input);
+      } catch (error) {
+        show(feedbackFromError(error));
+      }
+    },
+  );
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const errors = validate(values);
+        if (Object.keys(errors).length > 0) {
+          show({ fieldErrors: errors });
+          return;
+        }
+        void save(values);
+      }}
+    >
+      <fieldset disabled={isSubmitting}>{/* campos y botón */}</fieldset>
+    </form>
+  );
+}
+```
+
+`run` ejecuta la acción de una en una: una segunda llamada mientras la primera sigue pendiente se ignora (resuelve `undefined`). La comprobación es síncrona (una referencia, no estado), así que también frena un doble clic o un Enter repetido que llegan antes de que React vuelva a renderizar con `isSubmitting`. Valida **antes** de llamar a `run`, como en el ejemplo: así un formulario inválido no activa `isSubmitting` ni hace parpadear el botón y los campos. Si la acción rechaza, la guarda se libera y el error llega a quien llamó a `run`: trátalo dentro de la acción. `run` mantiene su identidad entre renderizados (siempre llama a la acción del último renderizado), así que puedes ponerlo en arrays de dependencias; lo mismo vale para `show` y `clear` de `useFormFeedback()`. Úsalo en todo lo que no deba enviarse dos veces: crear, aceptar, calificar.
+
+### Fallos al cargar y reintento (`ErrorState`)
+
+```tsx
+// error: lo que rechazó la carga; load: la función que la repite
+if (error) return <ErrorState error={error} onRetry={load} />;
+```
+
+`ErrorState` anuncia el fallo (`role="alert"`) con el título y el texto de `describeApiError`, y muestra «Try again» solo cuando reintentar puede ayudar (no en 403, 404 ni errores de validación). `title` y `message` reemplazan los textos derivados del error; sin `error`, el botón aparece siempre que pases `onRetry`. Una llamada cancelada no muestra nada.
 
 ## Reparto inicial del trabajo
 

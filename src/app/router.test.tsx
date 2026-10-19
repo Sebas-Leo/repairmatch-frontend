@@ -15,11 +15,11 @@ async function signedInSession(user: typeof clientUser) {
 }
 
 describe('role redirect at /', () => {
-  it('sends anonymous visitors to the sign-in page', () => {
+  it('sends anonymous visitors to the sign-in page', async () => {
     const { session } = createTestSession(authRoutes(clientUser));
     const { router } = renderApp(session, '/');
     expect(router.state.location.pathname).toBe('/login');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'Sign in',
     );
   });
@@ -113,7 +113,9 @@ describe('guarded areas', () => {
     const { router } = renderApp(session, '/technician');
     expect(router.state.location.pathname).toBe('/unauthorized');
 
-    await user.click(screen.getByRole('link', { name: 'Go to your home' }));
+    await user.click(
+      await screen.findByRole('link', { name: 'Go to your home' }),
+    );
 
     expect(
       await screen.findByRole('heading', { name: 'Client home' }),
@@ -129,10 +131,10 @@ describe('guarded areas', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps the unauthorized page reachable without a session', () => {
+  it('keeps the unauthorized page reachable without a session', async () => {
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/unauthorized');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'You do not have access to this page.',
     );
   });
@@ -177,7 +179,7 @@ describe('unknown URLs', () => {
     const user = userEvent.setup();
     const { session } = await signedInSession(clientUser);
     renderApp(session, '/missing');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'This page is not here',
     );
 
@@ -205,9 +207,8 @@ describe('layout', () => {
 describe('createAppRouter', () => {
   it('builds a browser router over the same route table', () => {
     const router = createAppRouter();
-    expect(router.routes[0]?.children?.map((route) => route.path)).toContain(
-      'login',
-    );
+    const pageRoutes = router.routes[0]?.children?.[0]?.children;
+    expect(pageRoutes?.map((route) => route.path)).toContain('login');
     router.dispose();
   });
 });

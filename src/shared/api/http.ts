@@ -46,6 +46,15 @@ export class ApiError extends Error {
 }
 
 /**
+ * The text the backend wrote for the user (`message`, else `detail`), if it
+ * sent any. `ApiError.message` cannot tell: it falls back to a generic
+ * "Request failed (status)" that is not meant to be shown.
+ */
+export function serverMessageOf(error: ApiError): string | undefined {
+  return extractMessage(error.body);
+}
+
+/**
  * No HTTP answer arrived: offline, DNS, CORS, a blocked or redirected request.
  * Whether the server saw the request is unknown, so it is not safe to assume it
  * was not processed.
@@ -57,18 +66,27 @@ export class NetworkError extends Error {
   }
 }
 
+function hasErrorName(error: unknown, name: string): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === name
+  );
+}
+
 /**
  * True when the call was cancelled through its `AbortSignal`. That is the
  * caller's own decision, not a failure: do not show it as an error.
  * (A timeout rejects with a `TimeoutError` instead and IS a failure.)
  */
 export function isAbortError(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'name' in error &&
-    error.name === 'AbortError'
-  );
+  return hasErrorName(error, 'AbortError');
+}
+
+/** True when the call exceeded its timeout (`TimeoutError`); see `isAbortError`. */
+export function isTimeoutError(error: unknown): boolean {
+  return hasErrorName(error, 'TimeoutError');
 }
 
 /**

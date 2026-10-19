@@ -1,8 +1,41 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, renderHook, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ApiError } from '../api/http';
+import { ApiError, NetworkError } from '../api/http';
 import { FormErrorSummary } from './FormErrorSummary';
-import { feedbackFromError, hasFeedback } from './formFeedback';
+import {
+  feedbackFromError,
+  hasFeedback,
+  useFormFeedback,
+} from './formFeedback';
+
+describe('useFormFeedback', () => {
+  it('shows and clears feedback', () => {
+    const { result } = renderHook(() => useFormFeedback());
+    expect(result.current.feedback).toBeNull();
+
+    act(() => result.current.show({ message: 'Oops', fieldErrors: {} }));
+    expect(result.current.feedback).toEqual({
+      message: 'Oops',
+      fieldErrors: {},
+    });
+
+    act(() => result.current.clear());
+    expect(result.current.feedback).toBeNull();
+  });
+
+  it('keeps show, clear and the summary ref stable, so they can be dependencies', () => {
+    const { result, rerender } = renderHook(() => useFormFeedback());
+    const { show, clear, summaryRef } = result.current;
+
+    rerender();
+    act(() => result.current.show({ message: 'Oops', fieldErrors: {} }));
+    act(() => result.current.clear());
+
+    expect(result.current.show).toBe(show);
+    expect(result.current.clear).toBe(clear);
+    expect(result.current.summaryRef).toBe(summaryRef);
+  });
+});
 
 describe('form feedback helpers', () => {
   it('detects when there is something to show', () => {
@@ -13,7 +46,9 @@ describe('form feedback helpers', () => {
   });
 
   it('shows backend text and field errors as-is', () => {
+    // Built like the client builds it: the backend text lives in the body.
     const error = new ApiError(400, 'Revisa los campos enviados', {
+      message: 'Revisa los campos enviados',
       errors: { email: 'Bad' },
     });
     expect(feedbackFromError(error)).toEqual({
@@ -22,10 +57,32 @@ describe('form feedback helpers', () => {
     });
   });
 
-  it('turns anything else into a connectivity message', () => {
-    expect(feedbackFromError(new TypeError('Failed to fetch'))).toEqual({
+  it('explains a connectivity failure', () => {
+    expect(
+      feedbackFromError(new NetworkError('Network request failed')),
+    ).toEqual({
       message:
         'We could not reach the server. Check your connection and try again.',
+      fieldErrors: {},
+    });
+  });
+
+  it('hides internal server text behind friendly copy', () => {
+    const error = new ApiError(500, 'NullPointerException at Foo.java:42', {
+      message: 'NullPointerException at Foo.java:42',
+    });
+    expect(feedbackFromError(error)).toEqual({
+      message: 'Something went wrong on our side. Try again in a few moments.',
+      fieldErrors: {},
+    });
+  });
+
+  // The client reports connectivity problems as NetworkError, so any other
+  // stray error must not be blamed on the connection.
+  it('does not blame the connection for an unexpected error', () => {
+    expect(feedbackFromError(new TypeError('x is not a function'))).toEqual({
+      message:
+        'Something went wrong. Try again, and reload the page if it keeps happening.',
       fieldErrors: {},
     });
   });

@@ -1,7 +1,12 @@
-import { screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clientUser, errorResponse, technicianUser } from '../test/fakeApi';
+import {
+  clientUser,
+  errorResponse,
+  technicianUser,
+  tokenPair,
+} from '../test/fakeApi';
 import { authRoutes, createTestSession } from '../test/testSession';
 import { renderApp } from '../test/renderApp';
 
@@ -12,16 +17,18 @@ async function fillAndSubmit(
   email = 'client@example.test',
   password = 'Test-pass-1',
 ) {
-  if (email) await user.type(screen.getByLabelText('Email'), email);
+  // Pages are lazy: the first query waits for the page to download.
+  const emailField = await screen.findByLabelText('Email');
+  if (email) await user.type(emailField, email);
   if (password) await user.type(screen.getByLabelText('Password'), password);
   await user.click(screen.getByRole('button', { name: 'Sign in' }));
 }
 
 describe('login form', () => {
-  it('is an accessible form with labelled fields', () => {
+  it('is an accessible form with labelled fields', async () => {
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'Sign in',
     );
     expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
@@ -44,7 +51,7 @@ describe('login form', () => {
     const { session, api } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
 
-    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
 
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent('Email: Enter your email address.');
@@ -54,6 +61,29 @@ describe('login form', () => {
     expect(email).toBeInvalid();
     expect(email).toHaveAccessibleDescription('Enter your email address.');
     expect(api.adapter).not.toHaveBeenCalled();
+  });
+
+  it('does not flash the busy state when the form is invalid', async () => {
+    const user = userEvent.setup();
+    const { session } = createTestSession(authRoutes(clientUser));
+    renderApp(session, '/login');
+    const submit = await screen.findByRole('button', { name: 'Sign in' });
+
+    const changes: string[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const { attributeName } of records) changes.push(`${attributeName}`);
+    });
+    observer.observe(document.body, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['aria-busy', 'disabled'],
+    });
+    await user.click(submit);
+    await screen.findByRole('alert');
+    await new Promise((done) => setTimeout(done, 0));
+    observer.disconnect();
+
+    expect(changes).toEqual([]);
   });
 
   it('rejects a malformed email', async () => {
@@ -71,7 +101,7 @@ describe('login form', () => {
     const user = userEvent.setup();
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
-    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
     await user.click(
       within(screen.getByRole('alert')).getByRole('link', {
         name: 'Password: Enter your password.',
@@ -124,7 +154,7 @@ describe('login form', () => {
     );
   });
 
-  it('explains a network failure', async () => {
+  it('explains a network failure in the one error summary', async () => {
     const user = userEvent.setup();
     const { session } = createTestSession(
       authRoutes(clientUser, {
@@ -135,9 +165,28 @@ describe('login form', () => {
     );
     renderApp(session, '/login');
     await fillAndSubmit(user);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'We could not reach the server',
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('We could not reach the server');
+    expect(alert).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+  });
+
+  it('replaces internal server text with friendly copy', async () => {
+    const user = userEvent.setup();
+    const { session } = createTestSession(
+      authRoutes(clientUser, {
+        'POST /auth/login': () =>
+          errorResponse(503, 'upstream database is down'),
+      }),
     );
+    renderApp(session, '/login');
+    await fillAndSubmit(user);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Something went wrong on our side. Try again in a few moments.',
+    );
+    expect(screen.queryByText(/upstream database/)).not.toBeInTheDocument();
   });
 
   it('disables the form while submitting', async () => {
@@ -174,6 +223,42 @@ describe('login form', () => {
     expect(
       await screen.findByRole('heading', { name: 'Client home' }),
     ).toBeInTheDocument();
+  });
+
+  it('sends one request when submitted twice before the form re-renders', async () => {
+    const user = userEvent.setup();
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    const { session, api } = createTestSession(
+      authRoutes(clientUser, {
+        'POST /auth/login': async () => {
+          await gate;
+          return Response.json(tokenPair('login'));
+        },
+      }),
+    );
+    renderApp(session, '/login');
+    await user.type(
+      await screen.findByLabelText('Email'),
+      'client@example.test',
+    );
+    await user.type(screen.getByLabelText('Password'), 'Test-pass-1');
+    const form = screen
+      .getByRole('button', { name: 'Sign in' })
+      .closest('form');
+
+    // Both events land in the same batch, so the disabled fieldset is not
+    // rendered yet: only the submit guard can stop the second one.
+    act(() => {
+      fireEvent.submit(form!);
+      fireEvent.submit(form!);
+    });
+    release();
+
+    await screen.findByRole('heading', { name: 'Client home' });
+    expect(api.callsTo('POST /auth/login')).toHaveLength(1);
   });
 
   it('sends the trimmed email and the untouched password', async () => {
@@ -269,9 +354,9 @@ describe('after signing in', () => {
     );
     renderApp(session, '/login');
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Checking your session',
-    );
+    expect(
+      await screen.findByText('Checking your session…'),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
 
     release();

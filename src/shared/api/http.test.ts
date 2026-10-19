@@ -11,8 +11,10 @@ import {
   apiErrorFromResponse,
   isAbortError,
   isAuthEndpoint,
+  isTimeoutError,
   NetworkError,
   requireBody,
+  serverMessageOf,
   type RequestAuthorizer,
 } from './http';
 
@@ -541,6 +543,34 @@ describe('error helpers', () => {
     [undefined, false],
   ])('isAbortError(%j) is %s', (error, expected) => {
     expect(isAbortError(error)).toBe(expected);
+  });
+
+  it.each([
+    [new DOMException('x', 'TimeoutError'), true],
+    [new DOMException('x', 'AbortError'), false],
+    [{ name: 'TimeoutError' }, true],
+    [new Error('x'), false],
+    [null, false],
+  ])('isTimeoutError(%j) is %s', (error, expected) => {
+    expect(isTimeoutError(error)).toBe(expected);
+  });
+
+  it('reads the text the backend wrote, not the generic fallback', () => {
+    expect(
+      serverMessageOf(apiErrorFromResponse(409, '{"message":"Taken"}')),
+    ).toBe('Taken');
+    expect(
+      serverMessageOf(apiErrorFromResponse(409, '{"detail":"Taken too"}')),
+    ).toBe('Taken too');
+    expect(serverMessageOf(apiErrorFromResponse(500, undefined))).toBe(
+      undefined,
+    );
+    expect(serverMessageOf(apiErrorFromResponse(502, '<html>Bad</html>'))).toBe(
+      undefined,
+    );
+    expect(
+      serverMessageOf(new ApiError(200, 'Expected a JSON response', 'x')),
+    ).toBe(undefined);
   });
 });
 

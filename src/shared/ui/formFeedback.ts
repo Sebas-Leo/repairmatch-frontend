@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { ApiError } from '../api/http';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { describeApiError } from '../api/errorMessages';
 
 /** What a failed or invalid submit shows: one summary plus per-field messages. */
 export interface FormFeedback {
@@ -16,16 +16,14 @@ export function hasFeedback(feedback: FormFeedback | null): boolean {
   );
 }
 
-/** Builds feedback from a rejected submit. Backend text is shown as-is. */
+/**
+ * Builds feedback from a rejected submit. The wording comes from
+ * `describeApiError`: the backend's own text for errors the user can fix,
+ * friendly copy for connection and server problems.
+ */
 export function feedbackFromError(error: unknown): FormFeedback {
-  if (error instanceof ApiError) {
-    return { message: error.message, fieldErrors: error.errors };
-  }
-  return {
-    message:
-      'We could not reach the server. Check your connection and try again.',
-    fieldErrors: {},
-  };
+  const { message, fieldErrors } = describeApiError(error);
+  return { message, fieldErrors };
 }
 
 /**
@@ -41,15 +39,14 @@ export function useFormFeedback() {
     if (version > 0) summaryRef.current?.focus();
   }, [version]);
 
-  return {
-    feedback,
-    summaryRef,
-    show(next: FormFeedback) {
-      setFeedback(next);
-      setVersion((current) => current + 1);
-    },
-    clear() {
-      setFeedback(null);
-    },
-  };
+  // Stable, so they can go in dependency arrays.
+  const show = useCallback((next: FormFeedback) => {
+    setFeedback(next);
+    setVersion((current) => current + 1);
+  }, []);
+  const clear = useCallback(() => {
+    setFeedback(null);
+  }, []);
+
+  return { feedback, summaryRef, show, clear };
 }

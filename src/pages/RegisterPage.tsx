@@ -9,7 +9,9 @@ import {
   validateRegister,
   type RegisterValues,
 } from '../features/auth/validation';
+import type { RegisterRequest } from '../shared/api/types';
 import { RegistrationSignInError } from '../shared/auth/session';
+import { useSubmitGuard } from '../shared/hooks/useSubmitGuard';
 import {
   FormErrorSummary,
   type SummaryField,
@@ -52,7 +54,24 @@ export function RegisterPage() {
     password: '',
     role: '',
   });
-  const [submitting, setSubmitting] = useState(false);
+  const { run: submit, isSubmitting } = useSubmitGuard(
+    async (input: RegisterRequest) => {
+      clear();
+      try {
+        await auth.register(input);
+      } catch (error) {
+        if (error instanceof RegistrationSignInError) {
+          show({
+            message:
+              'Your account was created, but we could not sign you in. Try signing in from the sign-in page.',
+            fieldErrors: {},
+          });
+        } else {
+          show(feedbackFromError(error));
+        }
+      }
+    },
+  );
 
   if (auth.status === 'loading') {
     return <LoadingState label="Checking your session…" />;
@@ -66,35 +85,21 @@ export function RegisterPage() {
     );
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  // Validation happens before the submit guard, so an invalid form never
+  // flashes the busy state.
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
     const errors = validateRegister(values);
     if (Object.keys(errors).length > 0 || !values.role) {
       show({ fieldErrors: errors });
       return;
     }
-    clear();
-    setSubmitting(true);
-    try {
-      await auth.register({
-        name: values.name.trim(),
-        email: values.email.trim(),
-        password: values.password,
-        role: values.role,
-      });
-    } catch (error) {
-      show(
-        error instanceof RegistrationSignInError
-          ? {
-              message:
-                'Your account was created, but we could not sign you in. Try signing in from the sign-in page.',
-              fieldErrors: {},
-            }
-          : feedbackFromError(error),
-      );
-      setSubmitting(false);
-    }
+    void submit({
+      name: values.name.trim(),
+      email: values.email.trim(),
+      password: values.password,
+      role: values.role,
+    });
   }
 
   const fieldError = (name: string) => feedback?.fieldErrors[name];
@@ -111,7 +116,7 @@ export function RegisterPage() {
         />
       ) : null}
       <form onSubmit={handleSubmit} noValidate className="form">
-        <fieldset disabled={submitting} className="form-fields">
+        <fieldset disabled={isSubmitting} className="form-fields">
           <legend className="visually-hidden">Registration details</legend>
           <TextField
             id="register-name"
@@ -178,8 +183,8 @@ export function RegisterPage() {
               </p>
             ) : null}
           </fieldset>
-          <button type="submit">
-            {submitting ? 'Creating account…' : 'Create account'}
+          <button type="submit" aria-busy={isSubmitting}>
+            {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </fieldset>
       </form>
