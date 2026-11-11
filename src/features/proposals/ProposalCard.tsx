@@ -16,6 +16,8 @@ interface ProposalCardProps {
   /** Marks the cheapest offer of a comparison. */
   highlight?: string | undefined;
   action?: ReactNode;
+  /** Title above the cost, for lists where the offer needs context. */
+  heading?: string;
 }
 
 /** A technician's offer: cost, availability, conditions and its state. */
@@ -23,10 +25,12 @@ export function ProposalCard({
   proposal,
   highlight,
   action,
+  heading,
 }: ProposalCardProps) {
   const status = STATUS[proposal.status];
   return (
     <Card as="article" className="grid gap-2">
+      {heading ? <h2 className="m-0 text-lg">{heading}</h2> : null}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="grid gap-0.5">
           <p className="m-0 font-display text-2xl font-bold tabular-nums">

@@ -75,6 +75,7 @@ export function TechnicianHomePage() {
               : 'Every offer, whatever its state'
           }
           icon={<FileText size={18} />}
+          to="/technician/proposals"
         />
         <StatCard
           label="Rating"
