@@ -21,6 +21,7 @@ import { TextField } from '../../shared/ui/TextField';
 import { submitProposal } from './api';
 import {
   CONDITIONS_MAX,
+  parseCost,
   toLocalDateTime,
   validateProposal,
   type ProposalForm,
@@ -38,12 +39,16 @@ const EMPTY: ProposalForm = {
   conditions: '',
 };
 
+/** Router state can be stale or edited: check every field that is rendered. */
 function isOpportunity(value: unknown): value is MatchingRequest {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    'requestId' in value &&
-    'applianceTypeName' in value
+    typeof v.requestId === 'number' &&
+    typeof v.applianceTypeName === 'string' &&
+    typeof v.description === 'string' &&
+    typeof v.distanceKm === 'number' &&
+    Number.isFinite(v.distanceKm)
   );
 }
 
@@ -68,7 +73,7 @@ export function SubmitProposalPage() {
     clear();
     try {
       await submitProposal(id, {
-        diagnosticCost: Number(form.diagnosticCost),
+        diagnosticCost: parseCost(form.diagnosticCost),
         availableAt: toLocalDateTime(form.availableAt),
         conditions: form.conditions.trim(),
       });

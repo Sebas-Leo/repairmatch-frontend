@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthContext } from '../auth/authContext';
 import { listOwnProposals } from '../technicians/api';
+import { describeApiError } from '../../shared/api/errorMessages';
 import { ApiError } from '../../shared/api/http';
 import { ToastProvider } from '../../shared/toast/ToastProvider';
 import { anOpportunity, aProposal } from '../../test/fixtures';
@@ -11,7 +12,7 @@ import { fakeAuth, pageOf, renderPage } from '../../test/renderPage';
 import { submitProposal } from './api';
 import { MyProposalsPage } from './MyProposalsPage';
 import { SubmitProposalPage } from './SubmitProposalPage';
-import { toLocalDateTime, validateProposal } from './validation';
+import { parseCost, toLocalDateTime, validateProposal } from './validation';
 
 vi.mock('./api', () => ({ submitProposal: vi.fn() }));
 vi.mock('../technicians/api', () => ({ listOwnProposals: vi.fn() }));
@@ -88,13 +89,10 @@ describe('SubmitProposalPage', () => {
 
   it('shows why the backend refused the offer', async () => {
     const user = userEvent.setup();
-    vi.mocked(submitProposal).mockImplementation(() =>
-      Promise.reject(
-        new ApiError(403, 'Forbidden', {
-          message: 'Request is outside the technician service radius',
-        }),
-      ),
-    );
+    const refusal = new ApiError(403, 'Forbidden', {
+      message: 'Request is outside the technician service radius',
+    });
+    vi.mocked(submitProposal).mockImplementation(() => Promise.reject(refusal));
     openOffer('/technician/opportunities/7/offer');
     await user.type(screen.getByLabelText('Diagnostic cost (S/)'), '30');
     await user.type(
@@ -103,7 +101,39 @@ describe('SubmitProposalPage', () => {
     );
     await user.type(screen.getByLabelText('What it includes'), 'Diagnosis');
     await user.click(screen.getByRole('button', { name: 'Send offer' }));
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText(describeApiError(refusal).message)).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('ignores router state that does not look like an opportunity', () => {
+    openOffer('/technician/opportunities/7/offer', {
+      requestId: 7,
+      applianceTypeName: 'Fridge',
+      description: 'x',
+      distanceKm: 'far',
+    });
+    expect(
+      screen.getByRole('heading', { name: 'Send an offer for request #7' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Fridge')).toBeNull();
+  });
+
+  it('accepts a decimal comma in the cost', async () => {
+    const user = userEvent.setup();
+    vi.mocked(submitProposal).mockResolvedValue(aProposal());
+    openOffer('/technician/opportunities/7/offer');
+    await user.type(screen.getByLabelText('Diagnostic cost (S/)'), '45,5');
+    await user.type(
+      screen.getByLabelText('Available from'),
+      '2099-01-15T09:30',
+    );
+    await user.type(screen.getByLabelText('What it includes'), 'Diagnosis');
+    await user.click(screen.getByRole('button', { name: 'Send offer' }));
+    expect(submitProposal).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ diagnosticCost: 45.5 }),
+    );
   });
 
   it('refuses an id that is not a number', () => {
@@ -210,10 +240,17 @@ describe('validateProposal', () => {
       availableAt: 'Choose a date and time in the future.',
       conditions: 'Explain what the offer includes.',
     });
-    expect(
-      validateProposal({ ...valid, diagnosticCost: '1.234' }, now)
-        .diagnosticCost,
-    ).toBe('Use at most two decimals.');
+    for (const ok of ['0', '5', '45.5', '45.50', '.5', '5.', '45,5', ' 7 ']) {
+      expect(validateProposal({ ...valid, diagnosticCost: ok }, now)).toEqual(
+        {},
+      );
+    }
+    for (const bad of ['1.234', '1e3', '0x10', 'abc', '4 5']) {
+      expect(
+        validateProposal({ ...valid, diagnosticCost: bad }, now).diagnosticCost,
+      ).toBe('Use a number like 45 or 45.50 (two decimals at most).');
+    }
+    expect(parseCost('45,5')).toBe(45.5);
     expect(
       validateProposal({ ...valid, diagnosticCost: '99999999999' }, now)
         .diagnosticCost,
