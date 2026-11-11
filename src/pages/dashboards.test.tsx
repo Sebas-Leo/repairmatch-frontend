@@ -66,7 +66,9 @@ describe('ClientHomePage', () => {
       Promise.reject(new ApiError(403, 'Forbidden', {})),
     );
     renderPage(<ClientHomePage />, { path: '/client' });
-    expect(await screen.findAllByRole('alert')).toHaveLength(2);
+    // Both calls fail, but one message (with one retry for both) is enough.
+    await screen.findByRole('alert');
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
   });
 });
 
@@ -125,7 +127,9 @@ describe('TechnicianHomePage', () => {
     expect(
       await within(card).findByText('Set up your service area to see them'),
     ).toBeInTheDocument();
-    expect(await screen.findByText('!')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Could not load right now'),
+    ).toBeInTheDocument();
     expect(await screen.findByText('0 reviews')).toBeInTheDocument();
   });
 });

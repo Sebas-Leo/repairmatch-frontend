@@ -6,6 +6,7 @@ import { ProposalCard } from '../proposals/ProposalCard';
 import { describeApiError } from '../../shared/api/errorMessages';
 import type { Proposal } from '../../shared/api/types';
 import { formatDateTime } from '../../shared/format';
+import { httpUrl } from '../../shared/safeUrl';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { useToast } from '../../shared/toast/toastContext';
 import { Button, ButtonLink } from '../../shared/ui/Button';
@@ -33,17 +34,17 @@ export function RequestDetailPage() {
   const request = useApiQuery(
     ['request', id],
     (signal) => getServiceRequest(id, { signal }),
-    { enabled: validId },
+    { enabled: validId, keepPreviousData: false },
   );
   const evidences = useApiQuery(
     ['request-evidences', id],
     (signal) => listEvidences(id, { signal }),
-    { enabled: validId },
+    { enabled: validId, keepPreviousData: false },
   );
   const proposals = useApiQuery(
     ['request-proposals', id],
     (signal) => listRequestProposals(id, { signal }),
-    { enabled: validId },
+    { enabled: validId, keepPreviousData: false },
   );
 
   const crumbs = [
@@ -106,14 +107,16 @@ export function RequestDetailPage() {
           `Offer from ${pending.proposal.technicianName} accepted. The service is scheduled.`,
         );
       }
-      setPending(null);
-      request.reload();
-      proposals.reload();
     } catch (error) {
-      setPending(null);
       toast.error(describeApiError(error).message);
     } finally {
+      // Success or not (a 409 means someone else changed it), show the truth.
+      setPending(null);
       setBusy(false);
+      request.reload();
+      proposals.reload();
+      // The button that opened the dialog may be gone now: focus the title.
+      setTimeout(() => document.getElementById('request-title')?.focus(), 0);
     }
   }
 
@@ -168,22 +171,27 @@ export function RequestDetailPage() {
               </p>
             ) : (
               <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0 sm:grid-cols-3">
-                {evidences.data.map((evidence) => (
-                  <li key={evidence.evidenceNumber}>
-                    <a
-                      href={evidence.mediaUrl}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
-                      <img
-                        src={evidence.mediaUrl}
-                        alt={`Photo ${evidence.evidenceNumber} of the appliance`}
-                        loading="lazy"
-                        className="aspect-square w-full rounded-lg border border-line object-cover"
-                      />
-                    </a>
-                  </li>
-                ))}
+                {evidences.data.map((evidence) => {
+                  const url = httpUrl(evidence.mediaUrl);
+                  return (
+                    <li key={evidence.evidenceNumber}>
+                      {url ? (
+                        <a href={url} target="_blank" rel="noreferrer noopener">
+                          <img
+                            src={url}
+                            alt={`Photo ${evidence.evidenceNumber} of the appliance`}
+                            loading="lazy"
+                            className="aspect-square w-full rounded-lg border border-line object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <span className="grid aspect-square place-items-center rounded-lg border border-line p-2 text-center text-sm text-muted">
+                          Photo {evidence.evidenceNumber} has an invalid address
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Card>

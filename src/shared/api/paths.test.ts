@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { httpUrl } from '../safeUrl';
 import { pathSegment, withQuery } from './paths';
 
 describe('pathSegment', () => {
@@ -35,5 +36,19 @@ describe('withQuery', () => {
     expect(withQuery('/a?x=1', { page: 2, size: Number.NaN })).toBe(
       '/a?x=1&page=2',
     );
+  });
+});
+
+describe('httpUrl', () => {
+  it('keeps absolute http(s) addresses and refuses the rest', () => {
+    expect(httpUrl('https://img.example.com/a.jpg')).toBe(
+      'https://img.example.com/a.jpg',
+    );
+    expect(httpUrl('http://example.com')).toBe('http://example.com/');
+    expect(httpUrl('javascript:alert(1)')).toBeUndefined();
+    expect(httpUrl('data:image/png;base64,AAAA')).toBeUndefined();
+    expect(httpUrl('/relative.jpg')).toBeUndefined();
+    expect(httpUrl('')).toBeUndefined();
+    expect(httpUrl(null)).toBeUndefined();
   });
 });

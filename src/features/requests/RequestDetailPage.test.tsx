@@ -1,7 +1,8 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { acceptProposal, listRequestProposals } from '../proposals/api';
+import { describeApiError } from '../../shared/api/errorMessages';
 import { ApiError } from '../../shared/api/http';
 import { aProposal, aRequest } from '../../test/fixtures';
 import { renderPage } from '../../test/renderPage';
@@ -96,12 +97,19 @@ describe('RequestDetailPage', () => {
         'Offer from Rosa Repairs accepted. The service is scheduled.',
       ),
     ).toBeInTheDocument();
+    // The page asks again so it shows the closed request, and focus lands on
+    // the title because the button that opened the dialog may be gone.
+    await waitFor(() => expect(getServiceRequest).toHaveBeenCalledTimes(2));
+    expect(listRequestProposals).toHaveBeenCalledTimes(2);
   });
 
   it('cancels the request after confirming, and reports a refusal', async () => {
     const user = userEvent.setup();
-    vi.mocked(cancelServiceRequest).mockRejectedValue(
-      new ApiError(409, 'Conflict', { message: 'Request already closed' }),
+    const refusal = new ApiError(409, 'Conflict', {
+      message: 'Request already closed',
+    });
+    vi.mocked(cancelServiceRequest).mockImplementation(() =>
+      Promise.reject(refusal),
     );
     setup();
     await user.click(
@@ -114,7 +122,11 @@ describe('RequestDetailPage', () => {
     );
     expect(cancelServiceRequest).toHaveBeenCalledWith(7);
     expect(screen.queryByRole('alertdialog')).toBeNull();
-    expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
+    expect(
+      await screen.findByText(describeApiError(refusal).message),
+    ).toBeInTheDocument();
+    // A 409 means the request changed elsewhere: it is loaded again.
+    await waitFor(() => expect(getServiceRequest).toHaveBeenCalledTimes(2));
   });
 
   it('hides the actions on a closed request without offers', async () => {
@@ -146,5 +158,21 @@ describe('RequestDetailPage', () => {
       screen.getByRole('heading', { name: 'Request not found' }),
     ).toBeInTheDocument();
     expect(getServiceRequest).not.toHaveBeenCalled();
+  });
+
+  it('never turns a stored address that is not http(s) into a link', async () => {
+    vi.mocked(listEvidences).mockResolvedValue([
+      {
+        requestId: 7,
+        evidenceNumber: 2,
+        mediaUrl: 'javascript:alert(1)',
+        mediaType: 'image/jpeg',
+      },
+    ]);
+    setup();
+    expect(
+      await screen.findByText('Photo 2 has an invalid address'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('img')).toBeNull();
   });
 });

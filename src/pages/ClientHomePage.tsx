@@ -60,7 +60,13 @@ export function ClientHomePage() {
         }
       />
       {stats.status === 'error' ? (
-        <ErrorState error={stats.error} onRetry={stats.reload} />
+        <ErrorState
+          error={stats.error}
+          onRetry={() => {
+            stats.reload();
+            recent.reload();
+          }}
+        />
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
@@ -97,7 +103,10 @@ export function ClientHomePage() {
         </ButtonLink>
       </div>
       {recent.status === 'error' ? (
-        <ErrorState error={recent.error} onRetry={recent.reload} />
+        // When the figures failed too, their message already covers it.
+        stats.status === 'error' ? null : (
+          <ErrorState error={recent.error} onRetry={recent.reload} />
+        )
       ) : !recent.data ? (
         <ListSkeleton rows={3} label="Loading your latest requests" />
       ) : recent.data.content.length === 0 ? (

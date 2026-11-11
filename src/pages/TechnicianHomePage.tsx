@@ -50,16 +50,16 @@ export function TechnicianHomePage() {
         <StatCard
           label="Opportunities nearby"
           value={
-            setupMissing
+            setupMissing || opportunities.status === 'error'
               ? '—'
-              : opportunities.status === 'error'
-                ? '!'
-                : opportunities.data?.totalElements
+              : opportunities.data?.totalElements
           }
           hint={
             setupMissing
               ? 'Set up your service area to see them'
-              : 'Open requests you can quote'
+              : opportunities.status === 'error'
+                ? 'Could not load right now'
+                : 'Open requests you can quote'
           }
           icon={<MapPinned size={18} />}
           to="/technician/opportunities"
@@ -67,16 +67,20 @@ export function TechnicianHomePage() {
         <StatCard
           label="Offers sent"
           value={
-            proposals.status === 'error' ? '!' : proposals.data?.totalElements
+            proposals.status === 'error' ? '—' : proposals.data?.totalElements
           }
-          hint="Every offer, whatever its state"
+          hint={
+            proposals.status === 'error'
+              ? 'Could not load right now'
+              : 'Every offer, whatever its state'
+          }
           icon={<FileText size={18} />}
         />
         <StatCard
           label="Rating"
           value={
             reputation.status === 'error'
-              ? '!'
+              ? '—'
               : rating
                 ? rating.reviewCount > 0
                   ? rating.averageRating.toFixed(1)
@@ -84,7 +88,11 @@ export function TechnicianHomePage() {
                 : undefined
           }
           hint={
-            rating ? `${rating.reviewCount} reviews` : 'From completed services'
+            reputation.status === 'error'
+              ? 'Could not load right now'
+              : rating
+                ? `${rating.reviewCount} reviews`
+                : 'From completed services'
           }
           icon={<Star size={18} />}
         />

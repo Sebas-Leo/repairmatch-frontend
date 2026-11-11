@@ -14,6 +14,12 @@ export interface QueryOptions {
   retries?: number;
   /** Delay before the first retry; doubles on each attempt. Default 600 ms. */
   retryDelayMs?: number;
+  /**
+   * Keep showing the data of the previous key while a new key loads (default).
+   * Pass `false` for detail views, so `/requests/5` never shows request 4.
+   * A reload of the same key always keeps its data.
+   */
+  keepPreviousData?: boolean;
 }
 
 export interface QueryResult<T> {
@@ -28,6 +34,7 @@ export interface QueryResult<T> {
 }
 
 interface Settled<T> {
+  key: string;
   requestId: string;
   ok: boolean;
   data: T | undefined;
@@ -82,7 +89,12 @@ async function withRetries<T>(
 export function useApiQuery<T>(
   key: readonly unknown[],
   fetcher: (signal: AbortSignal) => Promise<T>,
-  { enabled = true, retries = 2, retryDelayMs = 600 }: QueryOptions = {},
+  {
+    enabled = true,
+    retries = 2,
+    retryDelayMs = 600,
+    keepPreviousData = true,
+  }: QueryOptions = {},
 ): QueryResult<T> {
   const [nonce, setNonce] = useState(0);
   const [settled, setSettled] = useState<Settled<T> | null>(null);
@@ -106,11 +118,18 @@ export function useApiQuery<T>(
       (data) => {
         // A fetcher that ignores the signal may still resolve after a newer key.
         if (controller.signal.aborted) return;
-        setSettled({ requestId, ok: true, data, error: undefined });
+        setSettled({
+          key: keyString,
+          requestId,
+          ok: true,
+          data,
+          error: undefined,
+        });
       },
       (error: unknown) => {
         if (controller.signal.aborted || isAbortError(error)) return;
         setSettled((previous) => ({
+          key: keyString,
           requestId,
           ok: false,
           data: previous?.data,
@@ -119,21 +138,24 @@ export function useApiQuery<T>(
       },
     );
     return () => controller.abort();
-  }, [requestId, enabled, retries, retryDelayMs]);
+  }, [requestId, keyString, enabled, retries, retryDelayMs]);
 
   const reload = useCallback(() => setNonce((value) => value + 1), []);
 
-  const current = settled?.requestId === requestId;
+  // What we hold belongs to another key and must not be shown: start over.
+  const visible =
+    keepPreviousData || settled?.key === keyString ? settled : null;
+  const current = visible?.requestId === requestId;
   const isFetching = enabled && !current;
   let status: QueryStatus;
-  if (current) status = settled.ok ? 'success' : 'error';
-  else if (settled?.ok) status = 'success';
-  else status = enabled ? 'loading' : settled ? 'error' : 'loading';
+  if (current) status = visible.ok ? 'success' : 'error';
+  else if (visible?.ok) status = 'success';
+  else status = enabled ? 'loading' : visible ? 'error' : 'loading';
 
   return {
     status,
-    data: settled?.data,
-    error: current && !settled.ok ? settled.error : undefined,
+    data: visible?.data,
+    error: current && !visible.ok ? visible.error : undefined,
     isFetching,
     reload,
   };

@@ -1,6 +1,7 @@
 import { MapPinOff } from 'lucide-react';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { usePageParams } from '../../shared/hooks/usePageParams';
+import { Button } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { ErrorState } from '../../shared/ui/ErrorState';
 import { PageHeader } from '../../shared/ui/PageHeader';
@@ -46,6 +47,13 @@ export function OpportunitiesPage() {
             ? `There are ${data.totalElements} opportunities in ${data.totalPages} pages.`
             : 'New requests inside your radius for the appliances you repair will show up here.'
         }
+        action={
+          data.totalElements > 0 ? (
+            <Button onClick={() => params.setPage(data.totalPages - 1)}>
+              Go to the last page
+            </Button>
+          ) : undefined
+        }
       />
     );
   } else {
@@ -82,6 +90,9 @@ export function OpportunitiesPage() {
           { label: 'Opportunities' },
         ]}
       />
+      {data && query.status === 'error' ? (
+        <ErrorState error={query.error} onRetry={query.reload} />
+      ) : null}
       {content}
     </section>
   );

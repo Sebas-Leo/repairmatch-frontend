@@ -73,4 +73,28 @@ describe('OpportunitiesPage', () => {
     setup(`${PATH}?page=5`);
     expect(await screen.findByText('This page is empty')).toBeInTheDocument();
   });
+
+  it('keeps the loaded page and reports a failed page change', async () => {
+    const user = userEvent.setup();
+    list
+      .mockResolvedValueOnce(pageOf([anOpportunity()], { totalElements: 30 }))
+      .mockImplementation(() =>
+        Promise.reject(new ApiError(403, 'Forbidden', {})),
+      );
+    setup();
+    await screen.findByRole('article');
+    await user.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('article')).toBeInTheDocument();
+  });
+
+  it('sends a visitor past the end to the last page', async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue(pageOf([], { page: 6, totalElements: 30 }));
+    const { router } = setup(`${PATH}?page=7`);
+    await user.click(
+      await screen.findByRole('button', { name: 'Go to the last page' }),
+    );
+    expect(router.state.location.search).toBe('?page=3');
+  });
 });
