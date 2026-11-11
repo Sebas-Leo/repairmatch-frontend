@@ -10,6 +10,12 @@
 /** UUID string. Used for user ids. */
 export type Uuid = string;
 
+/**
+ * ISO-8601 local date-time WITHOUT timezone (Java `LocalDateTime`), e.g.
+ * `2026-10-14T22:02:19.123`. Send `availableAt` in the same format.
+ */
+export type LocalDateTimeString = string;
+
 /** ISO-8601 instant WITH timezone (`Z`). Only used by the error `timestamp`. */
 export type InstantString = string;
 
@@ -28,4 +34,24 @@ export interface ErrorResponse {
   errors: Record<string, string>;
   /** Legacy duplicate of `message`, kept by the backend for compatibility. */
   detail?: string;
+}
+
+/**
+ * A page of a paginated list (`GET /requests`, `/technicians/me/proposals`,
+ * `/technicians/me/matching-requests`). `page` is zero-based.
+ */
+export interface Page<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+/** Query parameters every paginated endpoint accepts. */
+export interface PageQuery {
+  page?: number;
+  size?: number;
 }

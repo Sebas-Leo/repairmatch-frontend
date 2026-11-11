@@ -2,7 +2,11 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { lazy } from 'react';
 import { createMemoryRouter, RouterProvider, useNavigate } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  AuthContext,
+  type AuthContextValue,
+} from '../features/auth/authContext';
 import { useToast } from '../shared/toast/toastContext';
 import { AppLayout } from './AppLayout';
 
@@ -73,6 +77,61 @@ describe('AppLayout', () => {
     expect(screen.getByText('Saved')).toBeVisible();
     expect(
       within(screen.getByRole('main')).queryByText('Saved'),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('AppLayout navigation', () => {
+  it('shows the menu of the signed-in role and marks the current page', () => {
+    const auth: AuthContextValue = {
+      status: 'authenticated',
+      user: {
+        id: 'u1',
+        name: 'Ana Client',
+        email: 'ana@example.com',
+        role: 'CLIENT',
+      },
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(async () => {}),
+    };
+    const router = createMemoryRouter(
+      [
+        {
+          element: <AppLayout />,
+          children: [{ path: '/client', element: <h1>Client home</h1> }],
+        },
+      ],
+      { initialEntries: ['/client'] },
+    );
+    render(
+      <AuthContext.Provider value={auth}>
+        <RouterProvider router={router} />
+      </AuthContext.Provider>,
+    );
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    expect(
+      within(nav).getByRole('link', { name: 'Dashboard' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('Ana Client')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Sign out' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Change theme/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no menu while signed out', () => {
+    const router = createMemoryRouter([
+      {
+        element: <AppLayout />,
+        children: [{ index: true, element: <p>Hi</p> }],
+      },
+    ]);
+    render(<RouterProvider router={router} />);
+    expect(
+      screen.queryByRole('navigation', { name: 'Main' }),
     ).not.toBeInTheDocument();
   });
 });

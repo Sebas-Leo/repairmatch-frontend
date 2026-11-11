@@ -1,256 +1,367 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens. Components use the semantic utilities generated from @theme
+ * (`bg-surface`, `text-muted`, `border-line`, `bg-brand`...). Their values live
+ * in plain CSS variables that switch with `data-theme` on <html>, so a utility
+ * works in light and dark mode without a `dark:` twin. `ThemeProvider` sets
+ * the attribute (system preference unless the user picked one).
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: var(--rm-bg);
+  --color-surface: var(--rm-surface);
+  --color-surface-2: var(--rm-surface-2);
+  --color-ink: var(--rm-ink);
+  --color-muted: var(--rm-muted);
+  --color-line: var(--rm-line);
+  --color-brand: var(--rm-brand);
+  --color-brand-strong: var(--rm-brand-strong);
+  --color-on-brand: var(--rm-on-brand);
+  --color-accent: var(--rm-accent);
+  --color-success: var(--rm-success);
+  --color-warning: var(--rm-warning);
+  --color-danger: var(--rm-danger);
+  --color-info: var(--rm-info);
+  --color-success-soft: var(--rm-success-soft);
+  --color-warning-soft: var(--rm-warning-soft);
+  --color-danger-soft: var(--rm-danger-soft);
+  --color-info-soft: var(--rm-info-soft);
+  --color-brand-soft: var(--rm-brand-soft);
+
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgb(16 32 28 / 6%), 0 4px 16px rgb(16 32 28 / 6%);
+}
+
 :root {
-  font-family: system-ui, sans-serif;
-  color: #193632;
-  background: #f8f8f1;
-  line-height: 1.6;
+  --rm-bg: #f5f7f3;
+  --rm-surface: #ffffff;
+  --rm-surface-2: #edf1ec;
+  --rm-ink: #17302c;
+  --rm-muted: #51645c;
+  --rm-line: #d4ddd7;
+  --rm-brand: #1f5b4f;
+  --rm-brand-strong: #17463d;
+  --rm-on-brand: #ffffff;
+  --rm-brand-soft: #dcebe5;
+  --rm-accent: #b15722;
+  --rm-success: #1f6f4a;
+  --rm-warning: #8a5a00;
+  --rm-danger: #a3261d;
+  --rm-info: #1d5b8f;
+  --rm-success-soft: #dff1e7;
+  --rm-warning-soft: #f6ead0;
+  --rm-danger-soft: #f8e1de;
+  --rm-info-soft: #dde9f5;
+  color-scheme: light;
 }
 
-* {
-  box-sizing: border-box;
-}
-body {
-  margin: 0;
-}
-a {
-  color: inherit;
-}
-:focus-visible {
-  outline: 3px solid #b15722;
-  outline-offset: 5px;
-}
-.shell {
-  width: min(800px, calc(100% - 40px));
-  margin-inline: auto;
-}
-.site-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding-block: 24px;
-  border-bottom: 1px solid #d7dfd8;
-}
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  background: #193632;
-  color: #fff;
-  border-radius: 8px;
-}
-.status,
-.site-footer {
-  color: #4c5e54;
-  font-size: 0.875rem;
-}
-.home,
-.not-found,
-.error-page {
-  padding-block: clamp(40px, 8vw, 80px);
-}
-h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  line-height: 1.2;
-  margin: 0 0 24px;
-  overflow-wrap: break-word;
-}
-p {
-  max-width: 65ch;
-}
-.eyebrow {
-  font-weight: 700;
-}
-.site-footer {
-  border-top: 1px solid #d7dfd8;
-  padding-block: 24px;
-}
-.skip-link {
-  position: absolute;
-  top: -100px;
-  left: 16px;
-  padding: 12px;
-  background: #fff;
-  z-index: 1;
-}
-.skip-link:focus {
-  top: 12px;
-}
-.button-link,
-button {
-  display: inline-block;
-  background: #193b35;
-  color: #fff;
-  border: 0;
-  border-radius: 8px;
-  padding: 12px 20px;
-  margin-top: 20px;
-  font: inherit;
-  text-decoration: none;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+:root[data-theme='dark'] {
+  --rm-bg: #0e1715;
+  --rm-surface: #15211e;
+  --rm-surface-2: #1c2b27;
+  --rm-ink: #e2ebe7;
+  --rm-muted: #9db0a8;
+  --rm-line: #2c3e39;
+  --rm-brand: #5fc3a8;
+  --rm-brand-strong: #84d6bf;
+  --rm-on-brand: #0b1513;
+  --rm-brand-soft: #1d3a33;
+  --rm-accent: #e58a4f;
+  --rm-success: #6fd19a;
+  --rm-warning: #e5b45a;
+  --rm-danger: #f08a7e;
+  --rm-info: #7fb6e6;
+  --rm-success-soft: #18352a;
+  --rm-warning-soft: #3a2f17;
+  --rm-danger-soft: #3d1f1c;
+  --rm-info-soft: #172d40;
+  color-scheme: dark;
 }
 
-/* Neutral, unstyled-but-usable forms; the real design comes later. */
-.auth-page {
-  padding-block: clamp(24px, 6vw, 56px);
-}
-.form-fields {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-.field {
-  display: grid;
-  gap: 4px;
-  margin-bottom: 16px;
-}
-.field label,
-.radio-group legend {
-  font-weight: 700;
-}
-.field input {
-  width: 100%;
-  max-width: 24rem;
-  padding: 10px 12px;
-  border: 1px solid #4c5e54;
-  border-radius: 8px;
-  background: #fff;
-  color: inherit;
-  font: inherit;
-}
-.field input[aria-invalid='true'] {
-  border-color: #9b1c1c;
-}
-.field-hint,
-.field-error {
-  margin: 0;
-  font-size: 0.875rem;
-}
-.field-error,
-.error-summary,
-.error-state {
-  color: #9b1c1c;
-}
-.error-summary,
-.error-state {
-  border: 2px solid #9b1c1c;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-}
-.error-summary-title,
-.error-state-title {
-  margin: 0;
-  font-weight: 700;
-}
-.error-actions {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: 12px;
-}
-.error-summary ul {
-  margin: 8px 0 0;
-  padding-left: 20px;
-}
-.radio-group {
-  border: 0;
-  margin: 0 0 16px;
-  padding: 0;
-}
-.radio {
-  display: block;
-  padding-block: 4px;
-}
-.loading-state {
-  padding-block: 40px;
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    background: var(--rm-bg);
+    color: var(--rm-ink);
+  }
+  body {
+    margin: 0;
+    background: var(--rm-bg);
+    color: var(--rm-ink);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  a {
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 3px solid var(--rm-accent);
+    outline-offset: 3px;
+  }
+  /* Bare buttons in older screens keep a usable look; `Button` overrides it. */
+  button {
+    cursor: pointer;
+    font: inherit;
+  }
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
-/* Toasts: a fixed corner stack that never blocks the page behind it. */
-.toast-viewport {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  left: 16px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  pointer-events: none;
-}
-.toast-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  width: 100%;
-}
-.toast {
-  pointer-events: auto;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: min(24rem, 100%);
-  padding: 12px 16px;
-  background: #fff;
-  color: #193632;
-  border: 2px solid #193632;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgb(25 54 50 / 20%);
-}
-.toast-success {
-  border-color: #1f6f4a;
-}
-.toast-error {
-  border-color: #9b1c1c;
-}
-.toast-icon {
-  flex: none;
-  width: 1.5rem;
-  text-align: center;
-  font-weight: 700;
-}
-.toast-success .toast-icon {
-  color: #1f6f4a;
-}
-.toast-error .toast-icon {
-  color: #9b1c1c;
-}
-.toast-message {
-  flex: 1;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.toast-close {
-  flex: none;
-  min-width: 32px;
-  min-height: 32px;
-  margin: -4px -8px 0 0;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 1.5rem;
-  line-height: 1;
+/* Classes of the screens that predate the component kit. */
+@layer components {
+  .shell {
+    width: min(1120px, calc(100% - 32px));
+    margin-inline: auto;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 16px;
+    z-index: 50;
+    padding: 12px;
+    background: var(--rm-surface);
+    border-radius: 8px;
+  }
+  .skip-link:focus {
+    top: 12px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    background: var(--rm-brand);
+    color: var(--rm-on-brand);
+    border-radius: 9px;
+  }
+  .eyebrow {
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: var(--rm-muted);
+  }
+  .home,
+  .not-found,
+  .error-page,
+  .auth-page {
+    padding-block: clamp(24px, 6vw, 56px);
+  }
+  .auth-page {
+    max-width: 28rem;
+    margin-inline: auto;
+  }
+  .auth-page h1,
+  .not-found h1,
+  .error-page h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    margin: 0 0 20px;
+  }
+  .button-link,
+  .form-fields > button,
+  .error-state > button,
+  .not-found button,
+  .error-page button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 18px;
+    margin-top: 12px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--rm-brand);
+    color: var(--rm-on-brand);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .form-fields {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .field {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+  .field label,
+  .radio-group legend {
+    font-weight: 600;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--rm-line);
+    border-radius: 10px;
+    background: var(--rm-surface);
+    color: inherit;
+    font: inherit;
+  }
+  .field input[aria-invalid='true'],
+  .field select[aria-invalid='true'],
+  .field textarea[aria-invalid='true'] {
+    border-color: var(--rm-danger);
+  }
+  .field-hint,
+  .field-error {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+  .field-hint {
+    color: var(--rm-muted);
+  }
+  .field-error,
+  .error-summary,
+  .error-state {
+    color: var(--rm-danger);
+  }
+  .error-summary,
+  .error-state {
+    border: 1px solid var(--rm-danger);
+    background: var(--rm-danger-soft);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+  .error-summary-title,
+  .error-state-title {
+    margin: 0;
+    font-weight: 700;
+  }
+  .error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 12px;
+  }
+  .error-summary ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+  }
+  .radio-group {
+    border: 0;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .radio {
+    display: block;
+    padding-block: 4px;
+  }
+  .loading-state {
+    padding-block: 40px;
+    color: var(--rm-muted);
+  }
+
+  /* Toasts: a fixed corner stack that never blocks the page behind it. */
+  .toast-viewport {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    width: 100%;
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: min(24rem, 100%);
+    padding: 12px 16px;
+    background: var(--rm-surface);
+    color: var(--rm-ink);
+    border: 1px solid var(--rm-line);
+    border-left-width: 4px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+  }
+  .toast-success {
+    border-left-color: var(--rm-success);
+  }
+  .toast-error {
+    border-left-color: var(--rm-danger);
+  }
+  .toast-icon {
+    flex: none;
+    width: 1.5rem;
+    text-align: center;
+    font-weight: 700;
+  }
+  .toast-success .toast-icon {
+    color: var(--rm-success);
+  }
+  .toast-error .toast-icon {
+    color: var(--rm-danger);
+  }
+  .toast-message {
+    flex: 1;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .toast-close {
+    flex: none;
+    min-width: 32px;
+    min-height: 32px;
+    margin: -4px -8px 0 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.5rem;
+    line-height: 1;
+  }
 }
