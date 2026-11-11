@@ -14,6 +14,11 @@ export interface PageParams {
   setSearch(search: string): void;
   /** Sets or clears a filter; changing a filter goes back to the first page. */
   setFilter(name: string, value: string): void;
+  /**
+   * Several filters in one URL update (two separate setters in one handler
+   * would overwrite each other). '' clears a filter.
+   */
+  setFilters(changes: Readonly<Record<string, string>>): void;
 }
 
 interface PageParamsOptions {
@@ -73,5 +78,6 @@ export function usePageParams({
     // Typing must not flood the history, so a new search replaces the entry.
     setSearch: (next) => update({ search: next }, true, true),
     setFilter: (name, value) => update({ [name]: value }, true),
+    setFilters: (changes) => update({ ...changes }, true),
   };
 }

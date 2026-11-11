@@ -72,11 +72,11 @@ export interface Evidence {
 /** Filters of `GET /requests`; every field is optional. */
 export interface ServiceRequestsQuery {
   /** Zero-based, default 0. */
-  page?: number;
+  page?: number | undefined;
   /** 1-100, default 20. */
-  size?: number;
-  status?: RequestStatus;
+  size?: number | undefined;
+  status?: RequestStatus | undefined;
   /** Case-insensitive text in description, brand, model or appliance type. */
-  search?: string;
-  sort?: 'newest' | 'oldest';
+  search?: string | undefined;
+  sort?: 'newest' | 'oldest' | undefined;
 }

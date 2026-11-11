@@ -221,7 +221,7 @@ describe('login form', () => {
 
     release();
     expect(
-      await screen.findByRole('heading', { name: 'Client home' }),
+      await screen.findByRole('heading', { name: 'Your repairs' }),
     ).toBeInTheDocument();
   });
 
@@ -257,7 +257,7 @@ describe('login form', () => {
     });
     release();
 
-    await screen.findByRole('heading', { name: 'Client home' });
+    await screen.findByRole('heading', { name: 'Your repairs' });
     expect(api.callsTo('POST /auth/login')).toHaveLength(1);
   });
 
@@ -266,7 +266,7 @@ describe('login form', () => {
     const { session, api } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
     await fillAndSubmit(user, '  client@example.test ', ' Test-pass-1 ');
-    await screen.findByRole('heading', { name: 'Client home' });
+    await screen.findByRole('heading', { name: 'Your repairs' });
     expect(api.callsTo('POST /auth/login')[0]?.body).toEqual({
       email: 'client@example.test',
       password: ' Test-pass-1 ',
@@ -281,7 +281,7 @@ describe('after signing in', () => {
     const { router } = renderApp(session, '/login');
     await fillAndSubmit(user);
     expect(
-      await screen.findByRole('heading', { name: 'Client home' }),
+      await screen.findByRole('heading', { name: 'Your repairs' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -292,7 +292,7 @@ describe('after signing in', () => {
     const { router } = renderApp(session, '/login');
     await fillAndSubmit(user, 'technician@example.test');
     expect(
-      await screen.findByRole('heading', { name: 'Technician home' }),
+      await screen.findByRole('heading', { name: 'Your work' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/technician');
   });
@@ -306,7 +306,7 @@ describe('after signing in', () => {
     await fillAndSubmit(user);
 
     expect(
-      await screen.findByRole('heading', { name: 'This page is not here.' }),
+      await screen.findByRole('heading', { name: 'My requests' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname + router.state.location.search).toBe(
       '/client/requests?page=2',
@@ -318,7 +318,7 @@ describe('after signing in', () => {
     const { session } = createTestSession(authRoutes(technicianUser));
     const { router } = renderApp(session, '/client');
     await fillAndSubmit(user, 'technician@example.test');
-    await screen.findByRole('heading', { name: 'Technician home' });
+    await screen.findByRole('heading', { name: 'Your work' });
     expect(router.state.location.pathname).toBe('/technician');
   });
 
@@ -327,7 +327,7 @@ describe('after signing in', () => {
     await session.login({ email: clientUser.email, password: 'Test-pass-1' });
     const { router } = renderApp(session, '/login');
     expect(
-      await screen.findByRole('heading', { name: 'Client home' }),
+      await screen.findByRole('heading', { name: 'Your repairs' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -361,7 +361,7 @@ describe('after signing in', () => {
 
     release();
     expect(
-      await screen.findByRole('heading', { name: 'Client home' }),
+      await screen.findByRole('heading', { name: 'Your repairs' }),
     ).toBeInTheDocument();
   });
 });
