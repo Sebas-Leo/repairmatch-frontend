@@ -101,6 +101,7 @@ describe('RequestDetailPage', () => {
     // the title because the button that opened the dialog may be gone.
     await waitFor(() => expect(getServiceRequest).toHaveBeenCalledTimes(2));
     expect(listRequestProposals).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
   });
 
   it('cancels the request after confirming, and reports a refusal', async () => {

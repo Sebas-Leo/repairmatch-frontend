@@ -109,4 +109,29 @@ describe('ConfirmDialog', () => {
     await user.tab();
     expect(dialog).toHaveFocus();
   });
+
+  it('sends focus where the page asks when it closes', async () => {
+    const user = userEvent.setup();
+    function Custom() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <h1 tabIndex={-1} id="landing">
+            Landing
+          </h1>
+          <ConfirmDialog
+            open={open}
+            title="Delete?"
+            description="Gone for good."
+            onConfirm={() => setOpen(false)}
+            onCancel={() => setOpen(false)}
+            returnFocus={() => document.getElementById('landing')}
+          />
+        </>
+      );
+    }
+    render(<Custom />);
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    expect(screen.getByRole('heading', { name: 'Landing' })).toHaveFocus();
+  });
 });

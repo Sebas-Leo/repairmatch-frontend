@@ -1,5 +1,5 @@
 import { Ban, Image as ImageIcon, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { acceptProposal, listRequestProposals } from '../proposals/api';
 import { ProposalCard } from '../proposals/ProposalCard';
@@ -30,6 +30,8 @@ export function RequestDetailPage() {
   const toast = useToast();
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
+  // After an action the button that opened the dialog may be gone: focus the title.
+  const actedRef = useRef(false);
 
   const request = useApiQuery(
     ['request', id],
@@ -97,6 +99,7 @@ export function RequestDetailPage() {
   async function confirm() {
     if (!pending) return;
     setBusy(true);
+    actedRef.current = true;
     try {
       if (pending.kind === 'cancel') {
         await cancelServiceRequest(id);
@@ -115,8 +118,6 @@ export function RequestDetailPage() {
       setBusy(false);
       request.reload();
       proposals.reload();
-      // The button that opened the dialog may be gone now: focus the title.
-      setTimeout(() => document.getElementById('request-title')?.focus(), 0);
     }
   }
 
@@ -264,6 +265,11 @@ export function RequestDetailPage() {
         cancelLabel={pending?.kind === 'accept' ? 'Not yet' : 'Keep it'}
         onConfirm={() => void confirm()}
         onCancel={() => setPending(null)}
+        returnFocus={() => {
+          if (!actedRef.current) return null;
+          actedRef.current = false;
+          return document.getElementById('request-title');
+        }}
       />
     </section>
   );
