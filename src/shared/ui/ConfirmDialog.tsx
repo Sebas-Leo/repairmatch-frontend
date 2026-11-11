@@ -14,6 +14,11 @@ interface ConfirmDialogProps {
   busy?: boolean;
   onConfirm(): void;
   onCancel(): void;
+  /**
+   * Where focus goes when the dialog closes. Return nothing to go back to the
+   * element that opened it (the default). Useful when the action removed it.
+   */
+  returnFocus?: () => HTMLElement | null | undefined;
 }
 
 /**
@@ -33,14 +38,15 @@ export function ConfirmDialog({
   busy = false,
   onConfirm,
   onCancel,
+  returnFocus,
 }: ConfirmDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const latest = useRef({ busy, onCancel });
+  const latest = useRef({ busy, onCancel, returnFocus });
   useEffect(() => {
-    latest.current = { busy, onCancel };
+    latest.current = { busy, onCancel, returnFocus };
   });
 
   useEffect(() => {
@@ -84,7 +90,8 @@ export function ConfirmDialog({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = overflow;
-      previous?.focus?.();
+      const target = latest.current.returnFocus?.() ?? previous;
+      target?.focus?.();
     };
   }, [open]);
 

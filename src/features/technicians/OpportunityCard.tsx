@@ -1,5 +1,6 @@
-import { MapPin } from 'lucide-react';
+import { MapPin, Send } from 'lucide-react';
 import type { MatchingRequest } from '../../shared/api/types';
+import { ButtonLink } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
 import { RequestStatusBadge } from '../requests/RequestStatusBadge';
 
@@ -32,6 +33,16 @@ export function OpportunityCard({
         {opportunity.distanceKm.toFixed(1)} km away · request #
         {opportunity.requestId}
       </p>
+      <div className="pt-1">
+        <ButtonLink
+          to={`/technician/opportunities/${opportunity.requestId}/offer`}
+          state={opportunity}
+          size="sm"
+          icon={<Send size={16} aria-hidden="true" />}
+        >
+          Send offer
+        </ButtonLink>
+      </div>
     </Card>
   );
 }

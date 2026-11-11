@@ -35,6 +35,9 @@ describe('OpportunitiesPage', () => {
     const { router } = setup(`${PATH}?size=25`);
     const items = await screen.findAllByRole('article');
     expect(items[0]).toHaveTextContent('2.3 km away');
+    expect(
+      screen.getAllByRole('link', { name: 'Send offer' })[0],
+    ).toHaveAttribute('href', '/technician/opportunities/7/offer');
     expect(screen.getByText('Showing 1–25 of 60')).toBeInTheDocument();
     expect(list).toHaveBeenCalledWith(
       { page: 0, size: 25 },
