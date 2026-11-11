@@ -1,15 +1,16 @@
 import { useAuth } from '../features/auth/authContext';
-import { LogoutButton } from '../features/auth/LogoutButton';
+import { PageHeader } from '../shared/ui/PageHeader';
 
-/** Placeholder landing page of the technician area. Feature screens come later. */
+/** Landing page of the technician area. The dashboard replaces it. */
 export function TechnicianHomePage() {
   const { user } = useAuth();
   return (
     <section aria-labelledby="technician-home-title">
-      <h1 id="technician-home-title">Technician home</h1>
-      <p>Signed in as {user?.name ?? 'technician'}.</p>
-      <p>Opportunities and proposals will appear here soon.</p>
-      <LogoutButton />
+      <PageHeader
+        titleId="technician-home-title"
+        title="Technician home"
+        description={`Signed in as ${user?.name ?? 'technician'}.`}
+      />
     </section>
   );
 }

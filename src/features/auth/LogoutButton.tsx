@@ -1,5 +1,7 @@
+import { LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { Button } from '../../shared/ui/Button';
 import { useAuth } from './authContext';
 
 export function LogoutButton() {
@@ -16,8 +18,14 @@ export function LogoutButton() {
   }
 
   return (
-    <button type="button" onClick={handleClick} disabled={pending}>
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={handleClick}
+      loading={pending}
+      icon={<LogOut size={16} aria-hidden="true" />}
+    >
       Sign out
-    </button>
+    </Button>
   );
 }
