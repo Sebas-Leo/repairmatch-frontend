@@ -12,6 +12,12 @@ export interface NavItem {
  * once its route exists, so the menu never links to a 404.
  */
 export const NAVIGATION: Record<Role, readonly NavItem[]> = {
-  CLIENT: [{ label: 'Dashboard', to: '/client', end: true }],
-  TECHNICIAN: [{ label: 'Dashboard', to: '/technician', end: true }],
+  CLIENT: [
+    { label: 'Dashboard', to: '/client', end: true },
+    { label: 'My requests', to: '/client/requests' },
+  ],
+  TECHNICIAN: [
+    { label: 'Dashboard', to: '/technician', end: true },
+    { label: 'Opportunities', to: '/technician/opportunities' },
+  ],
 };

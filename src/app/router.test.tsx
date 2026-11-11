@@ -28,7 +28,7 @@ describe('role redirect at /', () => {
     const { session } = await signedInSession(clientUser);
     const { router } = renderApp(session, '/');
     expect(
-      await screen.findByRole('heading', { name: 'Client home' }),
+      await screen.findByRole('heading', { name: 'Your repairs' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -37,7 +37,7 @@ describe('role redirect at /', () => {
     const { session } = await signedInSession(technicianUser);
     const { router } = renderApp(session, '/');
     expect(
-      await screen.findByRole('heading', { name: 'Technician home' }),
+      await screen.findByRole('heading', { name: 'Your work' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/technician');
   });
@@ -71,7 +71,7 @@ describe('role redirect at /', () => {
 
     release();
     expect(
-      await screen.findByRole('heading', { name: 'Technician home' }),
+      await screen.findByRole('heading', { name: 'Your work' }),
     ).toBeInTheDocument();
   });
 });
@@ -88,7 +88,7 @@ describe('guarded areas', () => {
     const { session } = await signedInSession(clientUser);
     renderApp(session, '/client');
     expect(
-      await screen.findByRole('heading', { name: 'Client home' }),
+      await screen.findByRole('heading', { name: 'Your repairs' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Signed in as Test Client.')).toBeInTheDocument();
   });
@@ -103,7 +103,7 @@ describe('guarded areas', () => {
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/unauthorized');
     expect(
-      screen.queryByRole('heading', { name: 'Client home' }),
+      screen.queryByRole('heading', { name: 'Your repairs' }),
     ).not.toBeInTheDocument();
   });
 
@@ -118,7 +118,7 @@ describe('guarded areas', () => {
     );
 
     expect(
-      await screen.findByRole('heading', { name: 'Client home' }),
+      await screen.findByRole('heading', { name: 'Your repairs' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -186,7 +186,7 @@ describe('unknown URLs', () => {
     await user.click(screen.getByRole('link', { name: 'Back to home' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Client home' }),
+      await screen.findByRole('heading', { name: 'Your repairs' }),
     ).toBeInTheDocument();
   });
 });

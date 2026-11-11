@@ -24,7 +24,11 @@ export function PageHeader({
       {breadcrumbs ? <Breadcrumbs items={breadcrumbs} /> : null}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="grid min-w-0 gap-1">
-          <h1 id={titleId} className="m-0 text-[clamp(1.6rem,3.5vw,2.25rem)]">
+          <h1
+            id={titleId}
+            tabIndex={-1}
+            className="m-0 text-[clamp(1.6rem,3.5vw,2.25rem)] focus:outline-none"
+          >
             {title}
           </h1>
           {description ? (

@@ -148,4 +148,32 @@ describe('useApiQuery', () => {
     expect(result.current.data).toBe('two');
     expect(result.current.isFetching).toBe(false);
   });
+
+  it('drops the data of another key when asked not to keep it', async () => {
+    const answers = [
+      deferred<string>(),
+      deferred<string>(),
+      deferred<string>(),
+    ];
+    let call = 0;
+    const { result, rerender } = renderHook(
+      ({ id }) =>
+        useApiQuery(['detail', id], () => answers[call++]!.promise, {
+          keepPreviousData: false,
+        }),
+      { initialProps: { id: 1 } },
+    );
+    await act(async () => answers[0]!.resolve('one'));
+    expect(result.current.data).toBe('one');
+
+    act(() => result.current.reload());
+    expect(result.current.data).toBe('one');
+    await act(async () => answers[1]!.resolve('one again'));
+
+    rerender({ id: 2 });
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.status).toBe('loading');
+    await act(async () => answers[2]!.resolve('two'));
+    expect(result.current.data).toBe('two');
+  });
 });

@@ -57,6 +57,12 @@ describe('usePageParams', () => {
     act(() => result.current.setSize(10));
     act(() => result.current.setPage(0));
     expect(search()).toBe('?search=fridge');
+    act(() =>
+      result.current.setFilters({ status: 'PUBLICADA', sort: 'oldest' }),
+    );
+    expect(search()).toBe('?search=fridge&status=PUBLICADA&sort=oldest');
+    act(() => result.current.setFilters({ status: '', search: '', sort: '' }));
+    expect(search()).toBe('');
   });
 });
 
