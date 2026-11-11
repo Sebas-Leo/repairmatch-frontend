@@ -1,5 +1,5 @@
 import { TriangleAlert } from 'lucide-react';
-import { useEffect, useId, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { Button } from './Button';
 
 interface ConfirmDialogProps {
@@ -19,7 +19,9 @@ interface ConfirmDialogProps {
 /**
  * Modal confirmation for actions that cannot be undone. Focus moves to the
  * cancel button (the safe choice), Tab stays inside, Escape and the backdrop
- * cancel, and focus returns to where it was on close.
+ * cancel, the page behind does not scroll, and focus returns to where it was
+ * on close. Keys are handled on the document, so they keep working when focus
+ * sits on the panel itself (a click on its text, or while the buttons are busy).
  */
 export function ConfirmDialog({
   open,
@@ -36,43 +38,65 @@ export function ConfirmDialog({
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const latest = useRef({ busy, onCancel });
+  useEffect(() => {
+    latest.current = { busy, onCancel };
+  });
 
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     cancelRef.current?.focus();
-    return () => previous?.focus?.();
+
+    function onKeyDown(event: KeyboardEvent) {
+      const panel = panelRef.current;
+      if (!panel) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (!latest.current.busy) latest.current.onCancel();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = [
+        ...panel.querySelectorAll<HTMLElement>('button:not([disabled])'),
+      ];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const active = document.activeElement;
+      const inside = active instanceof Node && panel.contains(active);
+      if (event.shiftKey && (active === first || !inside)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !inside)) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
+    };
   }, [open]);
+
+  // While the buttons are disabled, keep focus inside instead of on <body>.
+  useEffect(() => {
+    if (open && busy) panelRef.current?.focus();
+  }, [open, busy]);
 
   if (!open) return null;
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape' && !busy) {
-      event.stopPropagation();
-      onCancel();
-      return;
-    }
-    if (event.key !== 'Tab') return;
-    const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled])',
-    );
-    if (!focusable || focusable.length === 0) return;
-    const first = focusable[0]!;
-    const last = focusable[focusable.length - 1]!;
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"
-      onKeyDown={handleKeyDown}
-    >
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
       <div
         className="absolute inset-0"
         aria-hidden="true"
@@ -84,7 +108,9 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative grid w-full max-w-md gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]"
+        aria-busy={busy || undefined}
+        tabIndex={-1}
+        className="relative grid w-full max-w-md gap-3 rounded-card border border-line bg-surface p-5 shadow-card focus:outline-none"
       >
         <div className="flex items-start gap-3">
           {tone === 'danger' ? (

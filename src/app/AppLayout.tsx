@@ -21,7 +21,7 @@ function SessionNav() {
         aria-label="Main"
         className="order-last w-full overflow-x-auto sm:order-none sm:w-auto"
       >
-        <ul className="m-0 flex list-none gap-1 p-0">
+        <ul className="m-0 flex list-none gap-1 p-1">
           {items.map((item) => (
             <li key={item.to}>
               <NavLink

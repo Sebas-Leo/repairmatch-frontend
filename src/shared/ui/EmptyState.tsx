@@ -18,7 +18,7 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="grid justify-items-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface px-6 py-10 text-center">
+    <div className="grid justify-items-center gap-2 rounded-card border border-dashed border-line bg-surface px-6 py-10 text-center">
       <span className="text-muted" aria-hidden="true">
         {icon ?? <Inbox size={36} />}
       </span>

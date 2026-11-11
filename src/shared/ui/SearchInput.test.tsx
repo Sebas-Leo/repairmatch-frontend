@@ -52,7 +52,40 @@ describe('SearchInput', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
     expect(screen.getByRole('searchbox')).toHaveValue('');
-    act(() => vi.advanceTimersByTime(300));
+    expect(screen.getByRole('searchbox')).toHaveFocus();
     expect(onSearch).toHaveBeenCalledExactlyOnceWith('');
+    act(() => vi.advanceTimersByTime(300));
+    expect(onSearch).toHaveBeenCalledOnce();
+  });
+
+  it('shows a search applied from outside, such as the back button', () => {
+    const onSearch = vi.fn();
+    const { rerender } = render(
+      <SearchInput label="Search" value="lg" onSearch={onSearch} />,
+    );
+    rerender(<SearchInput label="Search" value="" onSearch={onSearch} />);
+    expect(screen.getByRole('searchbox')).toHaveValue('');
+    act(() => vi.advanceTimersByTime(500));
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  it('keeps what the user types when its own search comes back trimmed', () => {
+    const onSearch = vi.fn();
+    const { rerender } = render(
+      <SearchInput label="Search" value="" onSearch={onSearch} delayMs={300} />,
+    );
+    const input = screen.getByRole('searchbox');
+    fireEvent.change(input, { target: { value: 'no ' } });
+    act(() => vi.advanceTimersByTime(300));
+    expect(onSearch).toHaveBeenCalledWith('no');
+    rerender(
+      <SearchInput
+        label="Search"
+        value="no"
+        onSearch={onSearch}
+        delayMs={300}
+      />,
+    );
+    expect(input).toHaveValue('no ');
   });
 });

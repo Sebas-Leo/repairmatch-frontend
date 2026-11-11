@@ -86,4 +86,27 @@ describe('ConfirmDialog', () => {
       screen.getByRole('button', { name: 'Yes, cancel it' }),
     ).toBeDisabled();
   });
+
+  it('keeps Escape and Tab working after a click on the panel text', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+    await user.click(screen.getByText('Technicians will no longer see it.'));
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
+    await user.click(screen.getByText('Technicians will no longer see it.'));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('holds focus on the panel while busy and locks page scroll', async () => {
+    const user = userEvent.setup();
+    render(<Harness busy />);
+    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog).toHaveFocus();
+    expect(document.body.style.overflow).toBe('hidden');
+    await user.tab();
+    expect(dialog).toHaveFocus();
+  });
 });

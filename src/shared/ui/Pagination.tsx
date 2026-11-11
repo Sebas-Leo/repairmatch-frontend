@@ -17,7 +17,7 @@ interface PaginationProps {
 }
 
 const CONTROL =
-  'inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm disabled:opacity-50';
+  'inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-line bg-surface px-2 text-sm aria-disabled:cursor-not-allowed aria-disabled:opacity-50';
 
 /** Previous/next, page numbers, the visible range and the page size. */
 export function Pagination({
@@ -32,6 +32,12 @@ export function Pagination({
 }: PaginationProps) {
   const sizeId = useId();
   const pages = pageWindow(page, totalPages);
+  // aria-disabled instead of disabled: a disabled button drops keyboard focus,
+  // so the user would lose their place every time a page starts loading.
+  function go(next: number) {
+    if (disabled || next < 0 || next >= totalPages || next === page) return;
+    onPageChange(next);
+  }
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-sm">
       <p className="m-0 text-muted" aria-live="polite">
@@ -47,8 +53,10 @@ export function Pagination({
             <select
               id={sizeId}
               value={size}
-              disabled={disabled}
-              onChange={(event) => onSizeChange(Number(event.target.value))}
+              aria-disabled={disabled || undefined}
+              onChange={(event) => {
+                if (!disabled) onSizeChange(Number(event.target.value));
+              }}
               className="min-h-9 rounded-lg border border-line bg-surface px-2 text-ink"
             >
               {sizes.map((option) => (
@@ -66,8 +74,8 @@ export function Pagination({
                 <button
                   type="button"
                   className={CONTROL}
-                  onClick={() => onPageChange(page - 1)}
-                  disabled={disabled || page <= 0}
+                  onClick={() => go(page - 1)}
+                  aria-disabled={disabled || page <= 0 || undefined}
                   aria-label="Previous page"
                 >
                   <ChevronLeft size={16} aria-hidden="true" />
@@ -90,8 +98,8 @@ export function Pagination({
                         CONTROL,
                         item === page && 'border-brand bg-brand text-on-brand',
                       )}
-                      onClick={() => onPageChange(item)}
-                      disabled={disabled}
+                      onClick={() => go(item)}
+                      aria-disabled={disabled || undefined}
                       aria-label={`Page ${item + 1}`}
                       aria-current={item === page ? 'page' : undefined}
                     >
@@ -104,8 +112,10 @@ export function Pagination({
                 <button
                   type="button"
                   className={CONTROL}
-                  onClick={() => onPageChange(page + 1)}
-                  disabled={disabled || page >= totalPages - 1}
+                  onClick={() => go(page + 1)}
+                  aria-disabled={
+                    disabled || page >= totalPages - 1 || undefined
+                  }
                   aria-label="Next page"
                 >
                   <ChevronRight size={16} aria-hidden="true" />

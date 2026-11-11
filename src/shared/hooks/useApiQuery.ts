@@ -103,7 +103,11 @@ export function useApiQuery<T>(
       retries,
       retryDelayMs,
     ).then(
-      (data) => setSettled({ requestId, ok: true, data, error: undefined }),
+      (data) => {
+        // A fetcher that ignores the signal may still resolve after a newer key.
+        if (controller.signal.aborted) return;
+        setSettled({ requestId, ok: true, data, error: undefined });
+      },
       (error: unknown) => {
         if (controller.signal.aborted || isAbortError(error)) return;
         setSettled((previous) => ({

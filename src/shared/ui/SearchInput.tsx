@@ -21,10 +21,19 @@ export function SearchInput({
   delayMs = 350,
 }: SearchInputProps) {
   const id = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState(value);
+  const [seenValue, setSeenValue] = useState(value);
   const debounced = useDebounce(text, delayMs);
   const onSearchRef = useRef(onSearch);
   const appliedRef = useRef(value);
+
+  // The applied search changed from outside (back button, a link): show it.
+  // Our own searches come back trimmed, so they leave what the user typed alone.
+  if (value !== seenValue) {
+    setSeenValue(value);
+    if (value !== text.trim()) setText(value);
+  }
 
   useEffect(() => {
     onSearchRef.current = onSearch;
@@ -41,6 +50,16 @@ export function SearchInput({
     }
   }, [debounced]);
 
+  function clear() {
+    setText('');
+    inputRef.current?.focus();
+    // Clearing is deliberate, so it applies at once instead of after the pause.
+    if (appliedRef.current !== '') {
+      appliedRef.current = '';
+      onSearchRef.current('');
+    }
+  }
+
   return (
     <div className="relative w-full max-w-sm">
       <label htmlFor={id} className="visually-hidden">
@@ -52,6 +71,7 @@ export function SearchInput({
         className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"
       />
       <input
+        ref={inputRef}
         id={id}
         type="search"
         value={text}
@@ -62,7 +82,7 @@ export function SearchInput({
       {text ? (
         <button
           type="button"
-          onClick={() => setText('')}
+          onClick={clear}
           aria-label="Clear search"
           className="absolute top-1/2 right-1.5 inline-flex min-h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-md border-0 bg-transparent text-muted hover:text-ink"
         >

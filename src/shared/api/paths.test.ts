@@ -30,4 +30,10 @@ describe('withQuery', () => {
       }),
     ).toBe('/requests?page=0&size=25&search=lg+%26+co&flag=false');
   });
+
+  it('extends a path that already has a query and drops non-finite numbers', () => {
+    expect(withQuery('/a?x=1', { page: 2, size: Number.NaN })).toBe(
+      '/a?x=1&page=2',
+    );
+  });
 });

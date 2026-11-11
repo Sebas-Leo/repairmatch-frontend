@@ -31,7 +31,7 @@ export function StatCard({ label, value, icon, hint, to }: StatCardProps) {
     </>
   );
   const classes =
-    'grid gap-1 rounded-[var(--radius-card)] border border-line bg-surface p-4 no-underline shadow-[var(--shadow-card)]';
+    'grid gap-1 rounded-card border border-line bg-surface p-4 no-underline shadow-card';
   return to ? (
     <Link to={to} className={`${classes} transition-colors hover:border-brand`}>
       {body}

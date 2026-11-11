@@ -134,4 +134,18 @@ describe('useApiQuery', () => {
     expect(seen?.aborted).toBe(true);
     await act(async () => d.resolve('late'));
   });
+
+  it('ignores a late answer for a key that was replaced', async () => {
+    const answers = [deferred<string>(), deferred<string>()];
+    let call = 0;
+    const { result, rerender } = renderHook(
+      ({ id }) => useApiQuery(['item', id], () => answers[call++]!.promise),
+      { initialProps: { id: 1 } },
+    );
+    rerender({ id: 2 });
+    await act(async () => answers[1]!.resolve('two'));
+    await act(async () => answers[0]!.resolve('one'));
+    expect(result.current.data).toBe('two');
+    expect(result.current.isFetching).toBe(false);
+  });
 });

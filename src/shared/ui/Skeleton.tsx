@@ -27,7 +27,7 @@ export function ListSkeleton({
       {Array.from({ length: rows }, (_, index) => (
         <div
           key={index}
-          className="grid gap-2 rounded-[var(--radius-card)] border border-line bg-surface p-4"
+          className="grid gap-2 rounded-card border border-line bg-surface p-4"
         >
           <Skeleton className="h-4 w-1/3" />
           <Skeleton className="h-3 w-2/3" />

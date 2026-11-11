@@ -60,9 +60,12 @@ describe('Pagination', () => {
     );
     expect(
       screen.getByRole('button', { name: 'Previous page' }),
-    ).toBeDisabled();
+    ).toHaveAttribute('aria-disabled', 'true');
     rerender(<Pagination {...base} page={4} onPageChange={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next page' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('changes the page size', async () => {
@@ -93,5 +96,35 @@ describe('Pagination', () => {
       screen.queryByRole('navigation', { name: 'Pagination' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Showing 1–3 of 3')).toBeInTheDocument();
+  });
+
+  it('keeps focus and ignores clicks while a page loads', async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+    const onSizeChange = vi.fn();
+    render(
+      <Pagination
+        {...base}
+        disabled
+        onPageChange={onPageChange}
+        onSizeChange={onSizeChange}
+      />,
+    );
+    const next = screen.getByRole('button', { name: 'Next page' });
+    await user.click(next);
+    expect(next).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Page 3' }));
+    await user.selectOptions(screen.getByLabelText('Per page'), '50');
+    expect(onPageChange).not.toHaveBeenCalled();
+    expect(onSizeChange).not.toHaveBeenCalled();
+  });
+
+  it('ignores the bounds and the current page', async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+    render(<Pagination {...base} page={0} onPageChange={onPageChange} />);
+    await user.click(screen.getByRole('button', { name: 'Previous page' }));
+    await user.click(screen.getByRole('button', { name: 'Page 1' }));
+    expect(onPageChange).not.toHaveBeenCalled();
   });
 });

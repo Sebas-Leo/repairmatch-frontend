@@ -23,8 +23,10 @@ export function withQuery(
   const params = new URLSearchParams();
   for (const [name, value] of Object.entries(query)) {
     if (value === undefined || value === null || value === '') continue;
+    if (typeof value === 'number' && !Number.isFinite(value)) continue;
     params.set(name, String(value));
   }
   const text = params.toString();
-  return text ? `${path}?${text}` : path;
+  if (!text) return path;
+  return `${path}${path.includes('?') ? '&' : '?'}${text}`;
 }
