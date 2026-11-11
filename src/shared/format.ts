@@ -10,7 +10,7 @@ const DATE_TIME = new Intl.DateTimeFormat('en-GB', {
   minute: '2-digit',
 });
 
-const MONEY = new Intl.NumberFormat('en-PE', {
+const MONEY = new Intl.NumberFormat('es-PE', {
   style: 'currency',
   currency: 'PEN',
 });

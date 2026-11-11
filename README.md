@@ -297,6 +297,18 @@ if (error) return <ErrorState error={error} onRetry={load} />;
 
 `ErrorState` anuncia el fallo (`role="alert"`) con el título y el texto de `describeApiError`, y muestra «Try again» solo cuando reintentar puede ayudar (no en 403, 404 ni errores de validación). `title` y `message` reemplazan los textos derivados del error; sin `error`, el botón aparece siempre que pases `onRetry`. Una llamada cancelada no muestra nada.
 
+## Participación del equipo
+
+La rúbrica del Proyecto 2 pide esta tabla. El docente multiplica la nota grupal por el porcentaje de cada integrante: 100 % significa que cumplió por completo sus responsabilidades. Cada integrante revisa su fila. **Los porcentajes los acuerda el equipo antes de la entrega.**
+
+| Integrante         | Principales aportes (según el historial de PRs)                                                                                            | Participación |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
+| Sebas-Leo          | Base del frontend (auth, axios, UX), sistema de diseño, dashboards, solicitudes, ofertas, paginación del backend, integración y despliegue | por definir   |
+| AdrianPacheco12343 | Backend: entidades, datos iniciales y endpoints de servicios                                                                               | por definir   |
+| andrehcv           | Backend: perfil del técnico, área de cobertura y motor de compatibilidad                                                                   | por definir   |
+| becomon            | Backend: base Spring Boot, identidad (registro, JWT, refresh, CORS), permisos y Postman                                                    | por definir   |
+| camilaalfaro-afk   | Backend: solicitudes, evidencias, ciclo de la solicitud y contenedor Docker                                                                | por definir   |
+
 ## Reparto inicial del trabajo
 
 **Propuesta ajustable, no un acuerdo confirmado del equipo.** Estos módulos todavía no están implementados. Cada responsable entrega la interfaz de su módulo, la integración con la API, los estados de carga y error, y las pruebas; no solamente documentación o pruebas.
@@ -314,5 +326,7 @@ Orden de integración: sesión → solicitudes/perfil → propuestas → servici
 Las pruebas de extremo a extremo (E2E) en navegador se posponen para mantener ligera esta base; las pruebas unitarias no cubren la integración real entre navegador y backend. Reincorpórenlas con el primer flujo real de sesión (responsable propuesto: Sebas-Leo).
 
 ## Despliegue
+
+`vercel.json` deja listo el proyecto para Vercel: compila con `npm run build`, sirve `dist/` y redirige todas las rutas a `index.html`, para que una URL como `/client/requests/7` no dé 404 al recargar. Además, cachea los assets y agrega cabeceras de seguridad básicas. En Vercel hay que definir `VITE_API_BASE_URL` con la URL **HTTPS** del backend, y agregar el dominio de Vercel a `CORS_ALLOWED_ORIGINS` en el backend.
 
 `npm run build` genera `dist/`. Configura la URL de la API de producción antes de compilar, usa HTTPS, configura `CORS_ALLOWED_ORIGINS` del backend con el origen desplegado del frontend y configura el alojamiento para servir `index.html` en las rutas gestionadas por el frontend. Todavía no se ha verificado ningún despliegue ni la integración con el backend real: el flujo de sesión se probó con pruebas automatizadas y, tras migrar a axios, a mano en un navegador (servidor de desarrollo de Vite) contra una API simulada local con CORS: inicio de sesión, restauración al recargar, tres 401 simultáneos con un único refresco, cierre de sesión, cancelación, timeout y redirección bloqueada (el preflight CORS no se probó contra el backend real).
