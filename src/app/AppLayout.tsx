@@ -9,7 +9,7 @@ import { cx } from '../shared/ui/cx';
 import { LoadingState } from '../shared/ui/LoadingState';
 import { NAVIGATION } from './navigation';
 
-/** Navigation and account controls; nothing while signed out. */
+/** Main navigation of the signed-in role; nothing while signed out. On a phone it takes its own row. */
 function SessionNav() {
   // Read the context directly: the layout also renders outside AuthProvider (tests).
   const auth = useContext(AuthContext);
@@ -42,11 +42,26 @@ function SessionNav() {
           ))}
         </ul>
       </nav>
-      <span className="hidden text-sm text-muted md:inline">
-        {auth.user.name}
-      </span>
-      <LogoutButton />
     </>
+  );
+}
+
+/** Name, sign out and theme stay together, so a narrow header never splits them. */
+function AccountControls() {
+  const auth = useContext(AuthContext);
+  const signedIn = auth?.status === 'authenticated';
+  return (
+    <div className="flex items-center gap-2">
+      {signedIn ? (
+        <>
+          <span className="hidden text-sm text-muted md:inline">
+            {auth.user.name}
+          </span>
+          <LogoutButton />
+        </>
+      ) : null}
+      <ThemeToggle />
+    </div>
   );
 }
 
@@ -79,7 +94,7 @@ export function AppLayout() {
                 RepairMatch
               </Link>
               <SessionNav />
-              <ThemeToggle />
+              <AccountControls />
             </div>
           </header>
           <main
