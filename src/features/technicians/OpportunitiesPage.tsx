@@ -1,7 +1,7 @@
 import { MapPinOff } from 'lucide-react';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { usePageParams } from '../../shared/hooks/usePageParams';
-import { Button } from '../../shared/ui/Button';
+import { Button, ButtonLink } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { ErrorState } from '../../shared/ui/ErrorState';
 import { PageHeader } from '../../shared/ui/PageHeader';
@@ -30,6 +30,9 @@ export function OpportunitiesPage() {
           icon={<MapPinOff size={36} />}
           title="Set up your service area first"
           description="Opportunities depend on where you work, how far you travel and the appliances you repair."
+          action={
+            <ButtonLink to="/technician/profile">Set up profile</ButtonLink>
+          }
         />
       ) : (
         <ErrorState error={query.error} onRetry={query.reload} />
