@@ -159,7 +159,7 @@ describe('form fields', () => {
         hint="Filter the list"
         error="Pick one"
         placeholder="All statuses"
-        options={[{ value: 'PUBLICADA', label: 'Published' }]}
+        options={[{ value: 'PUBLICADA', label: 'Publicada' }]}
         value=""
         onChange={onChange}
       />,

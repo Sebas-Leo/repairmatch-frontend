@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
+import type { PublishDraft } from './PublishPanel';
 import { listApplianceTypes } from '../applianceTypes/api';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { useSubmitGuard } from '../../shared/hooks/useSubmitGuard';
@@ -50,7 +51,11 @@ const EMPTY: NewRequestForm = {
 export function NewRequestPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [form, setForm] = useState(EMPTY);
+  const draft = (useLocation().state ?? null) as PublishDraft | null;
+  const [form, setForm] = useState<NewRequestForm>(() => ({
+    ...EMPTY,
+    applianceTypeId: draft?.applianceTypeId ?? '',
+  }));
   const { feedback, summaryRef, show, clear } = useFormFeedback();
   const types = useApiQuery(['appliance-types'], (signal) =>
     listApplianceTypes({ signal }),

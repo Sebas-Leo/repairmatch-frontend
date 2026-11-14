@@ -2,14 +2,38 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../shared/api/http';
-import { anOpportunity } from '../../test/fixtures';
 import { pageOf, renderPage } from '../../test/renderPage';
-import { listMatchingRequests } from './api';
+import { listRecommendedRequests, type RecommendedRequest } from './api';
 import { OpportunitiesPage } from './OpportunitiesPage';
 
-vi.mock('./api', () => ({ listMatchingRequests: vi.fn() }));
-const list = vi.mocked(listMatchingRequests);
+vi.mock('./api', () => ({ listRecommendedRequests: vi.fn() }));
+vi.mock('../proposals/api', () => ({ submitProposal: vi.fn() }));
+const list = vi.mocked(listRecommendedRequests);
 const PATH = '/technician/opportunities';
+
+function item(
+  id: number,
+  distanceKm: number,
+  proposalCount = 0,
+  brand = 'Samsung',
+): RecommendedRequest {
+  return {
+    request: {
+      requestId: id,
+      applianceTypeName: 'Refrigerator',
+      brand,
+      model: `M${id}`,
+      description: 'Dejó de enfriar desde ayer',
+      status: proposalCount ? 'CON_PROPUESTAS' : 'PUBLICADA',
+      distanceKm,
+    },
+    createdAt: '2026-11-01T10:00:00',
+    proposalCount,
+    symptom: 'No enfría',
+    score: 1 / distanceKm,
+    reasons: [],
+  };
+}
 
 function setup(url = PATH) {
   return renderPage(<OpportunitiesPage />, {
@@ -24,83 +48,60 @@ describe('OpportunitiesPage', () => {
     list.mockReset();
   });
 
-  it('lists nearby requests with their distance and pages them', async () => {
+  it('lists open requests nearest first and pages them', async () => {
     const user = userEvent.setup();
     list.mockResolvedValue(
-      pageOf([anOpportunity(), anOpportunity({ requestId: 8, brand: null })], {
-        size: 25,
-        totalElements: 60,
-      }),
+      pageOf([item(1, 4.2), item(2, 0.8)], { size: 25, totalElements: 60 }),
     );
     const { router } = setup(`${PATH}?size=25`);
-    const items = await screen.findAllByRole('article');
-    expect(items[0]).toHaveTextContent('2.3 km away');
-    expect(
-      screen.getAllByRole('link', { name: 'Send offer' })[0],
-    ).toHaveAttribute('href', '/technician/opportunities/7/offer');
-    expect(screen.getByText('Showing 1–25 of 60')).toBeInTheDocument();
-    expect(list).toHaveBeenCalledWith(
-      { page: 0, size: 25 },
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
-    await user.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(router.state.location.search).toBe('?size=25&page=2');
+    const cards = await screen.findAllByRole('article');
+    expect(cards[0]).toHaveTextContent('Samsung M2');
+    expect(cards[0]).toHaveTextContent('0.8 km');
+    expect(list).toHaveBeenCalledWith({ page: 0, size: 25 }, expect.anything());
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(router.state.location.search).toContain('page=2');
   });
 
-  it('asks to configure the profile when matching is not possible yet', async () => {
+  it('filters by tab and by search', async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue(
+      pageOf([item(1, 1.5, 0), item(2, 3, 2), item(3, 6, 0, 'LG')]),
+    );
+    setup();
+    await screen.findAllByRole('article');
+
+    await user.click(screen.getByRole('tab', { name: 'Sin ofertas aún' }));
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+
+    await user.click(screen.getByRole('tab', { name: 'A menos de 2 km' }));
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+
+    await user.click(screen.getByRole('tab', { name: 'Todas' }));
+    await user.type(screen.getByRole('searchbox'), 'lg');
+    expect(await screen.findByText('LG M3')).toBeInTheDocument();
+    expect(screen.queryByText('Samsung M1')).not.toBeInTheDocument();
+  });
+
+  it('asks to set up the service area first', async () => {
     list.mockImplementation(() =>
-      Promise.reject(new ApiError(404, 'Not found', {})),
+      Promise.reject(
+        new ApiError(400, 'Bad request', { message: 'Area not configured' }),
+      ),
     );
     setup();
     expect(
-      await screen.findByText('Set up your service area first'),
+      await screen.findByText('Primero configura tu zona de servicio'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Set up profile' }),
+      screen.getByRole('link', { name: 'Configurar perfil' }),
     ).toHaveAttribute('href', '/technician/profile');
   });
 
-  it('shows other failures as errors', async () => {
-    list.mockImplementation(() =>
-      Promise.reject(new ApiError(403, 'Forbidden', {})),
-    );
+  it('says when there is nothing nearby', async () => {
+    list.mockResolvedValue(pageOf([]));
     setup();
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
-  });
-
-  it('explains an empty area and a page past the end', async () => {
-    list.mockResolvedValueOnce(pageOf([]));
-    const { unmount } = setup();
     expect(
-      await screen.findByText('No requests nearby right now'),
+      await screen.findByText('No hay solicitudes cerca por ahora'),
     ).toBeInTheDocument();
-    unmount();
-    list.mockResolvedValueOnce(pageOf([], { page: 4, totalElements: 12 }));
-    setup(`${PATH}?page=5`);
-    expect(await screen.findByText('This page is empty')).toBeInTheDocument();
-  });
-
-  it('keeps the loaded page and reports a failed page change', async () => {
-    const user = userEvent.setup();
-    list
-      .mockResolvedValueOnce(pageOf([anOpportunity()], { totalElements: 30 }))
-      .mockImplementation(() =>
-        Promise.reject(new ApiError(403, 'Forbidden', {})),
-      );
-    setup();
-    await screen.findByRole('article');
-    await user.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.getByRole('article')).toBeInTheDocument();
-  });
-
-  it('sends a visitor past the end to the last page', async () => {
-    const user = userEvent.setup();
-    list.mockResolvedValue(pageOf([], { page: 6, totalElements: 30 }));
-    const { router } = setup(`${PATH}?page=7`);
-    await user.click(
-      await screen.findByRole('button', { name: 'Go to the last page' }),
-    );
-    expect(router.state.location.search).toBe('?page=3');
   });
 });

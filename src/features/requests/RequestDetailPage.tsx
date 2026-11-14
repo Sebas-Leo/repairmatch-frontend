@@ -216,7 +216,7 @@ export function RequestDetailPage() {
               }
             />
           ) : (
-            <ul className="m-0 grid list-none gap-3 p-0">
+            <ul className="stagger m-0 grid list-none gap-4 p-0">
               {offers.map((offer) => (
                 <li key={offer.id}>
                   <ProposalCard

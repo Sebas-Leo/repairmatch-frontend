@@ -4,7 +4,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md';
 
 const BASE =
-  'inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold no-underline transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex items-center justify-center gap-2 rounded-full font-semibold no-underline transition-[background-color,box-shadow,transform] duration-200 ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-brand text-on-brand hover:bg-brand-strong',
@@ -14,8 +14,8 @@ const VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'min-h-9 px-3 text-sm',
-  md: 'min-h-11 px-4',
+  sm: 'min-h-9 px-3.5 text-sm',
+  md: 'min-h-11 px-5',
 };
 
 export function buttonClasses(

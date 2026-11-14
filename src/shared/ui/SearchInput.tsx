@@ -77,7 +77,7 @@ export function SearchInput({
         value={text}
         placeholder={placeholder}
         onChange={(event) => setText(event.target.value)}
-        className="min-h-11 w-full rounded-[10px] border border-line bg-surface py-2 pr-10 pl-9 text-ink [&::-webkit-search-cancel-button]:hidden"
+        className="min-h-12 w-full rounded-full border border-line bg-surface shadow-card py-2 pr-10 pl-9 text-ink [&::-webkit-search-cancel-button]:hidden"
       />
       {text ? (
         <button

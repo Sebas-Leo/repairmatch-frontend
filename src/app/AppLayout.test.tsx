@@ -110,12 +110,13 @@ describe('AppLayout navigation', () => {
       </AuthContext.Provider>,
     );
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(
-      within(nav).getByRole('link', { name: 'Dashboard' }),
-    ).toHaveAttribute('aria-current', 'page');
+    expect(within(nav).getByRole('link', { name: 'Inicio' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     expect(screen.getByText('Ana Client')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Sign out' }),
+      screen.getByRole('button', { name: 'Cerrar sesión' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Change theme/ }),
