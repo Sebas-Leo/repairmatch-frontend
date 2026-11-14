@@ -1,33 +1,33 @@
 import type { CreateReview } from '../../shared/api/types';
 
-export const REVIEW_MAX_COMMENT = 2000;
-
-export interface ReviewFormValues {
-  rating: number;
-  comment: string;
-}
+export const REVIEW_MIN_RATING = 1;
+export const REVIEW_MAX_RATING = 5;
+export const REVIEW_MIN_COMMENT = 5;
+export const REVIEW_MAX_COMMENT = 500;
 
 export type ReviewFormErrors = Partial<Record<'rating' | 'comment', string>>;
 
-export function validateReview(values: ReviewFormValues): {
-  errors: ReviewFormErrors;
+export function validateReview(raw: { rating: number; comment: string }): {
   data?: CreateReview;
+  errors: ReviewFormErrors;
 } {
   const errors: ReviewFormErrors = {};
 
   if (
-    !Number.isInteger(values.rating) ||
-    values.rating < 1 ||
-    values.rating > 5
+    !Number.isInteger(raw.rating) ||
+    raw.rating < REVIEW_MIN_RATING ||
+    raw.rating > REVIEW_MAX_RATING
   ) {
-    errors.rating = 'Select a rating from 1 to 5 stars.';
+    errors.rating = 'Elige una calificación entre 1 y 5 estrellas.';
   }
 
-  const trimmed = values.comment.trim();
-  if (!trimmed) {
-    errors.comment = 'Write a short comment about the service.';
-  } else if (trimmed.length > REVIEW_MAX_COMMENT) {
-    errors.comment = `Comment must be at most ${REVIEW_MAX_COMMENT} characters.`;
+  const trimmedComment = raw.comment.trim();
+  if (!trimmedComment) {
+    errors.comment = 'Escribe un breve comentario sobre la atención recibida.';
+  } else if (trimmedComment.length < REVIEW_MIN_COMMENT) {
+    errors.comment = `El comentario debe tener al menos ${REVIEW_MIN_COMMENT} caracteres.`;
+  } else if (trimmedComment.length > REVIEW_MAX_COMMENT) {
+    errors.comment = `El comentario no puede superar los ${REVIEW_MAX_COMMENT} caracteres.`;
   }
 
   if (Object.keys(errors).length > 0) {
@@ -35,10 +35,10 @@ export function validateReview(values: ReviewFormValues): {
   }
 
   return {
-    errors,
     data: {
-      rating: values.rating,
-      comment: trimmed,
+      rating: raw.rating,
+      comment: trimmedComment,
     },
+    errors,
   };
 }

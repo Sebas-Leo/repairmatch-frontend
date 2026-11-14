@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../shared/api/http';
 import type { Review, Service } from '../../shared/api/types';
+import { aRequest } from '../../test/fixtures';
 import { renderPage } from '../../test/renderPage';
+import { getServiceRequest } from '../requests/api';
 import {
   createReview,
   getService,
@@ -17,6 +19,10 @@ vi.mock('./api', () => ({
   updateServiceStatus: vi.fn(),
   getServiceReview: vi.fn(),
   createReview: vi.fn(),
+}));
+
+vi.mock('../requests/api', () => ({
+  getServiceRequest: vi.fn(),
 }));
 
 function aService(overrides: Partial<Service> = {}): Service {
@@ -38,7 +44,7 @@ function aReview(overrides: Partial<Review> = {}): Review {
     id: 4,
     serviceId: 12,
     rating: 5,
-    comment: 'Arrived on time and fixed the fridge quickly.',
+    comment: 'Llegó puntual y reparó la refrigeradora rápido.',
     createdAt: '2026-11-12T16:30:00',
     ...overrides,
   };
@@ -50,6 +56,10 @@ describe('ServiceDetailPage', () => {
     vi.mocked(updateServiceStatus).mockReset();
     vi.mocked(getServiceReview).mockReset();
     vi.mocked(createReview).mockReset();
+    vi.mocked(getServiceRequest).mockReset();
+    vi.mocked(getServiceRequest).mockResolvedValue(
+      aRequest({ id: 7, brand: 'Samsung', model: 'RT38' }),
+    );
   });
 
   it('allows a technician to advance a scheduled service after confirmation', async () => {
@@ -66,18 +76,18 @@ describe('ServiceDetailPage', () => {
     });
 
     await user.click(
-      await screen.findByRole('button', { name: 'Start service' }),
+      await screen.findByRole('button', { name: 'Iniciar atención' }),
     );
     const dialog = screen.getByRole('alertdialog', {
-      name: 'Start this service now?',
+      name: '¿Iniciar este servicio ahora?',
     });
     await user.click(
-      within(dialog).getByRole('button', { name: 'Start service' }),
+      within(dialog).getByRole('button', { name: 'Iniciar atención' }),
     );
 
     expect(updateServiceStatus).toHaveBeenCalledWith(12, 'EN_ATENCION');
     expect(
-      await screen.findByText('Service marked as in progress.'),
+      await screen.findByText('Servicio marcado como en atención.'),
     ).toBeInTheDocument();
     await waitFor(() => expect(getService).toHaveBeenCalledTimes(2));
   });
@@ -96,24 +106,29 @@ describe('ServiceDetailPage', () => {
     });
 
     expect(
-      await screen.findByRole('button', { name: 'Cancel service' }),
+      await screen.findByRole('button', { name: 'Cancelar servicio' }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Start service' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Iniciar atención' }),
+    ).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'Cancel service' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar servicio' }));
     await user.click(
       within(screen.getByRole('alertdialog')).getByRole('button', {
-        name: 'Cancel service',
+        name: 'Cancelar servicio',
       }),
     );
 
     expect(updateServiceStatus).toHaveBeenCalledWith(12, 'CANCELADO');
-    expect(await screen.findByText('Service cancelled.')).toBeInTheDocument();
+    expect(await screen.findByText('Servicio cancelado.')).toBeInTheDocument();
   });
 
   it('lets a client submit a review on a completed service and displays it', async () => {
     const user = userEvent.setup();
-    const savedReview = aReview({ rating: 4, comment: 'Great diagnosis.' });
+    const savedReview = aReview({
+      rating: 4,
+      comment: 'Excelente diagnóstico.',
+    });
     vi.mocked(getService).mockResolvedValue(aService({ status: 'COMPLETADO' }));
     vi.mocked(getServiceReview)
       .mockRejectedValueOnce(
@@ -128,15 +143,20 @@ describe('ServiceDetailPage', () => {
       role: 'CLIENT',
     });
 
-    await user.click(await screen.findByRole('radio', { name: '4 stars' }));
-    await user.type(screen.getByLabelText('Comment'), 'Great diagnosis.');
-    await user.click(screen.getByRole('button', { name: 'Submit review' }));
+    await user.click(await screen.findByRole('radio', { name: '4 estrellas' }));
+    await user.type(
+      screen.getByLabelText('Comentario'),
+      'Excelente diagnóstico.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Publicar reseña' }));
 
     expect(createReview).toHaveBeenCalledWith(12, {
       rating: 4,
-      comment: 'Great diagnosis.',
+      comment: 'Excelente diagnóstico.',
     });
-    expect(await screen.findByText('Great diagnosis.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Excelente diagnóstico.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('4/5')).toBeInTheDocument();
   });
 
@@ -151,9 +171,13 @@ describe('ServiceDetailPage', () => {
     });
 
     expect(
-      await screen.findByText('Arrived on time and fixed the fridge quickly.'),
+      await screen.findByText(
+        'Llegó puntual y reparó la refrigeradora rápido.',
+      ),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Submit review' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Publicar reseña' }),
+    ).toBeNull();
   });
 
   it('refuses a non-numeric service id without calling the API', () => {
@@ -164,7 +188,7 @@ describe('ServiceDetailPage', () => {
     });
 
     expect(
-      screen.getByRole('heading', { name: 'Service not found' }),
+      screen.getByRole('heading', { name: 'Servicio no encontrado' }),
     ).toBeInTheDocument();
     expect(getService).not.toHaveBeenCalled();
   });

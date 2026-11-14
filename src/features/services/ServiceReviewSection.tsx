@@ -28,7 +28,7 @@ function StarRatingDisplay({ rating }: { rating: number }) {
   return (
     <div
       className="flex items-center gap-1"
-      aria-label={`Rating: ${rating} out of 5 stars`}
+      aria-label={`Calificación: ${rating} de 5 estrellas`}
     >
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
@@ -36,9 +36,7 @@ function StarRatingDisplay({ rating }: { rating: number }) {
           size={18}
           aria-hidden="true"
           className={
-            star <= rating
-              ? 'fill-warning text-warning'
-              : 'text-muted opacity-40'
+            star <= rating ? 'fill-sun text-sun' : 'text-muted opacity-40'
           }
         />
       ))}
@@ -49,7 +47,7 @@ function StarRatingDisplay({ rating }: { rating: number }) {
 
 function ReviewCard({ review }: { review: Review }) {
   return (
-    <div className="grid gap-2.5 rounded-lg border border-line bg-surface-2 p-3.5">
+    <div className="grid gap-2.5 rounded-xl border border-line bg-surface-2 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <StarRatingDisplay rating={review.rating} />
         <span className="text-xs text-muted">
@@ -98,7 +96,7 @@ export function ServiceReviewSection({
     try {
       const saved = await createReview(serviceId, payload);
       setCreatedReview(saved);
-      toast.success('Thank you! Your review has been published.');
+      toast.success('¡Gracias! Tu reseña ha sido publicada.');
       reviewQuery.reload();
     } catch (err) {
       const message = describeApiError(err).message;
@@ -110,9 +108,10 @@ export function ServiceReviewSection({
   if (!isCompleted) {
     return (
       <Card className="grid gap-2">
-        <h2 className="m-0 text-lg">Client review</h2>
+        <h2 className="m-0 text-lg">Reseña del cliente</h2>
         <p className="m-0 text-sm text-muted">
-          Reviews become available once the service is marked as completed.
+          La reseña estará disponible una vez que el servicio se marque como
+          completado.
         </p>
       </Card>
     );
@@ -133,12 +132,12 @@ export function ServiceReviewSection({
 
   return (
     <Card className="grid gap-3">
-      <h2 className="m-0 text-lg">Client review</h2>
+      <h2 className="m-0 text-lg">Reseña del cliente</h2>
 
       {reviewQuery.status === 'error' && !review ? (
         <ErrorState error={reviewQuery.error} onRetry={reviewQuery.reload} />
       ) : !review && reviewQuery.status === 'loading' ? (
-        <ListSkeleton rows={1} label="Loading review" />
+        <ListSkeleton rows={1} label="Cargando reseña" />
       ) : review ? (
         <ReviewCard review={review} />
       ) : role === 'CLIENT' ? (
@@ -148,24 +147,25 @@ export function ServiceReviewSection({
           className="grid gap-3"
         >
           <p className="m-0 text-sm text-muted">
-            How did the repair go? You can submit one review for this service.
+            ¿Cómo fue la reparación? Puedes publicar una reseña para este
+            servicio.
           </p>
 
           {submitError ? (
             <div
               role="alert"
-              className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger"
+              className="rounded-xl border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger"
             >
               {submitError}
             </div>
           ) : null}
 
           <fieldset className="m-0 grid gap-1.5 border-0 p-0">
-            <legend className="text-sm font-medium">Rating</legend>
+            <legend className="text-sm font-medium">Calificación</legend>
             <div
               className="flex flex-wrap gap-1.5"
               role="radiogroup"
-              aria-label="Rating"
+              aria-label="Calificación"
             >
               {[1, 2, 3, 4, 5].map((value) => {
                 const selected = rating === value;
@@ -175,7 +175,7 @@ export function ServiceReviewSection({
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    aria-label={`${value} ${value === 1 ? 'star' : 'stars'}`}
+                    aria-label={`${value} ${value === 1 ? 'estrella' : 'estrellas'}`}
                     onClick={() => {
                       setRating(value);
                       setErrors((prev) => {
@@ -184,7 +184,7 @@ export function ServiceReviewSection({
                         return rest;
                       });
                     }}
-                    className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                    className={`inline-flex items-center gap-1 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${
                       selected
                         ? 'border-brand bg-brand-soft text-brand'
                         : 'border-line bg-surface text-muted hover:text-ink'
@@ -207,8 +207,8 @@ export function ServiceReviewSection({
 
           <TextAreaField
             id="review-comment"
-            label="Comment"
-            placeholder="Share how punctual, clear and effective the technician was."
+            label="Comentario"
+            placeholder="Cuéntanos qué tan puntual, claro y efectivo fue el técnico."
             maxLength={REVIEW_MAX_COMMENT}
             value={comment}
             error={errors.comment}
@@ -226,13 +226,13 @@ export function ServiceReviewSection({
 
           <div className="flex justify-end">
             <Button type="submit" disabled={submit.isSubmitting}>
-              {submit.isSubmitting ? 'Submitting review…' : 'Submit review'}
+              {submit.isSubmitting ? 'Publicando reseña…' : 'Publicar reseña'}
             </Button>
           </div>
         </form>
       ) : (
         <p className="m-0 text-sm text-muted">
-          The client has not left a review for this service yet.
+          El cliente aún no ha dejado una reseña para este servicio.
         </p>
       )}
     </Card>

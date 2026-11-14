@@ -1,9 +1,11 @@
 import { SearchX, Wrench } from 'lucide-react';
 import { useAuth } from '../auth/authContext';
 import { listServices } from './api';
+import type { ServiceStatus } from '../../shared/api/types';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { usePageParams } from '../../shared/hooks/usePageParams';
 import { Button, ButtonLink } from '../../shared/ui/Button';
+import { cx } from '../../shared/ui/cx';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { ErrorState } from '../../shared/ui/ErrorState';
 import { PageHeader } from '../../shared/ui/PageHeader';
@@ -12,11 +14,20 @@ import { SearchInput } from '../../shared/ui/SearchInput';
 import { SelectField } from '../../shared/ui/SelectField';
 import { ListSkeleton } from '../../shared/ui/Skeleton';
 import { ServiceCard } from './ServiceCard';
-import { isServiceStatus, SERVICE_STATUS_OPTIONS } from './serviceStatus';
+import { isServiceStatus } from './serviceStatus';
+
+const STATUS_TABS: ReadonlyArray<{ value: '' | ServiceStatus; label: string }> =
+  [
+    { value: '', label: 'Todos' },
+    { value: 'PROGRAMADO', label: 'Programados' },
+    { value: 'EN_ATENCION', label: 'En atención' },
+    { value: 'COMPLETADO', label: 'Completados' },
+    { value: 'CANCELADO', label: 'Cancelados' },
+  ];
 
 const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
+  { value: 'newest', label: 'Más recientes' },
+  { value: 'oldest', label: 'Más antiguos' },
 ] as const;
 
 /** /client/services and /technician/services: services of the signed-in user. */
@@ -35,6 +46,16 @@ export function ServiceListPage() {
   const allServices = query.data;
   const filtered = Boolean(status || search);
 
+  const counts = {
+    total: allServices?.length ?? 0,
+    programado:
+      allServices?.filter((s) => s.status === 'PROGRAMADO').length ?? 0,
+    enAtencion:
+      allServices?.filter((s) => s.status === 'EN_ATENCION').length ?? 0,
+    completado:
+      allServices?.filter((s) => s.status === 'COMPLETADO').length ?? 0,
+  };
+
   function clearFilters() {
     params.setFilters({ status: '', search: '' });
   }
@@ -45,7 +66,7 @@ export function ServiceListPage() {
       query.status === 'error' ? (
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : (
-        <ListSkeleton rows={4} label="Loading services" />
+        <ListSkeleton rows={4} label="Cargando servicios" />
       );
   } else {
     const term = search.trim().toLowerCase();
@@ -75,33 +96,33 @@ export function ServiceListPage() {
       content =
         totalElements > 0 ? (
           <EmptyState
-            title="This page is empty"
-            description={`There are ${totalElements} services across ${totalPages} pages.`}
+            title="Esta página está vacía"
+            description={`Hay ${totalElements} servicios repartidos en ${totalPages} páginas.`}
             action={
               <Button onClick={() => params.setPage(totalPages - 1)}>
-                Go to the last page
+                Ir a la última página
               </Button>
             }
           />
         ) : filtered ? (
           <EmptyState
             icon={<SearchX size={36} />}
-            title="No services match"
-            description="Try another search term or status filter."
+            title="Ningún servicio coincide"
+            description="Prueba con otro término de búsqueda o cambia el filtro de estado."
             action={
               <Button variant="secondary" onClick={clearFilters}>
-                Clear filters
+                Quitar filtros
               </Button>
             }
           />
         ) : (
           <EmptyState
             icon={<Wrench size={36} />}
-            title="No services yet"
+            title="Aún no tienes servicios"
             description={
               role === 'CLIENT'
-                ? 'Accept an offer on one of your requests to schedule your first repair service.'
-                : 'When a client accepts one of your offers, the scheduled service appears here.'
+                ? 'Acepta una oferta en tus solicitudes para agendar tu primera reparación.'
+                : 'Cuando un cliente acepte una de tus ofertas, el servicio aparecerá aquí.'
             }
             action={
               <ButtonLink
@@ -112,8 +133,8 @@ export function ServiceListPage() {
                 }
               >
                 {role === 'CLIENT'
-                  ? 'View my requests'
-                  : 'Browse opportunities'}
+                  ? 'Ver mis solicitudes'
+                  : 'Explorar oportunidades'}
               </ButtonLink>
             }
           />
@@ -121,7 +142,7 @@ export function ServiceListPage() {
     } else {
       content = (
         <div aria-busy={query.isFetching || undefined}>
-          <ul className="m-0 grid list-none gap-3 p-0">
+          <ul className="m-0 grid list-none gap-4 p-0 lg:grid-cols-2">
             {pageItems.map((service) => (
               <li key={service.id}>
                 <ServiceCard service={service} role={role} />
@@ -146,38 +167,84 @@ export function ServiceListPage() {
     <section aria-labelledby="services-title">
       <PageHeader
         titleId="services-title"
-        title="Services"
+        title="Servicios"
         description={
           role === 'CLIENT'
-            ? 'Track scheduled repairs, cancel before they start, and review completed work.'
-            : 'Manage your scheduled repairs from start to completion.'
+            ? 'Sigue tus reparaciones agendadas, cancélalas antes de iniciar y califica el trabajo terminado.'
+            : 'Gestiona tus reparaciones agendadas desde el inicio hasta su finalización.'
         }
         breadcrumbs={[
-          { label: 'Dashboard', to: homePath },
-          { label: 'Services' },
+          { label: 'Inicio', to: homePath },
+          { label: 'Servicios' },
         ]}
       />
+
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+          <p className="m-0 text-xs font-medium text-muted">Total</p>
+          <p className="m-0 mt-1 font-display text-2xl font-extrabold tabular-nums">
+            {counts.total}
+          </p>
+        </div>
+        <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+          <p className="m-0 text-xs font-medium text-cobalt">Programados</p>
+          <p className="m-0 mt-1 font-display text-2xl font-extrabold tabular-nums">
+            {counts.programado}
+          </p>
+        </div>
+        <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+          <p className="m-0 text-xs font-medium text-warning">En atención</p>
+          <p className="m-0 mt-1 font-display text-2xl font-extrabold tabular-nums">
+            {counts.enAtencion}
+          </p>
+        </div>
+        <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+          <p className="m-0 text-xs font-medium text-fresh">Completados</p>
+          <p className="m-0 mt-1 font-display text-2xl font-extrabold tabular-nums">
+            {counts.completado}
+          </p>
+        </div>
+      </div>
+
+      <div
+        role="tablist"
+        aria-label="Filtrar por estado"
+        className="mb-4 flex flex-wrap gap-2"
+      >
+        {STATUS_TABS.map((tab) => {
+          const active = (status ?? '') === tab.value;
+          return (
+            <button
+              key={tab.label}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => params.setFilter('status', tab.value)}
+              className={cx(
+                'min-h-10 rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors',
+                active
+                  ? 'border-ink bg-ink text-surface'
+                  : 'border-line bg-surface text-muted hover:border-ink/40 hover:text-ink',
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex flex-wrap items-end gap-x-4 gap-y-0 pb-2">
         <div className="mb-4 w-full sm:w-auto sm:flex-1">
           <SearchInput
-            label="Search services"
-            placeholder="Search by service #, request # or technician"
+            label="Buscar servicios"
+            placeholder="Buscar por servicio #, solicitud # o técnico"
             value={search}
             onSearch={params.setSearch}
           />
         </div>
         <SelectField
-          id="services-status"
-          label="Status"
-          placeholder="All statuses"
-          options={SERVICE_STATUS_OPTIONS}
-          value={status ?? ''}
-          onChange={(event) => params.setFilter('status', event.target.value)}
-        />
-        <SelectField
           id="services-sort"
-          label="Sort"
+          label="Ordenar"
           options={SORT_OPTIONS}
           value={sort}
           onChange={(event) =>
