@@ -12,7 +12,7 @@
 @theme inline {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display:
-    'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   --color-bg: var(--rm-bg);
   --color-surface: var(--rm-surface);
@@ -24,6 +24,13 @@
   --color-brand-strong: var(--rm-brand-strong);
   --color-on-brand: var(--rm-on-brand);
   --color-accent: var(--rm-accent);
+  --color-sun: var(--rm-sun);
+  --color-fresh: var(--rm-fresh);
+  --color-fresh-soft: var(--rm-fresh-soft);
+  --color-fresh-strong: var(--rm-fresh-strong);
+  --color-cobalt: var(--rm-cobalt);
+  --color-slate: var(--rm-slate);
+  --color-cobalt-soft: var(--rm-cobalt-soft);
   --color-success: var(--rm-success);
   --color-warning: var(--rm-warning);
   --color-danger: var(--rm-danger);
@@ -33,57 +40,91 @@
   --color-danger-soft: var(--rm-danger-soft);
   --color-info-soft: var(--rm-info-soft);
   --color-brand-soft: var(--rm-brand-soft);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Not inline: these are also read as var(--radius-card) and var(--shadow-card). */
 @theme {
-  --radius-card: 14px;
-  --shadow-card: 0 1px 2px rgb(16 32 28 / 6%), 0 4px 16px rgb(16 32 28 / 6%);
+  --radius-card: 18px;
+  --shadow-card: 0 2px 6px rgb(28 25 23 / 5%);
+  --shadow-lift:
+    0 2px 4px rgb(74 46 24 / 6%), 0 22px 44px -18px rgb(74 46 24 / 28%);
 }
 
+/*
+ * Warm and calm: a light, faintly warm ground (a home in daylight), white
+ * surfaces, and one orange for the action that moves a repair forward. The
+ * cobalt "accent" is only for links and focus, never for decoration.
+ */
 :root {
-  --rm-bg: #f5f7f3;
+  --rm-bg: #eae6df;
   --rm-surface: #ffffff;
-  --rm-surface-2: #edf1ec;
-  --rm-ink: #17302c;
-  --rm-muted: #51645c;
-  --rm-line: #d4ddd7;
-  --rm-brand: #1f5b4f;
-  --rm-brand-strong: #17463d;
+  --rm-surface-2: #f3f0ea;
+  --rm-nav-line: #e2ddd3;
+  --rm-ink: #1f1a16;
+  --rm-muted: #6a5f56;
+  --rm-line: #d5cec0;
+  --rm-brand: #c94a14;
+  --rm-brand-strong: #a83a0b;
   --rm-on-brand: #ffffff;
-  --rm-brand-soft: #dcebe5;
-  --rm-accent: #b15722;
-  --rm-success: #1f6f4a;
+  --rm-brand-soft: #fdeee6;
+  --rm-accent: #2448c8;
+  --rm-sun: #e7a52a;
+  --rm-cover-bg: linear-gradient(135deg, #e3eae6 0%, #d6e0da 100%);
+  --rm-cover-line: #c2cec7;
+  --rm-card-glow: linear-gradient(180deg, #ffffff 0%, #fff8f3 100%);
+  --rm-fresh: #059669;
+  --rm-fresh-soft: #ecfdf5;
+  --rm-fresh-strong: #047857;
+  --rm-cobalt: #2563eb;
+  --rm-slate: #334155;
+  --rm-cta-line: #d97736;
+  --rm-cta-ink: #c2591b;
+  --rm-cobalt-soft: #eff6ff;
+  --rm-success: #2c7a4b;
   --rm-warning: #8a5a00;
-  --rm-danger: #a3261d;
-  --rm-info: #1d5b8f;
-  --rm-success-soft: #dff1e7;
-  --rm-warning-soft: #f6ead0;
-  --rm-danger-soft: #f8e1de;
-  --rm-info-soft: #dde9f5;
+  --rm-danger: #b3261e;
+  --rm-info: #2448c8;
+  --rm-success-soft: #e3f2e8;
+  --rm-warning-soft: #f8ecd2;
+  --rm-danger-soft: #f9e2df;
+  --rm-info-soft: #e4e9fa;
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --rm-bg: #0e1715;
-  --rm-surface: #15211e;
-  --rm-surface-2: #1c2b27;
-  --rm-ink: #e2ebe7;
-  --rm-muted: #9db0a8;
-  --rm-line: #2c3e39;
-  --rm-brand: #5fc3a8;
-  --rm-brand-strong: #84d6bf;
-  --rm-on-brand: #0b1513;
-  --rm-brand-soft: #1d3a33;
-  --rm-accent: #e58a4f;
-  --rm-success: #6fd19a;
-  --rm-warning: #e5b45a;
-  --rm-danger: #f08a7e;
-  --rm-info: #7fb6e6;
-  --rm-success-soft: #18352a;
+  --rm-bg: #15120f;
+  --rm-surface: #1f1a16;
+  --rm-surface-2: #2a241f;
+  --rm-ink: #f3ede7;
+  --rm-muted: #b5a99e;
+  --rm-line: #3a322b;
+  --rm-brand: #e3896a;
+  --rm-brand-strong: #eda489;
+  --rm-on-brand: #1f1208;
+  --rm-brand-soft: #3d2518;
+  --rm-accent: #93a9ff;
+  --rm-sun: #f2c260;
+  --rm-cover-bg: linear-gradient(135deg, #1f1a16 0%, #241d17 65%, #2c1f16 100%);
+  --rm-cover-line: #3a322b;
+  --rm-nav-line: #3a322b;
+  --rm-card-glow: linear-gradient(180deg, #1f1a16 0%, #2a1e15 100%);
+  --rm-fresh: #34d399;
+  --rm-fresh-soft: #0f2e24;
+  --rm-fresh-strong: #047857;
+  --rm-cobalt: #7aa2ff;
+  --rm-slate: #cbd5e1;
+  --rm-cta-line: #e3896a;
+  --rm-cta-ink: #f0a07f;
+  --rm-cobalt-soft: #172447;
+  --rm-success: #74cf97;
+  --rm-warning: #e9bb62;
+  --rm-danger: #f28b80;
+  --rm-info: #93a9ff;
+  --rm-success-soft: #1b3224;
   --rm-warning-soft: #3a2f17;
   --rm-danger-soft: #3d1f1c;
-  --rm-info-soft: #172d40;
+  --rm-info-soft: #1e2647;
   color-scheme: dark;
 }
 
@@ -93,21 +134,34 @@
     line-height: 1.6;
     background: var(--rm-bg);
     color: var(--rm-ink);
+    scroll-behavior: smooth;
+    scroll-padding-top: 96px;
+    -webkit-font-smoothing: antialiased;
+    caret-color: var(--rm-brand);
+    accent-color: var(--rm-brand);
+    scrollbar-color: color-mix(in srgb, var(--rm-muted) 45%, transparent)
+      transparent;
   }
   body {
     margin: 0;
     background: var(--rm-bg);
     color: var(--rm-ink);
   }
+  ::selection {
+    background: var(--rm-brand-soft);
+    color: var(--rm-ink);
+  }
   h1,
   h2,
   h3 {
     font-family: var(--font-display);
-    line-height: 1.2;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
   a {
     color: inherit;
+    text-underline-offset: 3px;
   }
   :focus-visible {
     outline: 3px solid var(--rm-accent);
@@ -123,19 +177,194 @@
     opacity: 0.7;
   }
   @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
     *,
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/*
+ * Motion: one entrance, used the same way everywhere. Content rises a few
+ * pixels into place, staggered by its position (--i) in a list, and is
+ * visible by default when motion is reduced.
+ */
+@keyframes rm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes rm-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes rm-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rm-ping {
+  from {
+    r: 6;
+    opacity: 0.45;
+  }
+  to {
+    r: 16;
+    opacity: 0;
+  }
+}
+@keyframes rm-pulse-fresh {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--rm-fresh) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--rm-fresh) 0%, transparent);
+  }
+}
+@keyframes rm-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--rm-brand) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--rm-brand) 0%, transparent);
+  }
+}
+@layer utilities {
+  .rise {
+    animation: rm-rise 520ms var(--ease-out-soft) both;
+    animation-delay: calc(min(var(--i, 0), 8) * 60ms);
+  }
+  .stagger > * {
+    animation: rm-rise 520ms var(--ease-out-soft) both;
+  }
+  .stagger > :nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .stagger > :nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .stagger > :nth-child(4) {
+    animation-delay: 180ms;
+  }
+  .stagger > :nth-child(n + 5) {
+    animation-delay: 240ms;
+  }
+  .lift {
+    transition:
+      transform 260ms var(--ease-out-soft),
+      box-shadow 260ms var(--ease-out-soft),
+      border-color 200ms ease;
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+  }
+  /* Netflix-style spotlight: the card under the cursor rises, the rest dim. */
+  .spotlight > li {
+    transition: opacity 200ms ease;
+  }
+  .spotlight > li {
+    position: relative;
+  }
+  .spotlight > li:hover,
+  .spotlight > li:focus-within {
+    z-index: 30;
+  }
+  .spotlight:hover > li:not(:hover) {
+    opacity: 0.76;
+  }
+  .feed-card {
+    transition:
+      transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 200ms ease;
+  }
+  .feed-card:hover,
+  .feed-card:focus-within,
+  .feed-card[data-open] {
+    z-index: 20;
+    transform: translateY(-4px) scale(1.015);
+    border-color: var(--rm-brand);
+    background-image: var(--rm-card-glow);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%);
+  }
+  /* The details panel overlays the next row; it never takes layout space. */
+  .card-details {
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition:
+      opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      visibility 0s linear 200ms;
+  }
+  .feed-card:hover .card-details,
+  .feed-card:focus-within .card-details,
+  .feed-card[data-open] .card-details {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    border-color: var(--rm-brand);
+    background-image: var(--rm-card-glow);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%);
+    transition:
+      opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      visibility 0s;
+  }
+  /* Outline at rest; solid only on the card the cursor is on. */
+  .offer-cta {
+    border: 1.5px solid var(--rm-cta-line);
+    background: transparent;
+    color: var(--rm-cta-ink);
+    transition:
+      background-color 200ms ease,
+      color 200ms ease,
+      border-color 200ms ease;
+  }
+  .feed-card:hover .offer-cta,
+  .feed-card:focus-within .offer-cta {
+    border-color: var(--rm-brand);
+    background: var(--rm-brand);
+    color: var(--rm-on-brand);
+  }
+  .radar-ping {
+    animation: rm-ping 1.8s var(--ease-out-soft) infinite;
+  }
+  .radar-ring,
+  .radar-pin {
+    transition:
+      r 600ms var(--ease-out-soft),
+      cx 600ms var(--ease-out-soft),
+      cy 600ms var(--ease-out-soft),
+      opacity 300ms ease;
+  }
+  .pulse-fresh {
+    animation: rm-pulse-fresh 2.4s var(--ease-out-soft) infinite;
+  }
+  .pulse-dot {
+    animation: rm-pulse 2.4s var(--ease-out-soft) infinite;
   }
 }
 
 /* Classes of the screens that predate the component kit. */
 @layer components {
   .shell {
-    width: min(1120px, calc(100% - 32px));
+    width: min(1320px, calc(100% - 48px));
     margin-inline: auto;
   }
   .visually-hidden {
@@ -170,11 +399,11 @@
   .brand-mark {
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     background: var(--rm-brand);
     color: var(--rm-on-brand);
-    border-radius: 9px;
+    border-radius: 12px;
   }
   .eyebrow {
     font-weight: 700;
@@ -212,7 +441,7 @@
     padding: 10px 18px;
     margin-top: 12px;
     border: 0;
-    border-radius: 10px;
+    border-radius: 999px;
     background: var(--rm-brand);
     color: var(--rm-on-brand);
     font-weight: 600;
@@ -237,9 +466,9 @@
   .field select,
   .field textarea {
     width: 100%;
-    padding: 10px 12px;
+    padding: 12px 14px;
     border: 1px solid var(--rm-line);
-    border-radius: 10px;
+    border-radius: 14px;
     background: var(--rm-surface);
     color: inherit;
     font: inherit;
@@ -328,15 +557,8 @@
     background: var(--rm-surface);
     color: var(--rm-ink);
     border: 1px solid var(--rm-line);
-    border-left-width: 4px;
-    border-radius: 12px;
+    border-radius: 18px;
     box-shadow: var(--shadow-card);
-  }
-  .toast-success {
-    border-left-color: var(--rm-success);
-  }
-  .toast-error {
-    border-left-color: var(--rm-danger);
   }
   .toast-icon {
     flex: none;

@@ -9,19 +9,18 @@ export interface NavItem {
 
 /**
  * Main navigation per role. A module owner adds the entry of their screen here
- * once its route exists, so the menu never links to a 404.
+ * once its route exists, so the menu never links to a 404. "Servicios" waits
+ * for its pages (the components live in features/services).
  */
 export const NAVIGATION: Record<Role, readonly NavItem[]> = {
   CLIENT: [
-    { label: 'Dashboard', to: '/client', end: true },
-    { label: 'My requests', to: '/client/requests' },
-    { label: 'Services', to: '/client/services' },
+    { label: 'Inicio', to: '/client', end: true },
+    { label: 'Mis solicitudes', to: '/client/requests' },
   ],
   TECHNICIAN: [
-    { label: 'Dashboard', to: '/technician', end: true },
-    { label: 'Opportunities', to: '/technician/opportunities' },
-    { label: 'My offers', to: '/technician/proposals' },
-    { label: 'Profile', to: '/technician/profile' },
-    { label: 'Services', to: '/technician/services' },
+    { label: 'Inicio', to: '/technician', end: true },
+    { label: 'Oportunidades', to: '/technician/opportunities' },
+    { label: 'Mis ofertas', to: '/technician/proposals' },
+    { label: 'Perfil', to: '/technician/profile' },
   ],
 };

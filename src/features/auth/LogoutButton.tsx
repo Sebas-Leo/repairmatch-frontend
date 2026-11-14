@@ -25,7 +25,7 @@ export function LogoutButton() {
       loading={pending}
       icon={<LogOut size={16} aria-hidden="true" />}
     >
-      Sign out
+      Cerrar sesión
     </Button>
   );
 }

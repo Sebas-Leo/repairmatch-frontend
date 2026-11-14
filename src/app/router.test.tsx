@@ -28,7 +28,7 @@ describe('role redirect at /', () => {
     const { session } = await signedInSession(clientUser);
     const { router } = renderApp(session, '/');
     expect(
-      await screen.findByRole('heading', { name: 'Your repairs' }),
+      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -37,7 +37,9 @@ describe('role redirect at /', () => {
     const { session } = await signedInSession(technicianUser);
     const { router } = renderApp(session, '/');
     expect(
-      await screen.findByRole('heading', { name: 'Your work' }),
+      await screen.findByRole('heading', {
+        name: '¿Quién necesita una reparación?',
+      }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/technician');
   });
@@ -71,7 +73,9 @@ describe('role redirect at /', () => {
 
     release();
     expect(
-      await screen.findByRole('heading', { name: 'Your work' }),
+      await screen.findByRole('heading', {
+        name: '¿Quién necesita una reparación?',
+      }),
     ).toBeInTheDocument();
   });
 });
@@ -88,9 +92,9 @@ describe('guarded areas', () => {
     const { session } = await signedInSession(clientUser);
     renderApp(session, '/client');
     expect(
-      await screen.findByRole('heading', { name: 'Your repairs' }),
+      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Signed in as Test Client.')).toBeInTheDocument();
+    expect(screen.getByText('Sesión de Test Client.')).toBeInTheDocument();
   });
 
   it('blocks a technician from the client area', async () => {
@@ -103,7 +107,7 @@ describe('guarded areas', () => {
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/unauthorized');
     expect(
-      screen.queryByRole('heading', { name: 'Your repairs' }),
+      screen.queryByRole('heading', { name: '¿Qué se malogró?' }),
     ).not.toBeInTheDocument();
   });
 
@@ -118,7 +122,7 @@ describe('guarded areas', () => {
     );
 
     expect(
-      await screen.findByRole('heading', { name: 'Your repairs' }),
+      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -146,7 +150,9 @@ describe('signing out', () => {
     const { session, api, tokenStore } = await signedInSession(clientUser);
     const { router } = renderApp(session, '/client');
 
-    await user.click(await screen.findByRole('button', { name: 'Sign out' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Cerrar sesión' }),
+    );
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
     expect(
@@ -165,7 +171,9 @@ describe('signing out', () => {
     const user = userEvent.setup();
     const { session } = await signedInSession(technicianUser);
     const { router } = renderApp(session, '/technician');
-    await user.click(await screen.findByRole('button', { name: 'Sign out' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Cerrar sesión' }),
+    );
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
 
     await router.navigate('/technician');
@@ -186,7 +194,7 @@ describe('unknown URLs', () => {
     await user.click(screen.getByRole('link', { name: 'Back to home' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Your repairs' }),
+      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
     ).toBeInTheDocument();
   });
 });
@@ -196,7 +204,7 @@ describe('layout', () => {
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
     expect(
-      screen.getByRole('link', { name: 'Skip to content' }),
+      screen.getByRole('link', { name: 'Saltar al contenido' }),
     ).toHaveAttribute('href', '#main-content');
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');

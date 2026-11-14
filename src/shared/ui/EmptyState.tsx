@@ -18,9 +18,12 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="grid justify-items-center gap-2 rounded-card border border-dashed border-line bg-surface px-6 py-10 text-center">
-      <span className="text-muted" aria-hidden="true">
-        {icon ?? <Inbox size={36} />}
+    <div className="grid justify-items-center gap-2 rounded-card border border-dashed border-line bg-surface/70 px-6 py-12 text-center">
+      <span
+        className="mb-1 grid size-16 place-items-center rounded-full bg-brand-soft text-brand"
+        aria-hidden="true"
+      >
+        {icon ?? <Inbox size={28} />}
       </span>
       <p className="m-0 font-display text-lg font-bold">{title}</p>
       {description ? (

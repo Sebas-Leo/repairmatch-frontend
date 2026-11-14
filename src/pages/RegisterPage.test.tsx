@@ -264,7 +264,7 @@ describe('register form', () => {
     expect(screen.getByRole('radio', { name: /Client/ })).toBeDisabled();
 
     release();
-    await screen.findByRole('heading', { name: 'Your repairs' });
+    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
   });
 
   it('sends one request when submitted twice before the form re-renders', async () => {
@@ -298,7 +298,7 @@ describe('register form', () => {
     });
     release();
 
-    await screen.findByRole('heading', { name: 'Your repairs' });
+    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
     expect(api.callsTo('POST /auth/register')).toHaveLength(1);
   });
 });
@@ -315,7 +315,7 @@ describe('after registering', () => {
     });
 
     expect(
-      await screen.findByRole('heading', { name: 'Your repairs' }),
+      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
     expect(api.callsTo('POST /auth/register')[0]?.body).toEqual({
@@ -342,7 +342,9 @@ describe('after registering', () => {
     });
 
     expect(
-      await screen.findByRole('heading', { name: 'Your work' }),
+      await screen.findByRole('heading', {
+        name: '¿Quién necesita una reparación?',
+      }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/technician');
     expect(api.callsTo('POST /auth/register')[0]?.body).toMatchObject({
@@ -359,7 +361,7 @@ describe('after registering', () => {
 
     await fillAndSubmit(user);
 
-    await screen.findByRole('heading', { name: 'Your repairs' });
+    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
     expect(router.state.location.pathname).toBe('/client');
   });
 
@@ -368,7 +370,7 @@ describe('after registering', () => {
     await session.login({ email: clientUser.email, password: 'Test-pass-1' });
     renderApp(session, '/register');
     expect(
-      await screen.findByRole('heading', { name: 'Your repairs' }),
+      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
     ).toBeInTheDocument();
   });
 
@@ -398,6 +400,6 @@ describe('after registering', () => {
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
     release();
-    await screen.findByRole('heading', { name: 'Your repairs' });
+    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
   });
 });
