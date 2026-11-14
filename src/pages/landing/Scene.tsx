@@ -33,9 +33,9 @@ export function Scene({
     );
   }
   const backdrop = {
-    warm: 'from-[#f6ddc9] via-[#efe4d6] to-[#d9cdbd]',
-    cool: 'from-[#dbe5f2] via-[#e9edf1] to-[#c9d3df]',
-    sage: 'from-[#dfe9e3] via-[#e9eee9] to-[#c6d3cb]',
+    warm: 'from-[#f6ddc9] via-[#efe4d6] to-[#d9cdbd] dark:from-[#3b2a20] dark:via-[#2b2521] dark:to-[#1f1c19]',
+    cool: 'from-[#dbe5f2] via-[#e9edf1] to-[#c9d3df] dark:from-[#1f2a3a] dark:via-[#222831] dark:to-[#1a1e24]',
+    sage: 'from-[#dfe9e3] via-[#e9eee9] to-[#c6d3cb] dark:from-[#1f2e27] dark:via-[#232a26] dark:to-[#1a1f1c]',
   }[tone];
   return (
     <div
@@ -47,7 +47,7 @@ export function Scene({
         className,
       )}
     >
-      <span className="absolute -top-1/4 -left-1/4 size-3/4 rounded-full bg-white/50 blur-3xl" />
+      <span className="absolute -top-1/4 -left-1/4 size-3/4 rounded-full bg-white/50 blur-3xl dark:bg-white/10" />
       <span className="absolute right-0 bottom-0 left-0 h-1/4 bg-gradient-to-t from-black/10 to-transparent" />
       <span className="relative text-ink/70 drop-shadow-[0_18px_18px_rgb(28_25_23/25%)]">
         <ApplianceIcon name={appliance} size={112} strokeWidth={1.1} />
