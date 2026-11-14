@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useLocation } from 'react-router';
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router';
 import { useAuth } from '../features/auth/authContext';
 import { resolvePostLoginTarget } from '../features/auth/redirects';
 import {
@@ -47,12 +47,14 @@ const ROLE_OPTIONS = [
 export function RegisterPage() {
   const auth = useAuth();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const roleParam = searchParams.get('role')?.toUpperCase();
   const { feedback, summaryRef, show, clear } = useFormFeedback();
   const [values, setValues] = useState<RegisterValues>({
     name: '',
     email: '',
     password: '',
-    role: '',
+    role: roleParam === 'CLIENT' || roleParam === 'TECHNICIAN' ? roleParam : '',
   });
   const { run: submit, isSubmitting } = useSubmitGuard(
     async (input: RegisterRequest) => {

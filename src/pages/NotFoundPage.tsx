@@ -6,7 +6,7 @@ export function NotFoundPage() {
       <p className="eyebrow">404 / Page not found</p>
       <h1>This page is not here.</h1>
       <p>The address may be incorrect, or this page may not exist yet.</p>
-      <Link className="button-link" to="/">
+      <Link className="button-link" to="/home">
         Back to home
       </Link>
     </section>
