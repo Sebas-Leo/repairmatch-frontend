@@ -92,6 +92,9 @@ describe('OpportunitiesPage', () => {
     expect(
       await screen.findByText('Primero configura tu zona de servicio'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Configurar perfil' }),
+    ).toHaveAttribute('href', '/technician/profile');
   });
 
   it('says when there is nothing nearby', async () => {

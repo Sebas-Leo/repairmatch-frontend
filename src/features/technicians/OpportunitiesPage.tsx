@@ -2,6 +2,7 @@ import { MapPinOff, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { usePageParams } from '../../shared/hooks/usePageParams';
+import { ButtonLink } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { ErrorState } from '../../shared/ui/ErrorState';
 import { cx } from '../../shared/ui/cx';
@@ -96,6 +97,9 @@ export function OpportunitiesPage() {
           icon={<MapPinOff size={28} />}
           title="Primero configura tu zona de servicio"
           description="Las oportunidades dependen de dónde trabajas, hasta dónde te desplazas y qué equipos reparas."
+          action={
+            <ButtonLink to="/technician/profile">Configurar perfil</ButtonLink>
+          }
         />
       ) : (
         <ErrorState error={query.error} onRetry={query.reload} />
