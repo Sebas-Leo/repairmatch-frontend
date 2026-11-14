@@ -7,7 +7,7 @@ export function UnauthorizedPage() {
       <p className="eyebrow">403 / Not allowed</p>
       <h1 id="unauthorized-title">You do not have access to this page.</h1>
       <p>This area belongs to a different type of account.</p>
-      <Link className="button-link" to="/">
+      <Link className="button-link" to="/home">
         Go to your home
       </Link>
     </section>

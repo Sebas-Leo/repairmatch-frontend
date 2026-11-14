@@ -1,6 +1,6 @@
 import { createBrowserRouter, type RouteObject } from 'react-router';
-import { RoleRedirect } from '../features/auth/RoleRedirect';
 import { RequireAuth, RequireRole } from '../features/auth/guards';
+import { RoleRedirect } from '../features/auth/RoleRedirect';
 import { RootErrorPage, RouteErrorPage } from '../pages/RouteErrorPage';
 import { lazyPage } from '../shared/routing/lazyPage';
 import { AppLayout } from './AppLayout';
@@ -23,13 +23,18 @@ import { technicianRoutes } from './technicianRoutes';
  */
 export const appRoutes: RouteObject[] = [
   {
+    index: true,
+    errorElement: <RootErrorPage />,
+    element: lazyPage(() => import('../pages/LandingPage'), 'LandingPage'),
+  },
+  {
     element: <AppLayout />,
     errorElement: <RootErrorPage />,
     children: [
       {
         errorElement: <RouteErrorPage />,
         children: [
-          { index: true, element: <RoleRedirect /> },
+          { path: 'home', element: <RoleRedirect /> },
           {
             path: 'login',
             element: lazyPage(() => import('../pages/LoginPage'), 'LoginPage'),

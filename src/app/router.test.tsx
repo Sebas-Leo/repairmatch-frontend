@@ -14,10 +14,32 @@ async function signedInSession(user: typeof clientUser) {
   return harness;
 }
 
-describe('role redirect at /', () => {
-  it('sends anonymous visitors to the sign-in page', async () => {
+describe('landing at /', () => {
+  it('shows the public landing without a session', async () => {
     const { session } = createTestSession(authRoutes(clientUser));
     const { router } = renderApp(session, '/');
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
+      'Repara tu equipo hoy',
+    );
+    expect(router.state.location.pathname).toBe('/');
+    expect(
+      screen.getByRole('link', { name: 'Iniciar sesión' }),
+    ).toHaveAttribute('href', '/login');
+  });
+
+  it('offers the panel to a signed-in user', async () => {
+    const { session } = await signedInSession(technicianUser);
+    renderApp(session, '/');
+    expect(
+      await screen.findByRole('link', { name: /Ir a mi panel/ }),
+    ).toHaveAttribute('href', '/technician');
+  });
+});
+
+describe('role redirect at /home', () => {
+  it('sends anonymous visitors to the sign-in page', async () => {
+    const { session } = createTestSession(authRoutes(clientUser));
+    const { router } = renderApp(session, '/home');
     expect(router.state.location.pathname).toBe('/login');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       'Sign in',
@@ -26,7 +48,7 @@ describe('role redirect at /', () => {
 
   it('sends a client to the client area', async () => {
     const { session } = await signedInSession(clientUser);
-    const { router } = renderApp(session, '/');
+    const { router } = renderApp(session, '/home');
     expect(
       await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
     ).toBeInTheDocument();
@@ -35,7 +57,7 @@ describe('role redirect at /', () => {
 
   it('sends a technician to the technician area', async () => {
     const { session } = await signedInSession(technicianUser);
-    const { router } = renderApp(session, '/');
+    const { router } = renderApp(session, '/home');
     expect(
       await screen.findByRole('heading', {
         name: '¿Quién necesita una reparación?',
@@ -64,12 +86,12 @@ describe('role redirect at /', () => {
       }),
       { refreshToken: 'refresh-persisted' },
     );
-    const { router } = renderApp(session, '/');
+    const { router } = renderApp(session, '/home');
 
     expect(screen.getByRole('status')).toHaveTextContent(
       'Checking your session',
     );
-    expect(router.state.location.pathname).toBe('/');
+    expect(router.state.location.pathname).toBe('/home');
 
     release();
     expect(
@@ -215,7 +237,7 @@ describe('layout', () => {
 describe('createAppRouter', () => {
   it('builds a browser router over the same route table', () => {
     const router = createAppRouter();
-    const pageRoutes = router.routes[0]?.children?.[0]?.children;
+    const pageRoutes = router.routes[1]?.children?.[0]?.children;
     expect(pageRoutes?.map((route) => route.path)).toContain('login');
     router.dispose();
   });
