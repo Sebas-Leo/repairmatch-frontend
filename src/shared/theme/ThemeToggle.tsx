@@ -25,7 +25,7 @@ export function ThemeToggle() {
       onClick={() => setPreference(NEXT[preference])}
       aria-label={`${LABEL[preference]}. Change theme`}
       title={LABEL[preference]}
-      className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-[10px] border border-line bg-surface text-ink hover:bg-surface-2"
+      className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full border border-line bg-surface text-ink hover:bg-surface-2"
     >
       <Icon size={18} aria-hidden="true" />
     </button>

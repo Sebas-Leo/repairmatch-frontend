@@ -13,12 +13,12 @@ export interface NavItem {
  */
 export const NAVIGATION: Record<Role, readonly NavItem[]> = {
   CLIENT: [
-    { label: 'Dashboard', to: '/client', end: true },
-    { label: 'My requests', to: '/client/requests' },
+    { label: 'Inicio', to: '/client', end: true },
+    { label: 'Mis solicitudes', to: '/client/requests' },
   ],
   TECHNICIAN: [
-    { label: 'Dashboard', to: '/technician', end: true },
-    { label: 'Opportunities', to: '/technician/opportunities' },
-    { label: 'My offers', to: '/technician/proposals' },
+    { label: 'Inicio', to: '/technician', end: true },
+    { label: 'Oportunidades', to: '/technician/opportunities' },
+    { label: 'Mis ofertas', to: '/technician/proposals' },
   ],
 };

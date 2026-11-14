@@ -3,11 +3,11 @@ import type { BadgeTone } from '../../shared/ui/Badge';
 import type { SelectOption } from '../../shared/ui/SelectField';
 
 export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {
-  PUBLICADA: 'Published',
-  CON_PROPUESTAS: 'Has offers',
-  CERRADA: 'Closed',
-  CANCELADA: 'Cancelled',
-  EXPIRADA: 'Expired',
+  PUBLICADA: 'Publicada',
+  CON_PROPUESTAS: 'Con ofertas',
+  CERRADA: 'Cerrada',
+  CANCELADA: 'Cancelada',
+  EXPIRADA: 'Expirada',
 };
 
 export const REQUEST_STATUS_TONE: Record<RequestStatus, BadgeTone> = {

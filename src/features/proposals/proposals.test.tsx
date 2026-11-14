@@ -15,7 +15,27 @@ import { SubmitProposalPage } from './SubmitProposalPage';
 import { parseCost, toLocalDateTime, validateProposal } from './validation';
 
 vi.mock('./api', () => ({ submitProposal: vi.fn() }));
-vi.mock('../technicians/api', () => ({ listOwnProposals: vi.fn() }));
+vi.mock('../technicians/api', () => ({
+  listOwnProposals: vi.fn(),
+  getOwnTechnicianProfile: vi.fn(() => new Promise(() => {})),
+}));
+vi.mock('../requests/api', () => ({
+  getServiceRequest: vi.fn((id: number) =>
+    Promise.resolve({
+      id,
+      clientId: 'c',
+      applianceTypeId: 1,
+      applianceTypeName: 'Washing machine',
+      originalDescription: 'No centrifuga',
+      brand: 'LG',
+      model: `WM${id}`,
+      status: 'PUBLICADA',
+      latitude: -12.12,
+      longitude: -77.03,
+      createdAt: '2026-11-01T10:00:00',
+    }),
+  ),
+}));
 
 const OFFER_PATH = '/technician/opportunities/:requestId/offer';
 
@@ -166,9 +186,10 @@ describe('MyProposalsPage', () => {
       role: 'TECHNICIAN',
     });
     expect(
-      await screen.findByRole('heading', { name: 'Request #12' }),
+      await screen.findByRole('heading', { name: 'LG WM12' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Accepted')).toBeInTheDocument();
+    expect((await screen.findAllByText('Aceptada')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Miraflores/).length).toBeGreaterThan(0);
     expect(screen.getByText('Showing 1–10 of 14')).toBeInTheDocument();
   });
 
@@ -179,7 +200,7 @@ describe('MyProposalsPage', () => {
       role: 'TECHNICIAN',
     });
     expect(
-      await screen.findByRole('link', { name: 'See opportunities' }),
+      await screen.findByRole('link', { name: 'Ver oportunidades' }),
     ).toHaveAttribute('href', '/technician/opportunities');
   });
 
@@ -194,7 +215,7 @@ describe('MyProposalsPage', () => {
       role: 'TECHNICIAN',
     });
     await user.click(
-      await screen.findByRole('button', { name: 'Go to the last page' }),
+      await screen.findByRole('button', { name: 'Ir a la última página' }),
     );
     expect(router.state.location.search).toBe('?page=2');
   });

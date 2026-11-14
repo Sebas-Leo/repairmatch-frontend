@@ -67,6 +67,34 @@ export function listMatchingRequests(
   );
 }
 
+/** One row of "Para ti": only the fields this app reads. */
+export interface RecommendedRequest {
+  request: MatchingRequest;
+  createdAt: string;
+  proposalCount: number;
+  /** The local AI's reading of the description, or null when unsure. */
+  symptom: string | null;
+  score: number;
+  reasons: { code: string; label: string }[];
+}
+
+/**
+ * GET /technicians/me/recommended-requests: open compatible requests the
+ * caller has not answered yet, with how many offers each already has.
+ */
+export function listRecommendedRequests(
+  query: MatchingRequestsQuery = {},
+  options?: CallOptions,
+) {
+  return api.request<Page<RecommendedRequest>>(
+    withQuery('/technicians/me/recommended-requests', {
+      page: query.page,
+      size: query.size,
+    }),
+    { ...options },
+  );
+}
+
 /** GET /technicians/me/proposals?page&size: submitted by the caller, newest first. */
 export function listOwnProposals(query: PageQuery = {}, options?: CallOptions) {
   return api.request<Page<Proposal>>(

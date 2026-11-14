@@ -24,16 +24,16 @@ export function StatCard({ label, value, icon, hint, to }: StatCardProps) {
           </span>
         ) : null}
       </span>
-      <span className="font-display text-3xl font-bold tabular-nums">
+      <span className="font-display text-4xl font-extrabold tracking-tight tabular-nums">
         {value === undefined ? <Skeleton className="h-8 w-16" /> : value}
       </span>
       {hint ? <span className="text-sm text-muted">{hint}</span> : null}
     </>
   );
   const classes =
-    'grid gap-1 rounded-card border border-line bg-surface p-4 no-underline shadow-card';
+    'grid gap-1 rounded-card border border-line bg-surface p-5 no-underline shadow-card';
   return to ? (
-    <Link to={to} className={`${classes} transition-colors hover:border-brand`}>
+    <Link to={to} className={`${classes} lift hover:border-brand/40`}>
       {body}
     </Link>
   ) : (
