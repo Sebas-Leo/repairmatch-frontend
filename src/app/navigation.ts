@@ -22,5 +22,6 @@ export const NAVIGATION: Record<Role, readonly NavItem[]> = {
     { label: 'Opportunities', to: '/technician/opportunities' },
     { label: 'My offers', to: '/technician/proposals' },
     { label: 'Services', to: '/technician/services' },
+    { label: 'Profile', to: '/technician/profile' },
   ],
 };

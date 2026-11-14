@@ -55,6 +55,9 @@ describe('OpportunitiesPage', () => {
     expect(
       await screen.findByText('Set up your service area first'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Set up profile' }),
+    ).toHaveAttribute('href', '/technician/profile');
   });
 
   it('shows other failures as errors', async () => {

@@ -7,4 +7,11 @@ export default [
     path: 'opportunities',
     element: lazyPage(() => import('./OpportunitiesPage'), 'OpportunitiesPage'),
   },
+  {
+    path: 'profile',
+    element: lazyPage(
+      () => import('./TechnicianProfilePage'),
+      'TechnicianProfilePage',
+    ),
+  },
 ] satisfies RouteObject[];
