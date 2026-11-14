@@ -1,9 +1,22 @@
+import {
+  Check,
+  Compass,
+  Info,
+  MapPin,
+  Phone,
+  Sparkles,
+  Wrench,
+} from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { listApplianceTypes } from '../applianceTypes/api';
+import { ApplianceIcon } from '../requests/ApplianceIcon';
+import { applianceLabel } from '../requests/applianceLabel';
 import type { ApplianceType, TechnicianProfile } from '../../shared/api/types';
+import { nearestLimaDistrict } from '../../shared/geo/limaDistricts';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { useSubmitGuard } from '../../shared/hooks/useSubmitGuard';
 import { useToast } from '../../shared/toast/toastContext';
+import { Badge } from '../../shared/ui/Badge';
 import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
 import { cx } from '../../shared/ui/cx';
@@ -36,37 +49,35 @@ import {
   type ServiceAreaForm,
 } from './validation';
 
+/** Ruta del GIF de brújula ubicado en `public/`. */
+const COMPASS_GIF_SRC = '/technician-showcase.gif';
+
+const QUICK_RADII = ['5', '10', '15', '25'] as const;
+
 const PROFILE_FIELDS: readonly SummaryField[] = [
   {
     name: 'experienceYears',
     id: 'profile-experience',
-    label: 'Years of experience',
+    label: 'Años de experiencia',
   },
-  { name: 'phone', id: 'profile-phone', label: 'Phone' },
-  { name: 'bio', id: 'profile-bio', label: 'Bio' },
+  { name: 'phone', id: 'profile-phone', label: 'Teléfono' },
+  { name: 'bio', id: 'profile-bio', label: 'Biografía' },
   {
     name: 'applianceTypeIds',
     id: 'profile-appliances',
-    label: 'Appliances you repair',
+    label: 'Equipos que reparas',
   },
 ];
 
 const AREA_FIELDS: readonly SummaryField[] = [
-  { name: 'latitude', id: 'area-latitude', label: 'Latitude' },
-  { name: 'longitude', id: 'area-longitude', label: 'Longitude' },
-  { name: 'maxRadiusKm', id: 'area-radius', label: 'Radius (km)' },
+  { name: 'latitude', id: 'area-latitude', label: 'Latitud' },
+  { name: 'longitude', id: 'area-longitude', label: 'Longitud' },
+  { name: 'maxRadiusKm', id: 'area-radius', label: 'Radio (km)' },
 ];
-
-/**
- * Espacio listo para tu GIF o imagen animada:
- * Si guardas un archivo como `public/technician-showcase.gif` (o cambias esta ruta
- * por un enlace https://...gif), se mostrará en el recuadro visual del radar.
- */
-const SHOWCASE_GIF_BG = "url('/technician-showcase.gif')";
 
 interface LimaZonePreset {
   name: string;
-  districts: string;
+  hint: string;
   latitude: number;
   longitude: number;
   defaultRadiusKm: number;
@@ -75,53 +86,48 @@ interface LimaZonePreset {
 const LIMA_ZONES: readonly LimaZonePreset[] = [
   {
     name: 'Lima Centro',
-    districts: 'Cercado, Jesús María, Lince, Breña, La Victoria',
+    hint: 'Cercado · Jesús María · Lince · Breña',
     latitude: -12.0464,
     longitude: -77.0428,
     defaultRadiusKm: 12,
   },
   {
     name: 'Lima Sur',
-    districts: 'Villa El Salvador, SJM, VMT, Chorrillos, Lurín',
+    hint: 'VES · Chorrillos · SJM · VMT',
     latitude: -12.2125,
     longitude: -76.9372,
     defaultRadiusKm: 15,
   },
   {
     name: 'Lima Oeste',
-    districts: 'Barranco, Miraflores, Surco, San Borja, Magdalena',
+    hint: 'Miraflores · Surco · San Borja · Barranco',
     latitude: -12.1219,
     longitude: -77.0297,
     defaultRadiusKm: 10,
   },
   {
     name: 'Lima Norte',
-    districts: 'Los Olivos, Comas, Independencia, SMP, Puente Piedra',
+    hint: 'Los Olivos · Comas · Independencia · SMP',
     latitude: -11.9917,
     longitude: -77.0706,
     defaultRadiusKm: 15,
   },
   {
     name: 'Lima Este',
-    districts: 'Ate, Santa Anita, La Molina, SJL, Chaclacayo',
+    hint: 'La Molina · Ate · Santa Anita · SJL',
     latitude: -12.0553,
     longitude: -76.9456,
     defaultRadiusKm: 16,
   },
   {
     name: 'Callao',
-    districts: 'Bellavista, La Perla, Carmen de la Legua, Ventanilla',
+    hint: 'Bellavista · La Perla · Ventanilla',
     latitude: -12.0566,
     longitude: -77.1181,
     defaultRadiusKm: 14,
   },
 ];
 
-// Estilo compartido para armonizar los inputs y etiquetas con las tarjetas resaltadas
-const HARMONIZED_FIELDS =
-  'form-fields [&_label]:font-display [&_label]:text-[15px] [&_label]:font-bold [&_label]:tracking-tight [&_p.field-hint]:text-[13px] [&_p.field-hint]:font-medium [&_input:not([type=checkbox])]:rounded-[14px_4px_14px_4px] [&_input:not([type=checkbox])]:border-2 [&_input:not([type=checkbox])]:border-[#3c903b]/45 [&_input:not([type=checkbox])]:bg-[#f7fbee] dark:[&_input:not([type=checkbox])]:bg-[#162720] [&_input:not([type=checkbox])]:px-3.5 [&_input:not([type=checkbox])]:py-2.5 [&_input:not([type=checkbox])]:text-base [&_input:not([type=checkbox])]:font-semibold [&_input:not([type=checkbox])]:shadow-[2px_2px_0_0_rgba(0,104,56,0.16)] [&_input:not([type=checkbox])]:transition-all [&_input:not([type=checkbox])]:duration-200 focus-within:[&_input:not([type=checkbox])]:border-[#006838] [&_textarea]:rounded-[16px_4px_16px_4px] [&_textarea]:border-2 [&_textarea]:border-[#3c903b]/45 [&_textarea]:bg-[#f7fbee] dark:[&_textarea]:bg-[#162720] [&_textarea]:p-3.5 [&_textarea]:text-base [&_textarea]:font-medium [&_textarea]:shadow-[2px_2px_0_0_rgba(0,104,56,0.16)] [&_textarea]:transition-all [&_textarea]:duration-200';
-
-/** Calcula la distancia geodésica en km entre dos coordenadas (Haversine). */
 function distanceInKm(
   lat1: number,
   lon1: number,
@@ -138,45 +144,28 @@ function distanceInKm(
 }
 
 function initialsOf(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || 'RM';
+  return fullName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
 }
 
 function matchedTypeIds(
   profile: TechnicianProfile,
   types: readonly ApplianceType[],
 ): number[] {
-  const active = new Set(profile.applianceTypes);
-  return types.filter((t) => active.has(t.name)).map((t) => t.id);
-}
-
-/** Etiqueta en paralelogramo con degradado lima-esmeralda suave. */
-function NeonCutTag({
-  step,
-  label,
-  variant = 'lime',
-}: {
-  step: string;
-  label: string;
-  variant?: 'lime' | 'emerald';
-}) {
-  return (
-    <div className="inline-flex items-center gap-2">
-      <span
-        className={cx(
-          'inline-flex -skew-x-12 items-center gap-2 rounded-[10px_3px_10px_3px] border-2 border-[#006838] px-3.5 py-1 font-display text-xs font-bold tracking-wider uppercase shadow-[3px_3px_0_0_#006838] transition-transform duration-200 hover:-translate-y-0.5',
-          variant === 'lime'
-            ? 'bg-gradient-to-r from-[#d0dc15] via-[#b9d51f] to-[#8cc733] text-[#0b1f17]'
-            : 'bg-gradient-to-r from-[#76c13c] via-[#8cc733] to-[#b9d51f] text-[#0b1f17]',
-        )}
-      >
-        <span className="skew-x-12 rounded bg-[#006838] px-1.5 py-0.5 text-[10px] font-bold text-[#d0dc15]">
-          {step}
-        </span>
-        <span className="skew-x-12">{label}</span>
-      </span>
-    </div>
+  const active = new Set(
+    profile.applianceTypes.map((name) => name.trim().toLowerCase()),
   );
+  return types
+    .filter(
+      (t) =>
+        active.has(t.name.trim().toLowerCase()) ||
+        active.has(applianceLabel(t.name).trim().toLowerCase()),
+    )
+    .map((t) => t.id);
 }
 
 function ProfileDetailsCard({
@@ -189,6 +178,7 @@ function ProfileDetailsCard({
   onSaved: (updated: TechnicianProfile) => void;
 }) {
   const toast = useToast();
+  const [showMore, setShowMore] = useState(false);
   const [form, setForm] = useState<ProfileForm>(() => ({
     experienceYears:
       profile.experienceYears !== undefined
@@ -211,7 +201,7 @@ function ProfileDetailsCard({
         applianceTypeIds: form.applianceTypeIds,
       });
       onSaved(updated);
-      toast.success('Profile saved.');
+      toast.success('Perfil actualizado.');
     } catch (error) {
       show(feedbackFromError(error));
     }
@@ -245,37 +235,27 @@ function ProfileDetailsCard({
     <Card
       as="section"
       aria-labelledby="profile-heading"
-      className="relative overflow-hidden rounded-[28px_10px_28px_10px] border-2 border-[#147539] bg-gradient-to-br from-[#f6faec] via-[#eff6e0] to-[#e7f1d3] p-5 shadow-[5px_5px_0_0_#3c903b] transition-all duration-300 sm:p-6 dark:from-[#13221c] dark:via-[#162820] dark:to-[#192d24]"
+      className="spot-card spot-tint grid gap-5 rounded-[22px] border border-line bg-surface p-6 shadow-card"
     >
-      <div className="grid gap-3 border-b-2 border-dashed border-[#3c903b]/35 pb-4 mb-5">
-        <NeonCutTag step="01" label="Oficio y Especialidades" variant="lime" />
-        <div className="grid gap-2 pt-1">
-          <h2
-            id="profile-heading"
-            className="m-0 flex items-center gap-2.5 font-display text-2xl font-bold tracking-tight"
-          >
-            <span
-              aria-hidden="true"
-              className="inline-block h-6 w-2.5 -skew-x-12 rounded-sm bg-[#d0dc15] ring-2 ring-[#006838]"
-            />
-            Professional details
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/80 pb-4">
+        <div className="grid gap-1">
+          <span className="eyebrow inline-flex items-center gap-1.5 text-brand">
+            <Wrench size={14} aria-hidden="true" />
+            Especialidades y oficio
+          </span>
+          <h2 id="profile-heading" className="m-0 text-xl font-bold">
+            Datos profesionales
           </h2>
-          <p className="m-0 text-[15px] font-medium text-muted">
-            Your technical presentation sheet shown when sending an offer.
-          </p>
-          {profile.applianceTypes.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {profile.applianceTypes.map((name) => (
-                <span
-                  key={name}
-                  className="-skew-x-6 rounded-[10px_3px_10px_3px] border border-[#147539] bg-[#d0dc15]/45 px-2.5 py-0.5 font-display text-xs font-bold text-ink shadow-[2px_2px_0_0_rgba(0,104,56,0.2)]"
-                >
-                  {name}
-                </span>
-              ))}
-            </div>
-          ) : null}
         </div>
+        {profile.applianceTypes.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {profile.applianceTypes.map((name) => (
+              <Badge key={name} tone="brand">
+                {applianceLabel(name)}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {feedback && hasFeedback(feedback) ? (
@@ -287,15 +267,14 @@ function ProfileDetailsCard({
       ) : null}
 
       <form onSubmit={handleSubmit} noValidate>
-        <fieldset disabled={isSubmitting} className={HARMONIZED_FIELDS}>
-          <legend className="visually-hidden">Professional details</legend>
+        <fieldset disabled={isSubmitting} className="form-fields">
+          <legend className="visually-hidden">Datos profesionales</legend>
           <div className="grid gap-x-4 sm:grid-cols-2">
             <TextField
               id="profile-experience"
               name="experienceYears"
-              label="Years of experience"
+              label="Años de experiencia"
               inputMode="numeric"
-              hint="Field years repairing home appliances"
               placeholder="5"
               value={form.experienceYears}
               onChange={(event) => set('experienceYears', event.target.value)}
@@ -306,8 +285,7 @@ function ProfileDetailsCard({
               name="phone"
               type="tel"
               autoComplete="tel"
-              label="Phone"
-              hint="Direct contact once your quote is accepted"
+              label="Teléfono"
               placeholder="+51 999 888 777"
               maxLength={PHONE_MAX}
               value={form.phone}
@@ -319,8 +297,8 @@ function ProfileDetailsCard({
           <TextAreaField
             id="profile-bio"
             name="bio"
-            label="Bio"
-            hint="Share the brands you master (Samsung, LG, Bosch, Mabe...), tools and warranty."
+            label="Biografía"
+            hint="Marcas que dominas, diagnóstico y garantía."
             rows={3}
             maxLength={BIO_MAX}
             value={form.bio}
@@ -335,68 +313,115 @@ function ProfileDetailsCard({
             tabIndex={-1}
             className="radio-group pt-1"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span
-                id="profile-appliances-label"
-                className="font-display text-[15px] font-bold tracking-tight"
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+              <div className="flex items-center gap-2">
+                <span
+                  id="profile-appliances-label"
+                  className="font-display text-base font-bold"
+                >
+                  Equipos que reparas
+                </span>
+                <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-bold text-brand tabular-nums">
+                  {form.applianceTypeIds.length} de {types.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-expanded={showMore}
+                onClick={() => setShowMore((prev) => !prev)}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-line bg-surface-2/80 px-3 py-1 text-xs font-semibold text-ink transition-all duration-200 hover:border-brand hover:bg-brand-soft hover:text-brand"
               >
-                Appliances you repair
-              </span>
-              <span className="-skew-x-6 rounded-[8px_2px_8px_2px] border border-[#006838] bg-[#d0dc15] px-2.5 py-0.5 font-display text-xs font-bold text-[#0b1f17] shadow-[2px_2px_0_0_#006838]">
-                {form.applianceTypeIds.length} of {types.length} active
-              </span>
+                <Info size={13} aria-hidden="true" />
+                {showMore ? 'Ocultar detalles' : 'Saber más'}
+              </button>
             </div>
-            <p className="field-hint">
-              Select at least one appliance line so matching requests can appear
-              in Opportunities.
-            </p>
-            <div className="grid gap-2.5 pt-2.5 sm:grid-cols-2">
+
+            {showMore ? (
+              <div className="rise mb-3 grid gap-2 rounded-2xl border border-brand/25 bg-brand-soft/35 p-3.5 text-xs text-ink">
+                <p className="m-0 font-semibold text-brand">
+                  <Sparkles
+                    size={13}
+                    aria-hidden="true"
+                    className="mr-1 inline"
+                  />
+                  Filtro inteligente de compatibilidad
+                </p>
+                <p className="m-0 text-muted">
+                  Tu panel y el radar de oportunidades muestran únicamente las
+                  solicitudes de clientes que coinciden con las líneas que
+                  actives aquí.
+                </p>
+              </div>
+            ) : null}
+
+            {/* Tarjetas horizontales interactivas con iluminación y elevación */}
+            <div className="stagger grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {types.map((type) => {
                 const checked = form.applianceTypeIds.includes(type.id);
                 return (
                   <label
                     key={type.id}
                     className={cx(
-                      'flex cursor-pointer items-start gap-3 rounded-[16px_5px_16px_5px] border-2 p-3.5 text-sm transition-all duration-200 ease-out',
+                      'group/tile relative flex cursor-pointer flex-col justify-between gap-2.5 overflow-hidden rounded-2xl border p-3.5 text-left transition-all duration-250 hover:-translate-y-1',
                       checked
-                        ? '-translate-y-0.5 border-[#006838] bg-gradient-to-br from-[#d0dc15]/60 via-[#b9d51f]/40 to-[#76c13c]/30 shadow-[3px_3px_0_0_#006838]'
-                        : 'border-[#3c903b]/40 bg-[#eef6df]/85 hover:-translate-y-0.5 hover:border-[#28833a] hover:bg-[#e5f1cf] dark:bg-[#192d24]/80 dark:hover:bg-[#1f372c]',
+                        ? 'border-brand bg-gradient-to-br from-brand-soft via-surface to-brand-soft/40 text-ink shadow-[0_12px_24px_-10px_rgb(201_74_20/32%)]'
+                        : 'border-line bg-surface-2/40 text-ink hover:border-brand/50 hover:bg-surface hover:shadow-[0_12px_24px_-12px_rgb(28_25_23/18%)]',
                     )}
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleType(type.id)}
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#147539]"
+                      className="sr-only"
                     />
-                    <span className="grid gap-0.5">
-                      <span className="font-display text-[15px] font-bold text-ink">
-                        {type.name}
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        aria-hidden="true"
+                        className={cx(
+                          'grid size-10 shrink-0 place-items-center rounded-xl transition-all duration-250 group-hover/tile:scale-110',
+                          checked
+                            ? 'bg-brand text-on-brand shadow-card'
+                            : 'bg-surface text-muted shadow-card group-hover/tile:bg-brand-soft group-hover/tile:text-brand',
+                        )}
+                      >
+                        <ApplianceIcon name={type.name} size={20} />
                       </span>
-                      {type.description ? (
-                        <span className="text-xs font-medium text-muted">
+                      <span
+                        aria-hidden="true"
+                        className={cx(
+                          'grid size-5 place-items-center rounded-full border transition-all duration-200',
+                          checked
+                            ? 'border-brand bg-brand text-on-brand scale-105'
+                            : 'border-line bg-surface group-hover/tile:border-brand/60',
+                        )}
+                      >
+                        {checked ? <Check size={12} strokeWidth={3} /> : null}
+                      </span>
+                    </div>
+                    <div className="grid gap-0.5">
+                      <span className="font-display text-sm leading-tight font-bold text-ink">
+                        {applianceLabel(type.name)}
+                      </span>
+                      {showMore && type.description ? (
+                        <span className="line-clamp-2 text-[11px] text-muted">
                           {type.description}
                         </span>
                       ) : null}
-                    </span>
+                    </div>
                   </label>
                 );
               })}
             </div>
             {feedback?.fieldErrors.applianceTypeIds ? (
-              <p className="field-error pt-1 font-semibold">
+              <p className="field-error pt-1.5">
                 {feedback.fieldErrors.applianceTypeIds}
               </p>
             ) : null}
           </div>
 
-          <div className="pt-3">
-            <Button
-              type="submit"
-              loading={isSubmitting}
-              className="rounded-[14px_4px_14px_4px] border-2 border-[#006838] bg-gradient-to-r from-[#d0dc15] to-[#a3ce29] px-5 font-display text-base font-bold text-[#0b1f17] shadow-[3px_3px_0_0_#006838] transition-transform duration-150 hover:-translate-y-0.5 hover:from-[#e6e20c] hover:to-[#b9d51f]"
-            >
-              {isSubmitting ? 'Saving…' : 'Save profile'}
+          <div className="pt-2">
+            <Button type="submit" loading={isSubmitting} className="sweep">
+              {isSubmitting ? 'Guardando…' : 'Guardar perfil'}
             </Button>
           </div>
         </fieldset>
@@ -413,6 +438,7 @@ function ServiceAreaCard({
   onSaved: (updated: TechnicianProfile) => void;
 }) {
   const toast = useToast();
+  const [showZonesInfo, setShowZonesInfo] = useState(false);
   const [area, setArea] = useState<ServiceAreaForm>(() => ({
     latitude: profile.latitude !== undefined ? String(profile.latitude) : '',
     longitude: profile.longitude !== undefined ? String(profile.longitude) : '',
@@ -430,7 +456,7 @@ function ServiceAreaCard({
         maxRadiusKm: parseDecimal(area.maxRadiusKm),
       });
       onSaved(updated);
-      toast.success('Service area saved.');
+      toast.success('Zona de servicio actualizada.');
     } catch (error) {
       show(feedbackFromError(error));
     }
@@ -441,11 +467,11 @@ function ServiceAreaCard({
   }
 
   function applyZonePreset(zone: LimaZonePreset) {
-    setArea((current) => ({
+    setArea({
       latitude: String(zone.latitude),
       longitude: String(zone.longitude),
-      maxRadiusKm: current.maxRadiusKm.trim() || String(zone.defaultRadiusKm),
-    }));
+      maxRadiusKm: String(zone.defaultRadiusKm),
+    });
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -477,117 +503,134 @@ function ServiceAreaCard({
     currentRadius > 0
       ? currentRadius
       : 15;
+  const detectedDistrict = hasValidCenter
+    ? nearestLimaDistrict(currentLat, currentLng)
+    : null;
 
   return (
     <Card
       as="section"
       aria-labelledby="area-heading"
-      className="relative overflow-hidden rounded-[10px_28px_10px_28px] border-2 border-[#147539] bg-gradient-to-br from-[#f6faec] via-[#eff6e0] to-[#e7f1d3] p-5 shadow-[5px_5px_0_0_#3c903b] transition-all duration-300 sm:p-6 dark:from-[#13221c] dark:via-[#162820] dark:to-[#192d24]"
+      className="spot-card spot-tint grid gap-5 rounded-[22px] border border-line bg-surface p-6 shadow-card"
     >
-      <div className="grid gap-3 border-b-2 border-dashed border-[#3c903b]/35 pb-4 mb-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <NeonCutTag
-            step="02"
-            label="Cobertura en Lima y Callao"
-            variant="emerald"
-          />
-          <span
-            className={cx(
-              'inline-flex -skew-x-6 items-center gap-1.5 rounded-[10px_3px_10px_3px] border-2 px-3 py-0.5 font-display text-xs font-bold shadow-[2px_2px_0_0_#006838]',
-              areaReady
-                ? 'border-[#006838] bg-[#d0dc15] text-[#0b1f17]'
-                : 'border-[#006838] bg-[#fde902] text-[#0b1f17]',
-            )}
-          >
-            <span className="h-2 w-2 rounded-full bg-[#006838] animate-pulse" />
-            {areaReady ? `${profile.maxRadiusKm} km radius` : 'Not set'}
-          </span>
-        </div>
-
-        <div className="grid gap-1 pt-1">
-          <h2
-            id="area-heading"
-            className="m-0 flex items-center gap-2.5 font-display text-2xl font-bold tracking-tight"
-          >
-            <span
-              aria-hidden="true"
-              className="inline-block h-6 w-2.5 -skew-x-12 rounded-sm bg-[#5fba46] ring-2 ring-[#006838]"
-            />
-            Service area
-          </h2>
-          <p className="m-0 text-[15px] font-medium text-muted">
-            Pick your base sector in Lima; each card updates its distance in km
-            live against your radius.
-          </p>
-        </div>
-      </div>
-
-      {/* Marco visual con Radar en Vivo + espacio listo para tu GIF (public/technician-showcase.gif) */}
-      <div className="mb-5 flex items-center justify-between gap-4 rounded-[20px_6px_20px_6px] border-2 border-[#006838] bg-gradient-to-r from-[#147539] via-[#28833a] to-[#3c903b] p-4 text-white shadow-[4px_4px_0_0_#006838]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/80 pb-4">
         <div className="grid gap-1">
-          <span className="font-display text-sm font-bold tracking-wide text-[#d0dc15] uppercase">
-            Live Radar · Radio activo: {activeRadius} km
+          <span className="eyebrow inline-flex items-center gap-1.5 text-cobalt">
+            <Compass size={14} aria-hidden="true" />
+            Lima Metropolitana y Callao
           </span>
-          <span className="text-xs font-medium text-white/95">
-            {hasValidCenter
-              ? `Base: ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`
-              : 'Select a Lima zone below to set your base point'}
-          </span>
+          <h2 id="area-heading" className="m-0 text-xl font-bold">
+            Zona de servicio
+          </h2>
         </div>
+        <Badge tone={areaReady ? 'success' : 'warning'}>
+          {areaReady ? `Radio de ${profile.maxRadiusKm} km` : 'Sin configurar'}
+        </Badge>
+      </div>
 
-        {/* Contenedor híbrido: muestra el radar animado y, si colocas public/technician-showcase.gif, lo superpone */}
-        <div
-          aria-hidden="true"
-          style={{ backgroundImage: SHOWCASE_GIF_BG }}
-          className="relative grid h-16 w-24 shrink-0 place-items-center overflow-hidden rounded-[14px_4px_14px_4px] border-2 border-[#d0dc15] bg-[#0b1f17] bg-cover bg-center shadow-[2px_2px_0_0_#d0dc15]"
-        >
-          <svg viewBox="0 0 64 64" className="h-14 w-14">
-            <circle
-              cx="32"
-              cy="32"
-              r="28"
-              fill="#0b1f17"
-              fillOpacity="0.65"
-              stroke="#d0dc15"
-              strokeWidth="2"
-            />
-            <circle
-              cx="32"
-              cy="32"
-              r="20"
-              fill="none"
-              stroke="#76c13c"
-              strokeDasharray="3 3"
-              strokeWidth="1.2"
-            />
-            <circle
-              cx="32"
-              cy="32"
-              r={Math.min(26, Math.max(6, (activeRadius / 50) * 24))}
-              fill="#d0dc15"
-              fillOpacity="0.3"
-              stroke="#d0dc15"
-              strokeWidth="1.5"
-            />
-            <line
-              x1="32"
-              y1="32"
-              x2="54"
-              y2="18"
-              stroke="#fde902"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <circle cx="32" cy="32" r="3.5" fill="#fde902" />
-          </svg>
+      {/* Tarjeta de Base con borde luminoso .ai-glow, GIF de brújula y píldoras de radio */}
+      <div className="ai-glow relative rounded-2xl p-[1.5px]">
+        <div className="group flex flex-wrap items-center justify-between gap-4 rounded-[15px] bg-surface p-4 transition-colors">
+          <div className="flex items-center gap-3.5">
+            <div className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-brand/30 bg-brand-soft/40 p-1 shadow-card">
+              <img
+                src={COMPASS_GIF_SRC}
+                alt=""
+                aria-hidden="true"
+                className="size-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <span
+                aria-hidden="true"
+                className="pulse-fresh absolute right-1 bottom-1 size-2.5 rounded-full bg-fresh ring-2 ring-surface"
+              />
+            </div>
+            <div className="grid gap-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 font-display text-base font-extrabold text-ink">
+                  <MapPin size={15} aria-hidden="true" className="text-brand" />
+                  {detectedDistrict
+                    ? `Base en ${detectedDistrict}`
+                    : 'Selecciona tu sector base'}
+                </span>
+                <span className="rounded-full bg-fresh-soft px-2.5 py-0.5 text-[11px] font-bold text-fresh-strong tabular-nums">
+                  {activeRadius} km a la redonda
+                </span>
+              </div>
+              <span className="text-xs text-muted tabular-nums">
+                {hasValidCenter
+                  ? `Coordenadas activas: ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`
+                  : 'Elige una tarjeta de sector abajo para fijar tu punto'}
+              </span>
+            </div>
+          </div>
+
+          <div
+            role="group"
+            aria-label="Radio rápido"
+            className="flex items-center gap-1 rounded-full bg-surface-2 p-1"
+          >
+            {QUICK_RADII.map((km) => {
+              const active = area.maxRadiusKm.trim() === km;
+              return (
+                <button
+                  key={km}
+                  type="button"
+                  onClick={() => set('maxRadiusKm', km)}
+                  className={cx(
+                    'min-h-7 rounded-full border-0 px-2.5 text-xs font-bold tabular-nums transition-all duration-200',
+                    active
+                      ? 'bg-brand text-on-brand shadow-card'
+                      : 'bg-transparent text-muted hover:text-ink',
+                  )}
+                >
+                  {km} km
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="mb-5 rounded-[22px_6px_22px_6px] border-2 border-[#3c903b]/50 bg-[#e6f0d0]/70 p-3.5 dark:bg-[#162720]/70">
-        <p className="m-0 pb-2.5 font-display text-xs font-bold tracking-wider text-ink uppercase">
-          Lima Metropolitana & Callao · Distancia en vivo desde tu base
-        </p>
-        <div className="grid gap-2.5 sm:grid-cols-2">
+      {/* Sectores rápidos en bloques horizontales dinámicos + botón Saber más */}
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-display text-sm font-bold text-ink">
+            Sectores rápidos de Lima y Callao
+          </span>
+          <button
+            type="button"
+            aria-expanded={showZonesInfo}
+            onClick={() => setShowZonesInfo((prev) => !prev)}
+            className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-line bg-surface-2/80 px-3 py-1 text-xs font-semibold text-ink transition-all duration-200 hover:border-cobalt hover:bg-cobalt-soft hover:text-cobalt"
+          >
+            <Info size={13} aria-hidden="true" />
+            {showZonesInfo ? 'Ocultar distritos' : 'Saber más'}
+          </button>
+        </div>
+
+        {showZonesInfo ? (
+          <div className="rise grid gap-2 rounded-2xl border border-cobalt/25 bg-cobalt-soft/40 p-3.5 text-xs text-ink">
+            <div className="flex flex-wrap items-center gap-3 font-semibold">
+              <span className="inline-flex items-center gap-1.5 text-brand">
+                <span className="size-2 rounded-full bg-brand" /> Base elegida
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-fresh-strong">
+                <span className="size-2 rounded-full bg-fresh" /> Dentro de tu
+                radio
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-muted">
+                <span className="size-2 rounded-full bg-line" /> Fuera de radio
+              </span>
+            </div>
+            <p className="m-0 text-muted">
+              Al elegir un sector se cargan sus coordenadas céntricas y se
+              calcula en vivo qué otras zonas de Lima alcanzas con tu radio
+              actual.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="stagger grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {LIMA_ZONES.map((zone) => {
             const dist = hasValidCenter
               ? distanceInKm(
@@ -606,36 +649,54 @@ function ServiceAreaCard({
                 type="button"
                 onClick={() => applyZonePreset(zone)}
                 className={cx(
-                  'grid gap-1 rounded-[16px_5px_16px_5px] border-2 px-3.5 py-2.5 text-left transition-all duration-200 ease-out',
+                  'group/zone relative flex flex-col justify-between gap-2 rounded-2xl border p-3.5 text-left transition-all duration-250 hover:-translate-y-1',
                   isBase
-                    ? '-translate-y-0.5 border-[#006838] bg-gradient-to-br from-[#d0dc15]/75 via-[#b9d51f]/55 to-[#8cc733]/45 text-ink shadow-[3px_3px_0_0_#006838]'
+                    ? 'border-brand bg-gradient-to-br from-brand-soft via-surface to-brand-soft/45 text-ink shadow-[0_12px_24px_-10px_rgb(201_74_20/32%)]'
                     : isCovered
-                      ? 'border-[#28833a] bg-[#76c13c]/25 text-ink shadow-[2px_2px_0_0_rgba(0,104,56,0.2)] hover:-translate-y-0.5 hover:border-[#006838]'
-                      : 'border-[#3c903b]/40 bg-[#f3f9e8] text-ink hover:-translate-y-0.5 hover:border-[#28833a] hover:bg-[#eaf4d7] dark:bg-[#192d24] dark:hover:bg-[#1f372c]',
+                      ? 'border-fresh/45 bg-gradient-to-br from-fresh-soft/75 via-surface to-fresh-soft/30 text-ink hover:border-fresh hover:shadow-[0_12px_24px_-10px_rgb(5_150_105/25%)]'
+                      : 'border-line bg-surface-2/40 text-ink hover:border-cobalt/45 hover:bg-surface hover:shadow-[0_12px_24px_-12px_rgb(28_25_23/18%)]',
                 )}
               >
-                <span className="flex items-center justify-between gap-1 font-display text-[14px] font-bold">
-                  <span>{zone.name}</span>
+                <div className="flex w-full items-center justify-between gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className={cx(
+                      'size-2.5 shrink-0 rounded-full transition-transform duration-200 group-hover/zone:scale-125',
+                      isBase
+                        ? 'pulse-dot bg-brand'
+                        : isCovered
+                          ? 'bg-fresh'
+                          : 'bg-line group-hover/zone:bg-cobalt',
+                    )}
+                  />
                   <span
                     className={cx(
-                      'rounded-[6px_2px_6px_2px] px-2 py-0.5 text-[11px] font-bold',
+                      'rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums transition-colors',
                       isBase
-                        ? 'bg-[#006838] text-[#d0dc15]'
+                        ? 'bg-brand text-on-brand'
                         : isCovered
-                          ? 'border border-[#006838]/40 bg-[#d0dc15]/60 text-[#0b1f17]'
-                          : 'border border-[#3c903b]/35 bg-[#e2eed0] text-ink dark:bg-[#13221c]',
+                          ? 'bg-fresh-soft text-fresh-strong'
+                          : 'bg-surface text-muted group-hover/zone:text-ink',
                     )}
                   >
                     {dist === null
-                      ? `Sugerido ${zone.defaultRadiusKm} km`
+                      ? `${zone.defaultRadiusKm} km`
                       : isBase
-                        ? `Base · radio ${activeRadius} km`
+                        ? 'Base'
                         : `${dist.toFixed(1)} km`}
                   </span>
-                </span>
-                <span className="text-xs font-medium text-muted">
-                  {zone.districts}
-                </span>
+                </div>
+
+                <div className="grid gap-0.5">
+                  <span className="font-display text-sm font-extrabold text-ink">
+                    {zone.name}
+                  </span>
+                  {showZonesInfo ? (
+                    <span className="line-clamp-2 text-[11px] leading-snug text-muted">
+                      {zone.hint}
+                    </span>
+                  ) : null}
+                </div>
               </button>
             );
           })}
@@ -651,15 +712,14 @@ function ServiceAreaCard({
       ) : null}
 
       <form onSubmit={handleSubmit} noValidate>
-        <fieldset disabled={isSubmitting} className={HARMONIZED_FIELDS}>
-          <legend className="visually-hidden">Service area</legend>
-          <div className="grid gap-x-4 sm:grid-cols-3">
+        <fieldset disabled={isSubmitting} className="form-fields">
+          <legend className="visually-hidden">Zona de servicio</legend>
+          <div className="grid gap-x-3 sm:grid-cols-3">
             <TextField
               id="area-latitude"
               name="latitude"
-              label="Latitude"
+              label="Latitud"
               inputMode="decimal"
-              hint="-90 to 90"
               placeholder="-12.0464"
               value={area.latitude}
               onChange={(event) => set('latitude', event.target.value)}
@@ -668,9 +728,8 @@ function ServiceAreaCard({
             <TextField
               id="area-longitude"
               name="longitude"
-              label="Longitude"
+              label="Longitud"
               inputMode="decimal"
-              hint="-180 to 180"
               placeholder="-77.0428"
               value={area.longitude}
               onChange={(event) => set('longitude', event.target.value)}
@@ -679,9 +738,8 @@ function ServiceAreaCard({
             <TextField
               id="area-radius"
               name="maxRadiusKm"
-              label="Radius (km)"
+              label="Radio (km)"
               inputMode="decimal"
-              hint="1 to 300 km"
               placeholder="15"
               value={area.maxRadiusKm}
               onChange={(event) => set('maxRadiusKm', event.target.value)}
@@ -689,13 +747,9 @@ function ServiceAreaCard({
             />
           </div>
 
-          <div className="pt-3">
-            <Button
-              type="submit"
-              loading={isSubmitting}
-              className="rounded-[4px_14px_4px_14px] border-2 border-[#006838] bg-gradient-to-r from-[#76c13c] to-[#a3ce29] px-5 font-display text-base font-bold text-[#0b1f17] shadow-[3px_3px_0_0_#006838] transition-transform duration-150 hover:-translate-y-0.5 hover:from-[#8cc733] hover:to-[#d0dc15]"
-            >
-              {isSubmitting ? 'Saving…' : 'Save service area'}
+          <div className="pt-2">
+            <Button type="submit" loading={isSubmitting} className="sweep">
+              {isSubmitting ? 'Guardando…' : 'Guardar zona de servicio'}
             </Button>
           </div>
         </fieldset>
@@ -714,51 +768,59 @@ function ProfileEditor({
   const [profile, setProfile] = useState(initialProfile);
 
   return (
-    <div className="grid gap-6">
-      {/* Banner superior con superficie salvia suave y tipografía reforzada */}
-      <div className="relative flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-[26px_8px_26px_8px] border-2 border-[#147539] bg-gradient-to-r from-[#f3f9e6] via-[#ebf4d8] to-[#e2eec8] p-4 shadow-[5px_5px_0_0_#28833a] sm:p-5 dark:from-[#13221c] dark:via-[#172a22] dark:to-[#1b3127]">
+    <div className="rise grid gap-6">
+      <div className="float-shadow flex flex-wrap items-center justify-between gap-4 rounded-[22px] border border-[var(--rm-cover-line)] p-5 [background-image:var(--rm-cover-bg)] sm:p-6">
         <div className="flex items-center gap-4">
-          <div
+          <span
             aria-hidden="true"
-            className="relative grid h-14 w-14 shrink-0 rotate-2 place-items-center rounded-[18px_4px_18px_4px] border-2 border-[#006838] bg-gradient-to-br from-[#d0dc15] via-[#a3ce29] to-[#5fba46] font-display text-xl font-bold text-[#0b1f17] shadow-[3px_3px_0_0_#006838]"
+            className="grid size-14 shrink-0 place-items-center rounded-full bg-ink font-display text-lg font-bold text-bg shadow-card transition-transform duration-300 hover:scale-105"
           >
-            <span>{initialsOf(profile.fullName)}</span>
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#d0dc15] opacity-80" />
-              <span className="relative inline-flex h-3.5 w-3.5 rounded-full border border-[#006838] bg-[#fde902]" />
-            </span>
-          </div>
-
+            {initialsOf(profile.fullName)}
+          </span>
           <div className="grid gap-1">
             <div className="flex flex-wrap items-center gap-2.5">
-              <p className="m-0 font-display text-2xl font-bold tracking-tight text-ink">
+              <p className="m-0 font-display text-xl font-extrabold tracking-tight text-ink">
                 {profile.fullName}
               </p>
-              <span className="inline-flex -skew-x-12 items-center gap-1.5 rounded-[10px_2px_10px_2px] border-2 border-[#006838] bg-gradient-to-r from-[#d0dc15] to-[#a3ce29] px-3 py-0.5 font-display text-xs font-bold text-[#0b1f17] shadow-[2px_2px_0_0_#006838]">
-                <span className="h-2 w-2 skew-x-12 rounded-full bg-[#006838] animate-pulse" />
-                <span className="skew-x-12">Verified technician account</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-fresh/25 bg-fresh-soft px-3 py-0.5 text-xs font-semibold text-fresh-strong">
+                <span
+                  aria-hidden="true"
+                  className="pulse-fresh size-2 rounded-full bg-fresh"
+                />
+                Técnico verificado
               </span>
             </div>
-            <p className="m-0 text-sm font-semibold text-muted">
-              {profile.email}
+            <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+              <span>{profile.email}</span>
+              {profile.phone ? (
+                <span className="inline-flex items-center gap-1 text-slate">
+                  <Phone size={13} aria-hidden="true" className="text-cobalt" />
+                  {profile.phone}
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
 
-        <div className="relative flex flex-wrap gap-2.5 font-display text-sm font-bold">
-          <span className="-skew-x-6 rounded-[12px_3px_12px_3px] border-2 border-[#147539] bg-[#d0dc15]/45 px-3.5 py-1.5 text-ink shadow-[2px_2px_0_0_#147539]">
-            Experience:{' '}
-            {profile.experienceYears !== undefined
-              ? `${profile.experienceYears} yrs`
-              : '—'}
-          </span>
-          <span className="-skew-x-6 rounded-[12px_3px_12px_3px] border-2 border-[#147539] bg-[#76c13c]/35 px-3.5 py-1.5 text-ink shadow-[2px_2px_0_0_#147539]">
-            Specialties: {profile.applianceTypes.length}
-          </span>
-        </div>
+        <dl className="m-0 flex flex-wrap gap-2.5">
+          <div className="lift rounded-2xl border border-line bg-surface/95 px-4 py-2 shadow-card">
+            <dt className="text-xs text-muted">Experiencia</dt>
+            <dd className="m-0 font-display text-base font-extrabold tabular-nums">
+              {profile.experienceYears !== undefined
+                ? `${profile.experienceYears} años`
+                : '—'}
+            </dd>
+          </div>
+          <div className="lift rounded-2xl border border-line bg-surface/95 px-4 py-2 shadow-card">
+            <dt className="text-xs text-muted">Especialidades</dt>
+            <dd className="m-0 font-display text-base font-extrabold tabular-nums">
+              {profile.applianceTypes.length}
+            </dd>
+          </div>
+        </dl>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]">
         <ProfileDetailsCard
           profile={profile}
           types={types}
@@ -770,7 +832,7 @@ function ProfileEditor({
   );
 }
 
-/** /technician/profile: edit experience, specialties and coverage area. */
+/** /technician/profile: edita experiencia, especialidades y zona de cobertura. */
 export function TechnicianProfilePage() {
   const query = useApiQuery(
     ['technician-profile'],
@@ -783,20 +845,20 @@ export function TechnicianProfilePage() {
   );
 
   return (
-    <section aria-labelledby="profile-title">
+    <section aria-labelledby="profile-title" className="grid gap-6">
       <PageHeader
         titleId="profile-title"
-        title="Profile"
-        description="Set the appliances you repair and your coverage zone in Lima & Callao so matching requests can reach you."
+        title="Perfil"
+        description="Configura tus especialidades y tu radio de atención en Lima y Callao."
         breadcrumbs={[
-          { label: 'Dashboard', to: '/technician' },
-          { label: 'Profile' },
+          { label: 'Inicio', to: '/technician' },
+          { label: 'Perfil' },
         ]}
       />
       {query.status === 'error' ? (
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : !query.data ? (
-        <ListSkeleton rows={2} label="Loading your profile" />
+        <ListSkeleton rows={2} label="Cargando tu perfil" />
       ) : (
         <ProfileEditor initialProfile={query.data[0]} types={query.data[1]} />
       )}

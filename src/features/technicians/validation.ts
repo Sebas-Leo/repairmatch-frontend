@@ -28,7 +28,7 @@ export function parseDecimal(value: string): number {
   return Number(normalizeDecimal(value));
 }
 
-/** Same limits as the backend (`TechnicianProfileUpdate`), checked before sending. */
+/** Mismas reglas que el backend (`TechnicianProfileUpdate`), validadas antes de enviar. */
 export function validateProfile(
   form: ProfileForm,
 ): Partial<Record<keyof ProfileForm, string>> {
@@ -40,41 +40,41 @@ export function validateProfile(
       Number(exp) < 0 ||
       Number(exp) > EXPERIENCE_MAX)
   ) {
-    errors.experienceYears = `Enter a whole number between 0 and ${EXPERIENCE_MAX}.`;
+    errors.experienceYears = `Ingresa un número entero entre 0 y ${EXPERIENCE_MAX}.`;
   }
   if (form.phone.trim().length > PHONE_MAX) {
-    errors.phone = `Use at most ${PHONE_MAX} characters.`;
+    errors.phone = `Usa como máximo ${PHONE_MAX} caracteres.`;
   }
   if (form.bio.trim().length > BIO_MAX) {
-    errors.bio = `Keep it under ${BIO_MAX} characters.`;
+    errors.bio = `Usa menos de ${BIO_MAX} caracteres.`;
   }
   return errors;
 }
 
-/** Same limits as the backend (`ServiceAreaUpdate`), checked before sending. */
+/** Mismas reglas que el backend (`ServiceAreaUpdate`), validadas antes de enviar. */
 export function validateServiceArea(
   form: ServiceAreaForm,
 ): Partial<Record<keyof ServiceAreaForm, string>> {
   const errors: Partial<Record<keyof ServiceAreaForm, string>> = {};
 
   const lat = normalizeDecimal(form.latitude);
-  if (!lat) errors.latitude = 'Enter the latitude.';
+  if (!lat) errors.latitude = 'Ingresa la latitud.';
   else if (!DECIMAL_FORMAT.test(lat) || Number(lat) < -90 || Number(lat) > 90)
-    errors.latitude = 'Use a latitude between -90 and 90.';
+    errors.latitude = 'Usa una latitud entre -90 y 90.';
 
   const lng = normalizeDecimal(form.longitude);
-  if (!lng) errors.longitude = 'Enter the longitude.';
+  if (!lng) errors.longitude = 'Ingresa la longitud.';
   else if (!DECIMAL_FORMAT.test(lng) || Number(lng) < -180 || Number(lng) > 180)
-    errors.longitude = 'Use a longitude between -180 and 180.';
+    errors.longitude = 'Usa una longitud entre -180 y 180.';
 
   const radius = normalizeDecimal(form.maxRadiusKm);
-  if (!radius) errors.maxRadiusKm = 'Enter the coverage radius.';
+  if (!radius) errors.maxRadiusKm = 'Ingresa el radio de cobertura.';
   else if (
     !DECIMAL_FORMAT.test(radius) ||
     Number(radius) < RADIUS_MIN ||
     Number(radius) > RADIUS_MAX
   ) {
-    errors.maxRadiusKm = `Choose a radius between ${RADIUS_MIN} and ${RADIUS_MAX} km.`;
+    errors.maxRadiusKm = `Elige un radio entre ${RADIUS_MIN} y ${RADIUS_MAX} km.`;
   }
 
   return errors;

@@ -40,7 +40,7 @@ function aProfile(
     email: 'technician@example.test',
     experienceYears: 5,
     phone: '+51999888777',
-    bio: 'Specialist in inverter compressors.',
+    bio: 'Especialista en compresores inverter.',
     latitude: -12.0464,
     longitude: -77.0428,
     maxRadiusKm: 15,
@@ -70,24 +70,42 @@ describe('TechnicianProfilePage', () => {
     setup();
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Profile' }),
+      await screen.findByRole('heading', { level: 1, name: 'Perfil' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Years of experience')).toHaveValue('5');
-    expect(screen.getByLabelText('Phone')).toHaveValue('+51999888777');
-    expect(screen.getByLabelText('Bio')).toHaveValue(
-      'Specialist in inverter compressors.',
+    expect(screen.getByLabelText('Años de experiencia')).toHaveValue('5');
+    expect(screen.getByLabelText('Teléfono')).toHaveValue('+51999888777');
+    expect(screen.getByLabelText('Biografía')).toHaveValue(
+      'Especialista en compresores inverter.',
     );
     expect(
-      screen.getByRole('checkbox', { name: /Refrigerator/ }),
+      screen.getByRole('checkbox', { name: /Refrigeradora/ }),
     ).toBeChecked();
     expect(
-      screen.getByRole('checkbox', { name: /Washing machine/ }),
+      screen.getByRole('checkbox', { name: /Lavadora/ }),
     ).not.toBeChecked();
 
-    expect(screen.getByLabelText('Latitude')).toHaveValue('-12.0464');
-    expect(screen.getByLabelText('Longitude')).toHaveValue('-77.0428');
-    expect(screen.getByLabelText('Radius (km)')).toHaveValue('15');
-    expect(screen.getByText('15 km radius')).toBeInTheDocument();
+    expect(screen.getByLabelText('Latitud')).toHaveValue('-12.0464');
+    expect(screen.getByLabelText('Longitud')).toHaveValue('-77.0428');
+    expect(screen.getByLabelText('Radio (km)')).toHaveValue('15');
+    expect(screen.getByText('Radio de 15 km')).toBeInTheDocument();
+  });
+
+  it('toggles progressive disclosure details on both cards', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
+    setup();
+
+    const buttons = await screen.findAllByRole('button', {
+      name: 'Saber más',
+    });
+    await user.click(buttons[0]!);
+    expect(
+      screen.getByText('Filtro inteligente de compatibilidad'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Cooling and freezer units')).toBeInTheDocument();
+
+    await user.click(buttons[1]!);
+    expect(screen.getByText(/VES · Chorrillos · SJM/)).toBeInTheDocument();
   });
 
   it('starts with blank fields when the profile has not been set up yet', async () => {
@@ -99,9 +117,9 @@ describe('TechnicianProfilePage', () => {
     });
     setup();
 
-    expect(await screen.findByText('Not set')).toBeInTheDocument();
-    expect(screen.getByLabelText('Years of experience')).toHaveValue('');
-    expect(screen.getByLabelText('Latitude')).toHaveValue('');
+    expect(await screen.findByText('Sin configurar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Años de experiencia')).toHaveValue('');
+    expect(screen.getByLabelText('Latitud')).toHaveValue('');
   });
 
   it('validates the profile form before calling the backend', async () => {
@@ -109,13 +127,13 @@ describe('TechnicianProfilePage', () => {
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
     setup();
 
-    const exp = await screen.findByLabelText('Years of experience');
+    const exp = await screen.findByLabelText('Años de experiencia');
     await user.clear(exp);
     await user.type(exp, '90');
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar perfil' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Years of experience: Enter a whole number between 0 and 70.',
+      'Años de experiencia: Ingresa un número entero entre 0 y 70.',
     );
     expect(updateOwnTechnicianProfile).not.toHaveBeenCalled();
   });
@@ -127,35 +145,35 @@ describe('TechnicianProfilePage', () => {
       aProfile({
         experienceYears: 8,
         phone: '+51911222333',
-        bio: 'Updated bio',
+        bio: 'Biografía actualizada',
         applianceTypes: ['Washing machine'],
       }),
     );
     setup();
 
-    const exp = await screen.findByLabelText('Years of experience');
+    const exp = await screen.findByLabelText('Años de experiencia');
     await user.clear(exp);
     await user.type(exp, '8');
 
-    const phone = screen.getByLabelText('Phone');
+    const phone = screen.getByLabelText('Teléfono');
     await user.clear(phone);
     await user.type(phone, '  +51911222333  ');
 
-    const bio = screen.getByLabelText('Bio');
+    const bio = screen.getByLabelText('Biografía');
     await user.clear(bio);
-    await user.type(bio, '  Updated bio  ');
+    await user.type(bio, '  Biografía actualizada  ');
 
-    await user.click(screen.getByRole('checkbox', { name: /Refrigerator/ }));
-    await user.click(screen.getByRole('checkbox', { name: /Washing machine/ }));
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.click(screen.getByRole('checkbox', { name: /Refrigeradora/ }));
+    await user.click(screen.getByRole('checkbox', { name: /Lavadora/ }));
+    await user.click(screen.getByRole('button', { name: 'Guardar perfil' }));
 
     expect(updateOwnTechnicianProfile).toHaveBeenCalledWith({
       experienceYears: 8,
       phone: '+51911222333',
-      bio: 'Updated bio',
+      bio: 'Biografía actualizada',
       applianceTypeIds: [2],
     });
-    expect(await screen.findByText('Profile saved.')).toBeInTheDocument();
+    expect(await screen.findByText('Perfil actualizado.')).toBeInTheDocument();
   });
 
   it('sends null when optional profile fields are left blank', async () => {
@@ -164,10 +182,10 @@ describe('TechnicianProfilePage', () => {
     vi.mocked(updateOwnTechnicianProfile).mockResolvedValue(aProfile());
     setup();
 
-    await user.clear(await screen.findByLabelText('Years of experience'));
-    await user.clear(screen.getByLabelText('Phone'));
-    await user.clear(screen.getByLabelText('Bio'));
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await user.clear(await screen.findByLabelText('Años de experiencia'));
+    await user.clear(screen.getByLabelText('Teléfono'));
+    await user.clear(screen.getByLabelText('Biografía'));
+    await user.click(screen.getByRole('button', { name: 'Guardar perfil' }));
 
     expect(updateOwnTechnicianProfile).toHaveBeenCalledWith({
       experienceYears: null,
@@ -182,9 +200,9 @@ describe('TechnicianProfilePage', () => {
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
     setup();
 
-    const lat = await screen.findByLabelText('Latitude');
-    const lng = screen.getByLabelText('Longitude');
-    const radius = screen.getByLabelText('Radius (km)');
+    const lat = await screen.findByLabelText('Latitud');
+    const lng = screen.getByLabelText('Longitud');
+    const radius = screen.getByLabelText('Radio (km)');
 
     await user.clear(lat);
     await user.type(lat, '95');
@@ -192,22 +210,22 @@ describe('TechnicianProfilePage', () => {
     await user.type(lng, '-195');
     await user.clear(radius);
     await user.type(radius, '0');
-    await user.click(screen.getByRole('button', { name: 'Save service area' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Guardar zona de servicio' }),
+    );
 
     const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Latitud: Usa una latitud entre -90 y 90.');
     expect(alert).toHaveTextContent(
-      'Latitude: Use a latitude between -90 and 90.',
+      'Longitud: Usa una longitud entre -180 y 180.',
     );
     expect(alert).toHaveTextContent(
-      'Longitude: Use a longitude between -180 and 180.',
-    );
-    expect(alert).toHaveTextContent(
-      'Radius (km): Choose a radius between 1 and 300 km.',
+      'Radio (km): Elige un radio entre 1 y 300 km.',
     );
     expect(updateServiceArea).not.toHaveBeenCalled();
   });
 
-  it('fills coordinates from a Lima sector preset and saves the service area', async () => {
+  it('fills coordinates from a Lima sector preset and quick radius pill', async () => {
     const user = userEvent.setup();
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
     vi.mocked(updateServiceArea).mockResolvedValue(
@@ -216,21 +234,25 @@ describe('TechnicianProfilePage', () => {
     setup();
 
     await user.click(await screen.findByRole('button', { name: /Lima Sur/ }));
-    expect(screen.getByLabelText('Latitude')).toHaveValue('-12.2125');
-    expect(screen.getByLabelText('Longitude')).toHaveValue('-76.9372');
+    expect(screen.getByLabelText('Latitud')).toHaveValue('-12.2125');
+    expect(screen.getByLabelText('Longitud')).toHaveValue('-76.9372');
 
-    const radius = screen.getByLabelText('Radius (km)');
-    await user.clear(radius);
-    await user.type(radius, '25');
-    await user.click(screen.getByRole('button', { name: 'Save service area' }));
+    await user.click(screen.getByRole('button', { name: '25 km' }));
+    expect(screen.getByLabelText('Radio (km)')).toHaveValue('25');
+
+    await user.click(
+      screen.getByRole('button', { name: 'Guardar zona de servicio' }),
+    );
 
     expect(updateServiceArea).toHaveBeenCalledWith({
       latitude: -12.2125,
       longitude: -76.9372,
       maxRadiusKm: 25,
     });
-    expect(await screen.findByText('Service area saved.')).toBeInTheDocument();
-    expect(screen.getByText('25 km radius')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Zona de servicio actualizada.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Radio de 25 km')).toBeInTheDocument();
   });
 
   it('shows server validation errors in the corresponding form', async () => {
@@ -238,47 +260,51 @@ describe('TechnicianProfilePage', () => {
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
     vi.mocked(updateOwnTechnicianProfile).mockRejectedValue(
       new ApiError(400, 'Bad request', {
-        message: 'Invalid profile data',
+        message: 'Datos inválidos',
         errors: {
-          phone: 'Invalid phone',
-          applianceTypeIds: 'Select at least one appliance',
+          phone: 'Teléfono inválido',
+          applianceTypeIds: 'Selecciona al menos un equipo',
         },
       }),
     );
     vi.mocked(updateServiceArea).mockRejectedValue(
       new ApiError(400, 'Bad request', {
-        message: 'Invalid coordinates',
+        message: 'Coordenadas inválidas',
       }),
     );
     setup();
 
-    await screen.findByLabelText('Phone');
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await screen.findByLabelText('Teléfono');
+    await user.click(screen.getByRole('button', { name: 'Guardar perfil' }));
 
     const profileCard = screen.getByRole('region', {
-      name: 'Professional details',
+      name: 'Datos profesionales',
     });
     expect(await within(profileCard).findByRole('alert')).toHaveTextContent(
-      'Phone: Invalid phone',
+      'Teléfono: Teléfono inválido',
     );
     expect(
-      within(profileCard).getByText('Select at least one appliance'),
+      within(profileCard).getByText('Selecciona al menos un equipo'),
     ).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Save service area' }));
-    const areaCard = screen.getByRole('region', { name: 'Service area' });
+    await user.click(
+      screen.getByRole('button', { name: 'Guardar zona de servicio' }),
+    );
+    const areaCard = screen.getByRole('region', { name: 'Zona de servicio' });
     expect(await within(areaCard).findByRole('alert')).toHaveTextContent(
-      'Invalid coordinates',
+      'Coordenadas inválidas',
     );
   });
 
   it('shows an error state when initial loading fails', async () => {
     vi.mocked(getOwnTechnicianProfile).mockRejectedValue(
-      new ApiError(403, 'Forbidden', { message: 'Access denied' }),
+      new ApiError(403, 'Forbidden', { message: 'Acceso denegado' }),
     );
     setup();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Access denied');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Acceso denegado',
+    );
   });
 });
 
@@ -301,9 +327,9 @@ describe('validateProfile and validateServiceArea', () => {
         applianceTypeIds: [],
       }),
     ).toEqual({
-      experienceYears: 'Enter a whole number between 0 and 70.',
-      phone: 'Use at most 20 characters.',
-      bio: 'Keep it under 1000 characters.',
+      experienceYears: 'Ingresa un número entero entre 0 y 70.',
+      phone: 'Usa como máximo 20 caracteres.',
+      bio: 'Usa menos de 1000 caracteres.',
     });
   });
 
@@ -311,9 +337,9 @@ describe('validateProfile and validateServiceArea', () => {
     expect(
       validateServiceArea({ latitude: '', longitude: '', maxRadiusKm: '' }),
     ).toEqual({
-      latitude: 'Enter the latitude.',
-      longitude: 'Enter the longitude.',
-      maxRadiusKm: 'Enter the coverage radius.',
+      latitude: 'Ingresa la latitud.',
+      longitude: 'Ingresa la longitud.',
+      maxRadiusKm: 'Ingresa el radio de cobertura.',
     });
 
     expect(
@@ -323,9 +349,9 @@ describe('validateProfile and validateServiceArea', () => {
         maxRadiusKm: 'none',
       }),
     ).toEqual({
-      latitude: 'Use a latitude between -90 and 90.',
-      longitude: 'Use a longitude between -180 and 180.',
-      maxRadiusKm: 'Choose a radius between 1 and 300 km.',
+      latitude: 'Usa una latitud entre -90 y 90.',
+      longitude: 'Usa una longitud entre -180 y 180.',
+      maxRadiusKm: 'Elige un radio entre 1 y 300 km.',
     });
 
     expect(parseDecimal(' -12,05 ')).toBe(-12.05);
