@@ -1,8 +1,14 @@
-import { ArrowRight, Calendar, FileText, Wrench } from 'lucide-react';
+import { ArrowRight, Wrench } from 'lucide-react';
 import { Link } from 'react-router';
 import type { Role, Service } from '../../shared/api/types';
-import { formatDateTime } from '../../shared/format';
-import { Card } from '../../shared/ui/Card';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { cx } from '../../shared/ui/cx';
+import { Skeleton } from '../../shared/ui/Skeleton';
+import { getServiceRequest } from '../requests/api';
+import { applianceLabel } from '../requests/applianceLabel';
+import { CoverPhoto } from '../requests/CoverPhoto';
+import { timeAgo } from '../technicians/timeAgo';
+import { ServiceProgress } from './ServiceProgress';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 export function ServiceCard({
@@ -12,48 +18,98 @@ export function ServiceCard({
   service: Service;
   role: Role;
 }) {
-  const basePath =
-    role === 'CLIENT' ? '/client/services' : '/technician/services';
+  const detailPath =
+    role === 'CLIENT'
+      ? `/client/services/${service.id}`
+      : `/technician/services/${service.id}`;
+
+  const requestQuery = useApiQuery(
+    ['service-request', service.requestId],
+    (signal) => getServiceRequest(service.requestId, { signal }),
+  );
+  const req = requestQuery.data;
+
+  const product = req ? [req.brand, req.model].filter(Boolean).join(' ') : '';
+  const title = req
+    ? product || applianceLabel(req.applianceTypeName)
+    : `Servicio #${service.id}`;
+  const cancelled = service.status === 'CANCELADO';
 
   return (
-    <Card as="article" className="grid gap-3">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+    <article
+      className={cx(
+        'group relative grid h-full grid-cols-[9.5rem_minmax(0,1fr)] overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[border-color,box-shadow] duration-200 hover:border-cobalt/40 hover:shadow-[0_10px_24px_-14px_rgb(28_25_23/30%)]',
+        cancelled && 'opacity-70',
+      )}
+    >
+      <CoverPhoto
+        applianceName={req?.applianceTypeName ?? ''}
+        className="h-full w-full rounded-none !aspect-auto"
+      />
+      <div className="flex min-w-0 flex-col gap-3 p-5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {req ? (
+            <span className="rounded-full bg-cobalt-soft px-2.5 py-0.5 text-xs font-semibold text-cobalt">
+              {applianceLabel(req.applianceTypeName)}
+            </span>
+          ) : null}
+          <ServiceStatusBadge status={service.status} />
+          <span className="ml-auto text-xs text-muted">
+            {timeAgo(service.createdAt)} · #{service.id}
+          </span>
+        </div>
+
         <div className="grid gap-1">
-          <h2 className="m-0 text-base font-semibold">
+          <h2 className="m-0 truncate text-lg" title={title}>
             <Link
-              to={`${basePath}/${service.id}`}
-              className="text-ink no-underline hover:text-brand focus-visible:underline"
+              to={detailPath}
+              className="no-underline after:absolute after:inset-0"
             >
-              Service #{service.id}
+              {requestQuery.status === 'loading' && !req ? (
+                <Skeleton className="h-6 w-44" />
+              ) : (
+                title
+              )}
             </Link>
           </h2>
-          <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-            <span className="inline-flex items-center gap-1">
-              <Wrench size={14} aria-hidden="true" />
-              Technician: {service.technicianName}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <FileText size={14} aria-hidden="true" />
-              Request #{service.requestId}
-            </span>
-          </p>
+          {req?.originalDescription ? (
+            <p className="m-0 line-clamp-2 text-sm text-muted">
+              {req.originalDescription}
+            </p>
+          ) : null}
         </div>
-        <ServiceStatusBadge status={service.status} />
-      </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2.5 text-sm text-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <Calendar size={14} aria-hidden="true" />
-          Created {formatDateTime(service.createdAt)}
-        </span>
-        <Link
-          to={`${basePath}/${service.id}`}
-          className="inline-flex items-center gap-1 font-medium text-brand no-underline hover:underline"
-        >
-          View details
-          <ArrowRight size={15} aria-hidden="true" />
-        </Link>
+        <div className="mt-auto grid gap-4 pt-1">
+          <ServiceProgress status={service.status} />
+          <div className="flex items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-1.5 text-sm text-slate">
+              <Wrench size={14} aria-hidden="true" className="text-cobalt" />
+              <span>
+                Técnico:{' '}
+                <strong className="font-semibold text-ink">
+                  {service.technicianName}
+                </strong>
+              </span>
+            </span>
+            <span
+              aria-hidden="true"
+              className={cx(
+                'inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold',
+                cancelled
+                  ? 'border border-line text-muted'
+                  : service.status === 'COMPLETADO' && role === 'CLIENT'
+                    ? 'bg-fresh-strong text-white transition-colors group-hover:bg-[#065f46]'
+                    : 'offer-cta',
+              )}
+            >
+              {service.status === 'COMPLETADO' && role === 'CLIENT'
+                ? 'Ver o calificar'
+                : 'Ver detalle'}
+              <ArrowRight size={15} />
+            </span>
+          </div>
+        </div>
       </div>
-    </Card>
+    </article>
   );
 }

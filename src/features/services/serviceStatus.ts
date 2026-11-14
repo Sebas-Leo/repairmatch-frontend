@@ -3,51 +3,51 @@ import type {
   ServiceStatus,
   ServiceStatusUpdate,
 } from '../../shared/api/types';
-import { SERVICE_STATUSES } from '../../shared/api/types';
-import type { BadgeTone } from '../../shared/ui/Badge';
 
-const STATUS_META: Record<
-  ServiceStatus,
-  { label: string; tone: BadgeTone; summary: string }
-> = {
+export interface ServiceStatusMeta {
+  label: string;
+  pillClass: string;
+  summary: string;
+}
+
+const SERVICE_STATUS_META: Record<ServiceStatus, ServiceStatusMeta> = {
   PROGRAMADO: {
-    label: 'Scheduled',
-    tone: 'info',
-    summary: 'Waiting for the technician to start the visit.',
+    label: 'Programado',
+    pillClass: 'bg-cobalt-soft text-cobalt',
+    summary:
+      'El servicio está agendado y a la espera de que el técnico inicie la atención.',
   },
   EN_ATENCION: {
-    label: 'In progress',
-    tone: 'warning',
-    summary: 'The technician is currently working on this repair.',
+    label: 'En atención',
+    pillClass: 'bg-warning-soft text-warning',
+    summary: 'El técnico se encuentra realizando la reparación.',
   },
   COMPLETADO: {
-    label: 'Completed',
-    tone: 'success',
-    summary: 'The repair has been finished.',
+    label: 'Completado',
+    pillClass: 'bg-fresh-soft text-fresh',
+    summary:
+      'La reparación ha finalizado. El cliente ya puede dejar una reseña.',
   },
   CANCELADO: {
-    label: 'Cancelled',
-    tone: 'danger',
-    summary: 'This service was cancelled before starting.',
+    label: 'Cancelado',
+    pillClass: 'bg-danger-soft text-danger',
+    summary: 'Este servicio fue cancelado antes de comenzar.',
   },
 };
 
-export const SERVICE_STATUS_OPTIONS = SERVICE_STATUSES.map((value) => ({
-  value,
-  label: STATUS_META[value].label,
-}));
+export function getServiceStatusMeta(status: ServiceStatus): ServiceStatusMeta {
+  return SERVICE_STATUS_META[status];
+}
 
 export function isServiceStatus(
   value: string | null | undefined,
 ): value is ServiceStatus {
   return (
-    typeof value === 'string' &&
-    (SERVICE_STATUSES as readonly string[]).includes(value)
+    value === 'PROGRAMADO' ||
+    value === 'EN_ATENCION' ||
+    value === 'COMPLETADO' ||
+    value === 'CANCELADO'
   );
-}
-
-export function getServiceStatusMeta(status: ServiceStatus) {
-  return STATUS_META[status];
 }
 
 export interface StatusTransition {
@@ -62,57 +62,56 @@ export interface StatusTransition {
 }
 
 /**
- * Valid status actions for the signed-in role:
- * - PROGRAMADO -> EN_ATENCION -> COMPLETADO (technician only)
- * - PROGRAMADO -> CANCELADO (client or technician)
+ * - TECHNICIAN: PROGRAMADO -> EN_ATENCION -> COMPLETADO, and PROGRAMADO -> CANCELADO
+ * - CLIENT: PROGRAMADO -> CANCELADO
  */
 export function getAvailableTransitions(
   status: ServiceStatus,
   role: Role,
 ): StatusTransition[] {
-  const actions: StatusTransition[] = [];
+  const transitions: StatusTransition[] = [];
 
   if (role === 'TECHNICIAN' && status === 'PROGRAMADO') {
-    actions.push({
+    transitions.push({
       nextStatus: 'EN_ATENCION',
-      label: 'Start service',
+      label: 'Iniciar atención',
       tone: 'primary',
-      dialogTitle: 'Start this service now?',
+      dialogTitle: '¿Iniciar este servicio ahora?',
       dialogDescription:
-        'The status will change to In progress so the client knows you are attending the repair.',
-      confirmLabel: 'Start service',
-      cancelLabel: 'Not yet',
-      successMessage: 'Service marked as in progress.',
+        'El estado cambiará a En atención y el cliente sabrá que ya empezaste la reparación.',
+      confirmLabel: 'Iniciar atención',
+      cancelLabel: 'Volver',
+      successMessage: 'Servicio marcado como en atención.',
     });
   }
 
   if (role === 'TECHNICIAN' && status === 'EN_ATENCION') {
-    actions.push({
+    transitions.push({
       nextStatus: 'COMPLETADO',
-      label: 'Mark as completed',
+      label: 'Marcar como completado',
       tone: 'primary',
-      dialogTitle: 'Complete this service?',
+      dialogTitle: '¿Marcar este servicio como completado?',
       dialogDescription:
-        'This closes the service and lets the client leave a review. This cannot be undone.',
-      confirmLabel: 'Complete service',
-      cancelLabel: 'Not yet',
-      successMessage: 'Service marked as completed.',
+        'Esto cierra la reparación y habilita al cliente para dejar una reseña.',
+      confirmLabel: 'Completar servicio',
+      cancelLabel: 'Seguir en atención',
+      successMessage: 'Servicio marcado como completado.',
     });
   }
 
   if (status === 'PROGRAMADO') {
-    actions.push({
+    transitions.push({
       nextStatus: 'CANCELADO',
-      label: 'Cancel service',
+      label: 'Cancelar servicio',
       tone: 'danger',
-      dialogTitle: 'Cancel this service?',
+      dialogTitle: '¿Cancelar este servicio programado?',
       dialogDescription:
-        'The scheduled service will be cancelled permanently. This cannot be undone.',
-      confirmLabel: 'Cancel service',
-      cancelLabel: 'Keep service',
-      successMessage: 'Service cancelled.',
+        'Esta acción no se puede deshacer. Solo se puede cancelar antes de iniciar la atención.',
+      confirmLabel: 'Cancelar servicio',
+      cancelLabel: 'Mantener servicio',
+      successMessage: 'Servicio cancelado.',
     });
   }
 
-  return actions;
+  return transitions;
 }
