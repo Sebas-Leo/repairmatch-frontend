@@ -304,7 +304,7 @@ La rúbrica del Proyecto 2 pide esta tabla. El docente multiplica la nota grupal
 | Integrante         | Principales aportes (según el historial de PRs)                                                                                            | Participación |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
 | Sebas-Leo          | Base del frontend (auth, axios, UX), sistema de diseño, dashboards, solicitudes, ofertas, paginación del backend, integración y despliegue | por definir   |
-| AdrianPacheco12343 | Backend: entidades, datos iniciales y endpoints de servicios                                                                               | por definir   |
+| AdrianPacheco12343 | Desarrollo de la base móvil en Expo (`repairmatch-mobile`), cliente Axios con interceptores JWT, almacenamiento seguro con `expo-secure-store` y pantallas de Login, Registro y Lista de Solicitudes | 20% |
 | andrehcv           | Backend: perfil del técnico, área de cobertura y motor de compatibilidad                                                                   | por definir   |
 | becomon            | Backend: base Spring Boot, identidad (registro, JWT, refresh, CORS), permisos y Postman                                                    | por definir   |
 | camilaalfaro-afk   | Backend: solicitudes, evidencias, ciclo de la solicitud y contenedor Docker                                                                | por definir   |
