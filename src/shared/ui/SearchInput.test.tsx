@@ -50,7 +50,7 @@ describe('SearchInput', () => {
         delayMs={300}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar búsqueda' }));
     expect(screen.getByRole('searchbox')).toHaveValue('');
     expect(screen.getByRole('searchbox')).toHaveFocus();
     expect(onSearch).toHaveBeenCalledExactlyOnceWith('');

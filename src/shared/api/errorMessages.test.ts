@@ -132,9 +132,9 @@ describe('failures without an HTTP answer', () => {
       describeApiError(new NetworkError('Network request failed')),
     ).toEqual({
       kind: 'network',
-      title: 'Connection problem',
+      title: 'Problema de conexión',
       message:
-        'We could not reach the server. Check your connection and try again.',
+        'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo nuevamente.',
       retryable: true,
       fieldErrors: {},
     });
@@ -144,12 +144,12 @@ describe('failures without an HTTP answer', () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     const description = describeApiError(new NetworkError('x'));
     expect(description).toMatchObject({ kind: 'offline', retryable: true });
-    expect(description.message).toMatch(/offline/);
+    expect(description.message).toMatch(/no tienes conexión/);
   });
 
   it('explains a timeout', () => {
     const description = describeApiError(
-      new DOMException('Request to /x timed out', 'TimeoutError'),
+      new DOMException('Solicitud to /x timed out', 'TimeoutError'),
     );
     expect(description).toMatchObject({ kind: 'timeout', retryable: true });
     expect(description.message).not.toMatch(/\/x/);
@@ -205,7 +205,7 @@ describe('with the real client', () => {
 
   it('describes a 503 with friendly text', async () => {
     const request = setup({
-      'GET /requests': () => errorResponse(503, 'Service Unavailable'),
+      'GET /requests': () => errorResponse(503, 'Servicio Unavailable'),
     });
     const error = await rejection(request('/requests'));
     expect(describeApiError(error)).toMatchObject({

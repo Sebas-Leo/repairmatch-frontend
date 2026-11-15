@@ -64,7 +64,7 @@ describe('RequireAuth', () => {
   it('shows a loading state, and does not redirect, while the session loads', () => {
     const router = renderGuarded(loading, '/client', requireAuth);
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Checking your session',
+      'Verificando tu sesión',
     );
     expect(screen.queryByText('protected content')).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');

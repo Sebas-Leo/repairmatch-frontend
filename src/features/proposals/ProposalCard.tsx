@@ -5,9 +5,9 @@ import { formatDateTime, formatMoney } from '../../shared/format';
 import { Badge, type BadgeTone } from '../../shared/ui/Badge';
 
 const STATUS: Record<ProposalStatus, { label: string; tone: BadgeTone }> = {
-  PENDING: { label: 'Pending', tone: 'info' },
-  ACCEPTED: { label: 'Accepted', tone: 'success' },
-  REJECTED: { label: 'Not chosen', tone: 'neutral' },
+  PENDING: { label: 'Pendiente', tone: 'info' },
+  ACCEPTED: { label: 'Aceptada', tone: 'success' },
+  REJECTED: { label: 'No elegida', tone: 'neutral' },
 };
 
 function initials(name: string): string {
@@ -59,12 +59,12 @@ export function ProposalCard({
           <p className="m-0 font-display text-2xl font-extrabold tabular-nums">
             {formatMoney(proposal.diagnosticCost)}
           </p>
-          <p className="m-0 text-xs text-muted">Diagnostic cost</p>
+          <p className="m-0 text-xs text-muted">Costo del diagnóstico</p>
         </div>
       </div>
       <p className="m-0 flex items-center gap-1.5 text-sm text-muted">
         <CalendarCheck size={16} aria-hidden="true" />
-        Available {formatDateTime(proposal.availableAt)}
+        Disponible {formatDateTime(proposal.availableAt)}
       </p>
       <p className="m-0 whitespace-pre-line">{proposal.conditions}</p>
       {action ? <div className="pt-1">{action}</div> : null}

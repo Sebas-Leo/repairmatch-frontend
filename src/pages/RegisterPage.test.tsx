@@ -29,13 +29,18 @@ async function fillAndSubmit(
   }: FormValues = {},
 ) {
   // Pages are lazy: the first query waits for the page to download.
-  const nameField = await screen.findByLabelText('Name');
+  const nameField = await screen.findByLabelText('Nombre');
   if (name) await user.type(nameField, name);
-  if (email) await user.type(screen.getByLabelText('Email'), email);
-  if (password) await user.type(screen.getByLabelText('Password'), password);
+  if (email)
+    await user.type(screen.getByLabelText('Correo electrónico'), email);
+  if (password) await user.type(screen.getByLabelText('Contraseña'), password);
   if (role)
-    await user.click(screen.getByRole('radio', { name: new RegExp(role) }));
-  await user.click(screen.getByRole('button', { name: 'Create account' }));
+    await user.click(
+      screen.getByRole('radio', {
+        name: new RegExp(role === 'Technician' ? 'Técnico' : 'Cliente'),
+      }),
+    );
+  await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 }
 
 function routesFor(user: typeof clientUser, extra: Routes = {}) {
@@ -50,29 +55,28 @@ describe('register form', () => {
     const { session } = createTestSession(routesFor(clientUser));
     renderApp(session, '/register');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      'Create your account',
+      'Crea tu cuenta',
     );
-    expect(screen.getByLabelText('Name')).toBeInTheDocument();
-    expect(screen.getByLabelText('Email')).toBeInTheDocument();
-    expect(screen.getByLabelText('Password')).toHaveAttribute(
+    expect(screen.getByLabelText('Nombre')).toBeInTheDocument();
+    expect(screen.getByLabelText('Correo electrónico')).toBeInTheDocument();
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute(
       'autocomplete',
       'new-password',
     );
-    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(
-      /8 to 72 characters with an uppercase letter/,
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      /8 a 72 caracteres con una mayúscula/,
     );
-    const group = screen.getByRole('group', { name: 'Account type' });
+    const group = screen.getByRole('group', { name: 'Tipo de cuenta' });
     expect(group).toContainElement(
       screen.getByRole('radio', { name: /Client/ }),
     );
     expect(group).toContainElement(
-      screen.getByRole('radio', { name: /Technician/ }),
+      screen.getByRole('radio', { name: /Técnico/ }),
     );
     expect(screen.getByRole('radio', { name: /Client/ })).not.toBeChecked();
-    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
-      'href',
-      '/login',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Iniciar sesión' }),
+    ).toHaveAttribute('href', '/login');
   });
 
   it('validates every field on the client without calling the backend', async () => {
@@ -81,23 +85,23 @@ describe('register form', () => {
     renderApp(session, '/register');
 
     await user.click(
-      await screen.findByRole('button', { name: 'Create account' }),
+      await screen.findByRole('button', { name: 'Crear cuenta' }),
     );
 
     const alert = screen.getByRole('alert');
     for (const message of [
-      'Name: Enter your name.',
-      'Email: Enter your email address.',
-      'Password: Enter a password.',
-      'Account type: Choose an account type.',
+      'Nombre: Ingresa tu nombre.',
+      'Correo electrónico: Ingresa tu correo electrónico.',
+      'Contraseña: Ingresa una contraseña.',
+      'Tipo de cuenta: Selecciona un tipo de cuenta.',
     ]) {
       expect(alert).toHaveTextContent(message);
     }
     expect(alert).toHaveFocus();
-    expect(screen.getByLabelText('Name')).toBeInvalid();
+    expect(screen.getByLabelText('Nombre')).toBeInvalid();
     expect(
-      screen.getByRole('group', { name: 'Account type' }),
-    ).toHaveAccessibleDescription('Choose an account type.');
+      screen.getByRole('group', { name: 'Tipo de cuenta' }),
+    ).toHaveAccessibleDescription('Selecciona un tipo de cuenta.');
     expect(api.adapter).not.toHaveBeenCalled();
   });
 
@@ -106,7 +110,7 @@ describe('register form', () => {
     const { session } = createTestSession(routesFor(clientUser));
     renderApp(session, '/register');
     const submit = await screen.findByRole('button', {
-      name: 'Create account',
+      name: 'Crear cuenta',
     });
 
     const changes: string[] = [];
@@ -132,7 +136,7 @@ describe('register form', () => {
     renderApp(session, '/register');
     await fillAndSubmit(user, { password: 'alllowercase1' });
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Password needs an uppercase letter, a lowercase letter, a number and a symbol.',
+      'La contraseña debe incluir una mayúscula, una minúscula, un número y un símbolo.',
     );
     expect(api.adapter).not.toHaveBeenCalled();
   });
@@ -142,11 +146,11 @@ describe('register form', () => {
     const { session } = createTestSession(routesFor(clientUser));
     renderApp(session, '/register');
     await user.click(
-      await screen.findByRole('button', { name: 'Create account' }),
+      await screen.findByRole('button', { name: 'Crear cuenta' }),
     );
     await user.click(
       screen.getByRole('link', {
-        name: 'Account type: Choose an account type.',
+        name: 'Tipo de cuenta: Selecciona un tipo de cuenta.',
       }),
     );
     expect(screen.getByRole('radio', { name: /Client/ })).toHaveFocus();
@@ -165,9 +169,7 @@ describe('register form', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('El correo ya está registrado');
     expect(alert).toHaveFocus();
-    expect(
-      screen.getByRole('button', { name: 'Create account' }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeEnabled();
     expect(api.callsTo('POST /auth/login')).toHaveLength(0);
   });
 
@@ -186,11 +188,11 @@ describe('register form', () => {
     await fillAndSubmit(user);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Revisa los campos enviados');
-    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
       /Incluye mayúscula, minúscula, número y símbolo/,
     );
     expect(
-      screen.getByRole('group', { name: 'Account type' }),
+      screen.getByRole('group', { name: 'Tipo de cuenta' }),
     ).toHaveAccessibleDescription('El rol es obligatorio');
   });
 
@@ -204,7 +206,7 @@ describe('register form', () => {
     renderApp(session, '/register');
     await fillAndSubmit(user);
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your account was created, but we could not sign you in.',
+      'Tu cuenta se creó, pero no pudimos iniciar sesión.',
     );
   });
 
@@ -221,7 +223,7 @@ describe('register form', () => {
     await fillAndSubmit(user);
 
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('We could not reach the server');
+    expect(alert).toHaveTextContent('No pudimos conectar con el servidor');
     expect(alert).toHaveFocus();
   });
 
@@ -236,7 +238,7 @@ describe('register form', () => {
     await fillAndSubmit(user);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'You are doing that too often. Wait a moment and try again.',
+      'Has realizado demasiados intentos. Espera un momento e inténtalo nuevamente.',
     );
   });
 
@@ -258,13 +260,13 @@ describe('register form', () => {
     await fillAndSubmit(user);
 
     expect(
-      screen.getByRole('button', { name: 'Creating account…' }),
+      screen.getByRole('button', { name: 'Creando cuenta…' }),
     ).toBeDisabled();
-    expect(screen.getByLabelText('Name')).toBeDisabled();
+    expect(screen.getByLabelText('Nombre')).toBeDisabled();
     expect(screen.getByRole('radio', { name: /Client/ })).toBeDisabled();
 
     release();
-    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
+    await screen.findByRole('heading', { name: /^Hola,/ });
   });
 
   it('sends one request when submitted twice before the form re-renders', async () => {
@@ -282,12 +284,15 @@ describe('register form', () => {
       }),
     );
     renderApp(session, '/register');
-    await user.type(await screen.findByLabelText('Name'), 'Test Client');
-    await user.type(screen.getByLabelText('Email'), 'client@example.test');
-    await user.type(screen.getByLabelText('Password'), 'Test-pass-1');
+    await user.type(await screen.findByLabelText('Nombre'), 'Test Client');
+    await user.type(
+      screen.getByLabelText('Correo electrónico'),
+      'client@example.test',
+    );
+    await user.type(screen.getByLabelText('Contraseña'), 'Test-pass-1');
     await user.click(screen.getByRole('radio', { name: /Client/ }));
     const form = screen
-      .getByRole('button', { name: 'Create account' })
+      .getByRole('button', { name: 'Crear cuenta' })
       .closest('form');
 
     // Both events land in the same batch, so the disabled fieldset is not
@@ -298,7 +303,7 @@ describe('register form', () => {
     });
     release();
 
-    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
+    await screen.findByRole('heading', { name: /^Hola,/ });
     expect(api.callsTo('POST /auth/register')).toHaveLength(1);
   });
 });
@@ -315,7 +320,7 @@ describe('after registering', () => {
     });
 
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
     expect(api.callsTo('POST /auth/register')[0]?.body).toEqual({
@@ -356,12 +361,12 @@ describe('after registering', () => {
     const user = userEvent.setup();
     const { session } = createTestSession(routesFor(clientUser));
     const { router } = renderApp(session, '/client');
-    await user.click(await screen.findByRole('link', { name: 'Register' }));
+    await user.click(await screen.findByRole('link', { name: 'Registrarse' }));
     expect(router.state.location.pathname).toBe('/register');
 
     await fillAndSubmit(user);
 
-    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
+    await screen.findByRole('heading', { name: /^Hola,/ });
     expect(router.state.location.pathname).toBe('/client');
   });
 
@@ -370,7 +375,7 @@ describe('after registering', () => {
     await session.login({ email: clientUser.email, password: 'Test-pass-1' });
     renderApp(session, '/register');
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
   });
 
@@ -396,10 +401,10 @@ describe('after registering', () => {
     );
     renderApp(session, '/register');
     expect(
-      await screen.findByText('Checking your session…'),
+      await screen.findByText('Verificando tu sesión…'),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Nombre')).not.toBeInTheDocument();
     release();
-    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
+    await screen.findByRole('heading', { name: /^Hola,/ });
   });
 });

@@ -15,8 +15,8 @@ describe('login validation', () => {
 
   it('requires both fields', () => {
     expect(validateLogin({ email: '  ', password: '' })).toEqual({
-      email: 'Enter your email address.',
-      password: 'Enter your password.',
+      email: 'Ingresa tu correo electrónico.',
+      password: 'Ingresa tu contraseña.',
     });
   });
 
@@ -24,7 +24,7 @@ describe('login validation', () => {
     'rejects the malformed email %j',
     (email) => {
       expect(validateLogin({ email, password: 'x' }).email).toBe(
-        'Enter a valid email address.',
+        'Ingresa un correo electrónico válido.',
       );
     },
   );
@@ -39,10 +39,10 @@ describe('register validation', () => {
     expect(
       validateRegister({ name: ' ', email: '', password: '', role: '' }),
     ).toEqual({
-      name: 'Enter your name.',
-      email: 'Enter your email address.',
-      password: 'Enter a password.',
-      role: 'Choose an account type.',
+      name: 'Ingresa tu nombre.',
+      email: 'Ingresa tu correo electrónico.',
+      password: 'Ingresa una contraseña.',
+      role: 'Selecciona un tipo de cuenta.',
     });
   });
 
@@ -51,11 +51,11 @@ describe('register validation', () => {
       undefined,
     );
     expect(validateRegister({ ...valid, name: 'n'.repeat(101) }).name).toMatch(
-      /at most 100/,
+      /como máximo 100/,
     );
     const longEmail = `${'a'.repeat(250)}@x.co`;
     expect(validateRegister({ ...valid, email: longEmail }).email).toMatch(
-      /at most 254/,
+      /como máximo 254/,
     );
   });
 
@@ -64,7 +64,7 @@ describe('register validation', () => {
     ['too long', `Aa1!${'a'.repeat(69)}`],
   ])('rejects a password that is %s', (_why, password) => {
     expect(validateRegister({ ...valid, password }).password).toMatch(
-      /8 to 72 characters/,
+      /8 a 72 caracteres/,
     );
   });
 
@@ -85,14 +85,14 @@ describe('register validation', () => {
   });
 
   it.each([
-    ['test-pass-1', 'no uppercase'],
-    ['TEST-PASS-1', 'no lowercase'],
+    ['test-pass-1', 'no mayúscula'],
+    ['TEST-PASS-1', 'no minúscula'],
     ['Test-pass-x', 'no digit'],
     ['TestPass123', 'no symbol'],
     ['Test pass 1', 'only whitespace as a symbol'],
   ])('requires every character class: %s (%s)', (password) => {
     expect(validateRegister({ ...valid, password }).password).toMatch(
-      /uppercase letter, a lowercase letter, a number and a symbol/,
+      /mayúscula, una minúscula, un número y un símbolo/,
     );
   });
 

@@ -16,9 +16,9 @@ const ICONS: Record<ToastKind, string> = {
 
 // Said before the message so the kind never depends on color alone.
 const LABELS: Record<ToastKind, string> = {
-  success: 'Success',
+  success: 'Operación completada',
   error: 'Error',
-  info: 'Notice',
+  info: 'Aviso',
 };
 
 interface ToastItemProps {
@@ -59,7 +59,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
       <button
         type="button"
         className="toast-close"
-        aria-label="Dismiss notification"
+        aria-label="Cerrar notificación"
         onClick={() => onDismiss(toast.id)}
       >
         <span aria-hidden="true">×</span>

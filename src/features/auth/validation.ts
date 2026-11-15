@@ -27,22 +27,23 @@ const utf8Length = (text: string) => new TextEncoder().encode(text).length;
 
 function emailError(email: string): string | undefined {
   const value = email.trim();
-  if (!value) return 'Enter your email address.';
+  if (!value) return 'Ingresa tu correo electrónico.';
   if (value.length > EMAIL_MAX) {
-    return `Email must be at most ${EMAIL_MAX} characters.`;
+    return `El correo debe tener como máximo ${EMAIL_MAX} caracteres.`;
   }
-  if (!EMAIL_PATTERN.test(value)) return 'Enter a valid email address.';
+  if (!EMAIL_PATTERN.test(value))
+    return 'Ingresa un correo electrónico válido.';
   return undefined;
 }
 
 function passwordRulesError(password: string): string | undefined {
-  if (!password) return 'Enter a password.';
+  if (!password) return 'Ingresa una contraseña.';
   if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
-    return `Password must be ${PASSWORD_MIN} to ${PASSWORD_MAX} characters.`;
+    return `La contraseña debe tener entre ${PASSWORD_MIN} a ${PASSWORD_MAX} caracteres.`;
   }
   // bcrypt only reads 72 bytes, so the backend rejects longer UTF-8 encodings.
   if (utf8Length(password) > PASSWORD_MAX) {
-    return `Password must be at most ${PASSWORD_MAX} bytes; some characters count as more than one.`;
+    return `La contraseña debe tener como máximo ${PASSWORD_MAX} bytes; algunos caracteres ocupan más de un byte.`;
   }
   if (!(
     HAS_LOWER.test(password) &&
@@ -50,7 +51,7 @@ function passwordRulesError(password: string): string | undefined {
     HAS_DIGIT.test(password) &&
     HAS_SYMBOL.test(password)
   )) {
-    return 'Password needs an uppercase letter, a lowercase letter, a number and a symbol.';
+    return 'La contraseña debe incluir una mayúscula, una minúscula, un número y un símbolo.';
   }
   return undefined;
 }
@@ -66,7 +67,7 @@ export function validateLogin(
   const errors: FieldErrors<keyof LoginValues> = {};
   const email = emailError(values.email);
   if (email) errors.email = email;
-  if (!values.password) errors.password = 'Enter your password.';
+  if (!values.password) errors.password = 'Ingresa tu contraseña.';
   return errors;
 }
 
@@ -87,14 +88,14 @@ export function validateRegister(
 ): FieldErrors<keyof RegisterValues> {
   const errors: FieldErrors<keyof RegisterValues> = {};
   const name = values.name.trim();
-  if (!name) errors.name = 'Enter your name.';
+  if (!name) errors.name = 'Ingresa tu nombre.';
   else if (values.name.length > NAME_MAX) {
-    errors.name = `Name must be at most ${NAME_MAX} characters.`;
+    errors.name = `El nombre debe tener como máximo ${NAME_MAX} caracteres.`;
   }
   const email = emailError(values.email);
   if (email) errors.email = email;
   const password = passwordRulesError(values.password);
   if (password) errors.password = password;
-  if (!values.role) errors.role = 'Choose an account type.';
+  if (!values.role) errors.role = 'Selecciona un tipo de cuenta.';
   return errors;
 }

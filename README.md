@@ -301,13 +301,13 @@ if (error) return <ErrorState error={error} onRetry={load} />;
 
 La rúbrica del Proyecto 2 pide esta tabla. El docente multiplica la nota grupal por el porcentaje de cada integrante: 100 % significa que cumplió por completo sus responsabilidades. Cada integrante revisa su fila. **Los porcentajes los acuerda el equipo antes de la entrega.**
 
-| Integrante         | Principales aportes (según el historial de PRs)                                                                                            | Participación |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
-| Sebas-Leo          | Base del frontend (auth, axios, UX), sistema de diseño, dashboards, solicitudes, ofertas, paginación del backend, integración y despliegue | por definir   |
-| AdrianPacheco12343 | Backend: entidades, datos iniciales y endpoints de servicios                                                                               | por definir   |
-| andrehcv           | Backend: perfil del técnico, área de cobertura y motor de compatibilidad                                                                   | por definir   |
-| becomon            | Backend: base Spring Boot, identidad (registro, JWT, refresh, CORS), permisos y Postman                                                    | por definir   |
-| camilaalfaro-afk   | Backend: solicitudes, evidencias, ciclo de la solicitud y contenedor Docker                                                                | por definir   |
+| Integrante         | Principales aportes (según el historial de PRs)                                                                                                                                       | Participación |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Sebas-Leo          | Base del frontend (auth, axios, UX), sistema de diseño, dashboards, solicitudes, ofertas, paginación del backend, integración y despliegue                                            | por definir   |
+| AdrianPacheco12343 | Backend: entidades, datos iniciales y endpoints de servicios                                                                                                                          | por definir   |
+| andrehcv           | Backend: perfil del técnico, área de cobertura y motor de compatibilidad                                                                                                              | por definir   |
+| becomon            | Backend: base Spring Boot, identidad (registro, JWT, refresh, CORS), permisos y Postman; web: subida de fotos desde archivos, evidencias en solicitudes, resumen del inicio y pruebas | por definir   |
+| camilaalfaro-afk   | Backend: solicitudes, evidencias, ciclo de la solicitud y contenedor Docker                                                                                                           | por definir   |
 
 ## Reparto inicial del trabajo
 
@@ -330,3 +330,15 @@ Las pruebas de extremo a extremo (E2E) en navegador se posponen para mantener li
 `vercel.json` deja listo el proyecto para Vercel: compila con `npm run build`, sirve `dist/` y redirige todas las rutas a `index.html`, para que una URL como `/client/requests/7` no dé 404 al recargar. Además, cachea los assets y agrega cabeceras de seguridad básicas. En Vercel hay que definir `VITE_API_BASE_URL` con la URL **HTTPS** del backend, y agregar el dominio de Vercel a `CORS_ALLOWED_ORIGINS` en el backend.
 
 `npm run build` genera `dist/`. Configura la URL de la API de producción antes de compilar, usa HTTPS, configura `CORS_ALLOWED_ORIGINS` del backend con el origen desplegado del frontend y configura el alojamiento para servir `index.html` en las rutas gestionadas por el frontend. Todavía no se ha verificado ningún despliegue ni la integración con el backend real: el flujo de sesión se probó con pruebas automatizadas y, tras migrar a axios, a mano en un navegador (servidor de desarrollo de Vite) contra una API simulada local con CORS: inicio de sesión, restauración al recargar, tres 401 simultáneos con un único refresco, cierre de sesión, cancelación, timeout y redirección bloqueada (el preflight CORS no se probó contra el backend real).
+
+## Web photo evidence
+
+The client overview shows summary links only. My requests owns the full list and links to New request. The creation form accepts an optional photo, and every client request detail also has a file picker and Upload photo button for adding photos later.
+
+Configure VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in .env.local, then restart Vite. The preset must allow unsigned image uploads; restrict supported image formats and a maximum size of 10 MB in Cloudinary. These are public configuration values. Never put a Cloudinary API secret in VITE_*.
+
+Browser uploads use a separate transport in shared/api/cloudinary.ts without the RepairMatch Bearer. Backend calls use the existing authenticated requests/api.ts functions. The image file goes to Cloudinary, and POST /requests/{id}/evidences receives only mediaUrl and mediaType.
+
+During publication, the photo upload precedes request creation so a failed upload does not create a request. If creating the request fails after upload, the uploaded file remains in Cloudinary; automatic deletion is not implemented. If evidence saving fails after creation, the app opens the existing request with a pending URL and a retry action. Retrying first consults existing evidence to reconcile an uncertain write and reuses the URL. This is not a backend idempotency guarantee across tabs. Pending retry metadata lives in navigation state and can be lost when leaving the page; the detail picker always allows adding another file.
+
+The mobile camera remains a separate contribution: Expo permission prompt, camera capture with gallery fallback, unsigned Cloudinary upload and the same evidence endpoint. File upload in the browser does not verify native camera behavior.

@@ -45,68 +45,70 @@ interface Copy {
 
 const COPY: Record<ApiErrorKind, Copy> = {
   cancelled: {
-    title: 'Request cancelled',
-    message: 'The request was cancelled.',
+    title: 'Solicitud cancelada',
+    message: 'La solicitud fue cancelada.',
     retryable: false,
   },
   offline: {
-    title: 'You are offline',
-    message: 'You appear to be offline. Check your connection and try again.',
+    title: 'Sin conexión',
+    message: 'Parece que no tienes conexión. Revísala e inténtalo nuevamente.',
     retryable: true,
   },
   network: {
-    title: 'Connection problem',
+    title: 'Problema de conexión',
     message:
-      'We could not reach the server. Check your connection and try again.',
+      'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo nuevamente.',
     retryable: true,
   },
   timeout: {
-    title: 'The request timed out',
-    message: 'The server took too long to answer. Try again.',
+    title: 'Se agotó el tiempo de espera',
+    message: 'El servidor tardó demasiado en responder. Inténtalo nuevamente.',
     retryable: true,
   },
   validation: {
-    title: 'Check your information',
-    message: 'Some of the information is not valid. Review it and try again.',
+    title: 'Revisa tus datos',
+    message: 'Algunos datos no son válidos. Revísalos e inténtalo nuevamente.',
     retryable: false,
   },
   unauthorized: {
-    title: 'Sign-in required',
+    title: 'Debes iniciar sesión',
     message:
-      'Your session has expired or your credentials are not valid. Sign in and try again.',
+      'Tu sesión venció o los datos de acceso no son válidos. Inicia sesión e inténtalo nuevamente.',
     retryable: false,
   },
   forbidden: {
-    title: 'Access denied',
-    message: 'You do not have permission to do this.',
+    title: 'Acceso denegado',
+    message: 'No tienes permiso para realizar esta acción.',
     retryable: false,
   },
   'not-found': {
-    title: 'Not found',
-    message: 'We could not find what you were looking for. It may be gone.',
+    title: 'No encontrado',
+    message:
+      'No encontramos lo que buscas. Es posible que ya no esté disponible.',
     retryable: false,
   },
   conflict: {
-    title: 'Already exists or changed',
+    title: 'Ya existe o fue modificado',
     message:
-      'This conflicts with existing data, for example something that already exists. Review it and try again.',
+      'Los datos entran en conflicto con información existente. Revísalos e inténtalo nuevamente.',
     retryable: false,
   },
   'rate-limited': {
-    title: 'Too many attempts',
-    message: 'You are doing that too often. Wait a moment and try again.',
+    title: 'Demasiados intentos',
+    message:
+      'Has realizado demasiados intentos. Espera un momento e inténtalo nuevamente.',
     retryable: true,
   },
   server: {
-    title: 'Server error',
-    message: 'Something went wrong on our side. Try again in a few moments.',
+    title: 'Error del servidor',
+    message: 'Ocurrió un error en el servidor. Inténtalo en unos momentos.',
     retryable: true,
   },
   // Cannot tell what failed, so asking again is offered rather than ruled out.
   unknown: {
-    title: 'Something went wrong',
+    title: 'Ocurrió un error',
     message:
-      'Something went wrong. Try again, and reload the page if it keeps happening.',
+      'Ocurrió un error. Inténtalo nuevamente y recarga la página si continúa.',
     retryable: true,
   },
 };

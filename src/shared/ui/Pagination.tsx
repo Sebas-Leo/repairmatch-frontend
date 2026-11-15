@@ -49,7 +49,7 @@ export function Pagination({
             htmlFor={sizeId}
             className="flex items-center gap-2 text-muted"
           >
-            Per page
+            Por página
             <select
               id={sizeId}
               value={size}
@@ -68,7 +68,7 @@ export function Pagination({
           </label>
         ) : null}
         {totalPages > 1 ? (
-          <nav aria-label="Pagination">
+          <nav aria-label="Paginación">
             <ul className="m-0 flex list-none flex-wrap items-center gap-1 p-0">
               <li>
                 <button
@@ -76,7 +76,7 @@ export function Pagination({
                   className={CONTROL}
                   onClick={() => go(page - 1)}
                   aria-disabled={disabled || page <= 0 || undefined}
-                  aria-label="Previous page"
+                  aria-label="Página anterior"
                 >
                   <ChevronLeft size={16} aria-hidden="true" />
                 </button>
@@ -100,7 +100,7 @@ export function Pagination({
                       )}
                       onClick={() => go(item)}
                       aria-disabled={disabled || undefined}
-                      aria-label={`Page ${item + 1}`}
+                      aria-label={`Página ${item + 1}`}
                       aria-current={item === page ? 'page' : undefined}
                     >
                       {item + 1}
@@ -116,7 +116,7 @@ export function Pagination({
                   aria-disabled={
                     disabled || page >= totalPages - 1 || undefined
                   }
-                  aria-label="Next page"
+                  aria-label="Página siguiente"
                 >
                   <ChevronRight size={16} aria-hidden="true" />
                 </button>

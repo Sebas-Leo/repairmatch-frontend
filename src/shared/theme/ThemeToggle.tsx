@@ -9,9 +9,9 @@ const NEXT: Record<ThemePreference, ThemePreference> = {
 };
 
 const LABEL: Record<ThemePreference, string> = {
-  system: 'Theme: system',
-  light: 'Theme: light',
-  dark: 'Theme: dark',
+  system: 'Tema: sistema',
+  light: 'Tema: claro',
+  dark: 'Tema: oscuro',
 };
 
 /** Cycles system → light → dark. The label says the current choice. */

@@ -18,10 +18,10 @@ function copyFor(error: unknown): ErrorCopy {
   if (isChunkLoadError(error)) {
     // Going home would render the same lazy page again and fail the same way.
     return {
-      eyebrow: 'Page failed to load',
-      title: 'A new version may be available',
+      eyebrow: 'No se pudo cargar la página',
+      title: 'Puede haber una nueva versión disponible',
       message:
-        'This page could not be loaded, possibly because the app was updated. Reload the page to get the latest version.',
+        'No se pudo cargar la página. Es posible que la aplicación se haya actualizado. Recarga para obtener la última versión.',
       reload: true,
       home: false,
     };
@@ -29,27 +29,27 @@ function copyFor(error: unknown): ErrorCopy {
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
       return {
-        eyebrow: '404 / Page not found',
-        title: 'This page is not here.',
+        eyebrow: '404 / Página no encontrada',
+        title: 'Esta página no existe.',
         message:
-          'The address may be incorrect, or this page may not exist yet.',
+          'La dirección puede ser incorrecta o esta página todavía no existe.',
         reload: false,
         home: true,
       };
     }
     return {
       eyebrow: `${error.status} / Error`,
-      title: 'Something went wrong',
-      message: 'This page could not be loaded. Try again in a few moments.',
+      title: 'Ocurrió un error',
+      message: 'No se pudo cargar la página. Inténtalo en unos momentos.',
       reload: true,
       home: true,
     };
   }
   return {
-    eyebrow: 'Unexpected error',
-    title: 'Something went wrong',
+    eyebrow: 'Error inesperado',
+    title: 'Ocurrió un error',
     message:
-      'An unexpected problem stopped this page from loading. Reload the page or go back to the home page.',
+      'Un problema impidió cargar esta página. Recarga la página o vuelve al inicio.',
     reload: true,
     home: true,
   };
@@ -88,12 +88,12 @@ export function RouteErrorPage({ onReload = reloadPage }: RouteErrorPageProps) {
       <div className="error-actions">
         {reload ? (
           <button type="button" onClick={onReload}>
-            Reload page
+            Recargar página
           </button>
         ) : null}
         {home ? (
           <Link className="button-link" to="/">
-            Go to home
+            Ir al inicio
           </Link>
         ) : null}
       </div>

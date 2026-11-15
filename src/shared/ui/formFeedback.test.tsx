@@ -62,7 +62,7 @@ describe('form feedback helpers', () => {
       feedbackFromError(new NetworkError('Network request failed')),
     ).toEqual({
       message:
-        'We could not reach the server. Check your connection and try again.',
+        'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo nuevamente.',
       fieldErrors: {},
     });
   });
@@ -72,7 +72,7 @@ describe('form feedback helpers', () => {
       message: 'NullPointerException at Foo.java:42',
     });
     expect(feedbackFromError(error)).toEqual({
-      message: 'Something went wrong on our side. Try again in a few moments.',
+      message: 'Ocurrió un error en el servidor. Inténtalo en unos momentos.',
       fieldErrors: {},
     });
   });
@@ -82,7 +82,7 @@ describe('form feedback helpers', () => {
   it('does not blame the connection for an unexpected error', () => {
     expect(feedbackFromError(new TypeError('x is not a function'))).toEqual({
       message:
-        'Something went wrong. Try again, and reload the page if it keeps happening.',
+        'Ocurrió un error. Inténtalo nuevamente y recarga la página si continúa.',
       fieldErrors: {},
     });
   });
@@ -93,14 +93,14 @@ describe('FormErrorSummary', () => {
     render(
       <FormErrorSummary
         feedback={{ fieldErrors: { email: 'Enter an email.' } }}
-        fields={[{ name: 'email', id: 'e', label: 'Email' }]}
+        fields={[{ name: 'email', id: 'e', label: 'Correo electrónico' }]}
       />,
     );
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Please fix the following.',
+      'Corrige los siguientes datos.',
     );
     expect(
-      screen.getByRole('link', { name: 'Email: Enter an email.' }),
+      screen.getByRole('link', { name: 'Correo electrónico: Enter an email.' }),
     ).toHaveAttribute('href', '#e');
   });
 

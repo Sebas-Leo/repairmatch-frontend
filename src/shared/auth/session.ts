@@ -30,7 +30,7 @@ export type ApiRequestOptions = HttpRequestOptions;
 /** Registration succeeded but the automatic sign-in that follows it did not. */
 export class RegistrationSignInError extends Error {
   constructor(cause: unknown) {
-    super('Your account was created, but signing in failed', { cause });
+    super('Tu cuenta se creó, pero no pudimos iniciar sesión', { cause });
     this.name = 'RegistrationSignInError';
   }
 }

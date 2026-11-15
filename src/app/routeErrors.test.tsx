@@ -32,7 +32,7 @@ describe('page errors in the app', () => {
 
     const alert = await screen.findByRole('alert');
 
-    expect(alert).toHaveTextContent('Something went wrong');
+    expect(alert).toHaveTextContent('Ocurrió un error');
     expect(screen.queryByText(/secret\/path/)).not.toBeInTheDocument();
     expect(screen.getByRole('banner')).toBeVisible();
     expect(within(screen.getByRole('main')).getByRole('alert')).toBe(alert);
@@ -47,9 +47,9 @@ describe('page errors in the app', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'You do not have access to this page.',
+        name: 'No tienes acceso a esta página.',
       }),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ocurrió un error')).not.toBeInTheDocument();
   });
 });

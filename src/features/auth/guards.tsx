@@ -14,7 +14,7 @@ export function RequireAuth() {
   const location = useLocation();
 
   if (status === 'loading')
-    return <LoadingState label="Checking your session…" />;
+    return <LoadingState label="Verificando tu sesión…" />;
   if (status === 'anonymous') {
     const state: ReturnLocationState = {
       from: `${location.pathname}${location.search}${location.hash}`,
