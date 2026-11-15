@@ -847,7 +847,7 @@ function ServiceAreaCard({
                     setDropdownOpen(searchQuery.trim().length >= 2)
                   }
                   onChange={(event) => handleSearchChange(event.target.value)}
-                  placeholder="Busca cualquier calle, avenida, jirón o distrito (ej. Chepén, Av. Larco)…"
+                  placeholder="Busca cualquier calle, avenida, jirón o distrito (ej. Av. Arequipa, Miraflores)…"
                   className="w-full border-0 bg-transparent p-0 text-sm font-medium text-ink outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
                 />
                 {searching ? (

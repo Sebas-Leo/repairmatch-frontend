@@ -37,45 +37,6 @@ const TYPES: ApplianceType[] = [
   { id: 2, name: 'Washing machine', description: null },
 ];
 
-const GEOCODE_CHEPEN = [
-  {
-    place_id: 101,
-    lat: '-7.2266',
-    lon: '-79.4292',
-    name: 'Chepén',
-    display_name: 'Chepén, Provincia de Chepén, La Libertad, Perú',
-    address: {
-      city: 'Chepén',
-      state: 'La Libertad',
-      country: 'Perú',
-    },
-  },
-  {
-    place_id: 102,
-    lat: '-12.0672',
-    lon: '-77.1154',
-    display_name: 'Jirón Chepén, La Perla, Callao, 07016, Perú',
-    address: {
-      road: 'Jirón Chepén',
-      suburb: 'La Perla',
-      city: 'Callao',
-      country: 'Perú',
-    },
-  },
-  {
-    place_id: 103,
-    lat: '-12.0758',
-    lon: '-77.0885',
-    display_name: 'Calle Chepén, San Miguel, Lima, 15088, Perú',
-    address: {
-      road: 'Calle Chepén',
-      city_district: 'San Miguel',
-      city: 'Lima',
-      country: 'Perú',
-    },
-  },
-];
-
 function aProfile(
   overrides: Partial<TechnicianProfile> = {},
 ): TechnicianProfile {
@@ -108,25 +69,58 @@ describe('TechnicianProfilePage', () => {
     vi.mocked(updateServiceArea).mockReset();
     vi.mocked(listApplianceTypes).mockReset();
     vi.mocked(listApplianceTypes).mockResolvedValue(TYPES);
+
+    // Simulador dinámico de geocodificación para pruebas offline en Vitest
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
-        const url = String(input);
-        if (url.includes('/reverse')) {
+        const parsedUrl = new URL(String(input));
+        if (parsedUrl.pathname.includes('/reverse')) {
+          const lat = parsedUrl.searchParams.get('lat') ?? '-12.1219';
+          const lon = parsedUrl.searchParams.get('lon') ?? '-77.0297';
           return Response.json({
             place_id: 500,
-            lat: '-12.0758',
-            lon: '-77.0885',
-            display_name: 'Calle Chepén, San Miguel, Lima, Perú',
+            lat,
+            lon,
+            display_name: 'Av. José Larco, Miraflores, Lima, Perú',
             address: {
-              road: 'Calle Chepén',
-              city_district: 'San Miguel',
+              road: 'Av. José Larco',
+              city_district: 'Miraflores',
               city: 'Lima',
               country: 'Perú',
             },
           });
         }
-        return Response.json(GEOCODE_CHEPEN);
+
+        const q = parsedUrl.searchParams.get('q') ?? 'Lima';
+        return Response.json([
+          {
+            place_id: 201,
+            lat: '-12.1219',
+            lon: '-77.0297',
+            name: q,
+            display_name: `${q}, Miraflores, Lima, Perú`,
+            address: {
+              road: q,
+              city_district: 'Miraflores',
+              city: 'Lima',
+              country: 'Perú',
+            },
+          },
+          {
+            place_id: 202,
+            lat: '-12.0972',
+            lon: '-77.0325',
+            name: q,
+            display_name: `${q}, San Isidro, Lima, Perú`,
+            address: {
+              road: q,
+              city_district: 'San Isidro',
+              city: 'Lima',
+              country: 'Perú',
+            },
+          },
+        ]);
       }),
     );
   });
@@ -262,22 +256,22 @@ describe('TechnicianProfilePage', () => {
     });
   });
 
-  it('queries real geocoded addresses and selects a suggestion from the floating list', async () => {
+  it('queries real geocoded addresses for any place and selects a suggestion', async () => {
     const user = userEvent.setup();
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
     vi.mocked(updateServiceArea).mockResolvedValue(
-      aProfile({ latitude: -12.0758, longitude: -77.0885, maxRadiusKm: 25 }),
+      aProfile({ latitude: -12.1219, longitude: -77.0297, maxRadiusKm: 25 }),
     );
     setup();
 
     const search = await screen.findByLabelText('Dirección');
-    await user.type(search, 'Chepen');
+    await user.type(search, 'Av. Larco 450');
 
     const listbox = await screen.findByRole('listbox', {
       name: 'Sugerencias de dirección',
     });
     const option = within(listbox).getByRole('button', {
-      name: /Calle Chepén, San Miguel, Lima, Perú/i,
+      name: /Av\. Larco 450, Miraflores, Lima, Perú/i,
     });
     await user.click(option);
 
@@ -288,8 +282,8 @@ describe('TechnicianProfilePage', () => {
     );
 
     expect(updateServiceArea).toHaveBeenCalledWith({
-      latitude: -12.0758,
-      longitude: -77.0885,
+      latitude: -12.1219,
+      longitude: -77.0297,
       maxRadiusKm: 25,
     });
     expect(
@@ -312,17 +306,14 @@ describe('TechnicianProfilePage', () => {
     await user.click(screen.getByRole('button', { name: 'Acercar mapa' }));
     await user.click(screen.getByRole('button', { name: 'Alejar mapa' }));
 
-    // Panear el mapa
     fireEvent.mouseDown(mapSurface, { button: 0, clientX: 200, clientY: 200 });
     fireEvent.mouseMove(mapSurface, { clientX: 240, clientY: 220 });
     fireEvent.mouseUp(mapSurface);
 
-    // Traer el pin al centro de la vista
     await user.click(
       screen.getByRole('button', { name: 'Traer pin al centro' }),
     );
 
-    // Arrastrar el pin rojo directamente en el zoom actual
     const pinBtn = screen.getByRole('button', {
       name: 'Arrastrar pin de ubicación exacta',
     });
