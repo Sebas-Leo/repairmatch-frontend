@@ -27,25 +27,25 @@ export function validateProposal(
 ): Partial<Record<keyof ProposalForm, string>> {
   const errors: Partial<Record<keyof ProposalForm, string>> = {};
   const raw = normalizeCost(form.diagnosticCost);
-  if (!raw) errors.diagnosticCost = 'Enter the diagnostic cost.';
+  if (!raw) errors.diagnosticCost = 'Ingresa el costo del diagnóstico.';
   else if (raw.startsWith('-'))
-    errors.diagnosticCost = 'The cost cannot be negative.';
+    errors.diagnosticCost = 'El costo no puede ser negativo.';
   else if (!COST_FORMAT.test(raw))
     errors.diagnosticCost =
-      'Use a number like 45 or 45.50 (two decimals at most).';
+      'Ingresa un número como 45 o 45.50, con un máximo de dos decimales.';
   else if (Number(raw) > COST_MAX)
-    errors.diagnosticCost = 'That cost is too high.';
+    errors.diagnosticCost = 'El costo es demasiado alto.';
 
   const when = new Date(form.availableAt);
   if (!form.availableAt || Number.isNaN(when.getTime()))
-    errors.availableAt = 'Choose when you can go.';
+    errors.availableAt = 'Elige cuándo puedes realizar la visita.';
   else if (when.getTime() <= now.getTime())
-    errors.availableAt = 'Choose a date and time in the future.';
+    errors.availableAt = 'Elige una fecha y hora futuras.';
 
   const conditions = form.conditions.trim();
-  if (!conditions) errors.conditions = 'Explain what the offer includes.';
+  if (!conditions) errors.conditions = 'Explica qué incluye tu oferta.';
   else if (conditions.length > CONDITIONS_MAX)
-    errors.conditions = `Keep it under ${CONDITIONS_MAX} characters.`;
+    errors.conditions = `Usa menos de ${CONDITIONS_MAX} caracteres.`;
   return errors;
 }
 

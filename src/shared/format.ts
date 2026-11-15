@@ -2,7 +2,7 @@
  * Display formatting. The backend sends `LocalDateTime` strings without a
  * timezone (`2026-11-11T14:20:00`), which `Date` reads as local time.
  */
-const DATE_TIME = new Intl.DateTimeFormat('en-GB', {
+const DATE_TIME = new Intl.DateTimeFormat('es-PE', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',

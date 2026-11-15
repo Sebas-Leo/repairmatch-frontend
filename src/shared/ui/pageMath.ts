@@ -34,10 +34,10 @@ export function rangeLabel(
   size: number,
   totalElements: number,
 ): string {
-  if (totalElements === 0) return 'No results';
+  if (totalElements === 0) return 'Sin resultados';
   const from = page * size + 1;
   const to = Math.min((page + 1) * size, totalElements);
   if (from > totalElements)
-    return `No results on this page (${totalElements} in total)`;
-  return `Showing ${from}–${to} of ${totalElements}`;
+    return `Sin resultados en esta página (${totalElements} en total)`;
+  return `Mostrando ${from}–${to} de ${totalElements}`;
 }

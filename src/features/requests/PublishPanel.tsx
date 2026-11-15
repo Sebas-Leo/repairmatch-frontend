@@ -8,7 +8,7 @@ import { cx } from '../../shared/ui/cx';
 import { feedbackFromError } from '../../shared/ui/formFeedback';
 import { PhotoDropzone } from '../../shared/ui/PhotoDropzone';
 import { listApplianceTypes } from '../applianceTypes/api';
-import { createServiceRequest } from './api';
+import { publishWithPhoto } from './publishWithPhoto';
 import { ApplianceIcon } from './ApplianceIcon';
 import { applianceLabel } from './applianceLabel';
 import { validateNewRequest, type NewRequestForm } from './validation';
@@ -84,14 +84,19 @@ export function PublishPanel({
   const { run: publish, isSubmitting } = useSubmitGuard(async () => {
     setServerError(null);
     try {
-      const created = await createServiceRequest({
-        applianceTypeId: Number(typeId),
-        originalDescription: text.trim(),
-      });
+      const { created, pendingPhoto } = await publishWithPhoto(
+        {
+          applianceTypeId: Number(typeId),
+          originalDescription: text.trim(),
+        },
+        photo,
+      );
       toast.success(
         'Solicitud publicada. Los técnicos cercanos ya pueden verla.',
       );
-      void navigate(`/client/requests/${created.id}`);
+      void navigate(`/client/requests/${created.id}`, {
+        state: { pendingPhoto },
+      });
     } catch (error) {
       setServerError(
         feedbackFromError(error).message ?? 'No se pudo publicar.',
@@ -222,7 +227,10 @@ export function PublishPanel({
       </div>
 
       <div className="grid content-start gap-4 border-l border-[var(--rm-cover-line)] p-7">
-        <PhotoDropzone file={photo} onChange={setPhoto} />
+        <fieldset disabled={isSubmitting} className="m-0 border-0 p-0">
+          <legend className="sr-only">Foto</legend>
+          <PhotoDropzone file={photo} onChange={setPhoto} />
+        </fieldset>
         <p className="m-0 inline-flex items-center gap-2 text-sm text-slate">
           <ShieldCheck size={16} aria-hidden="true" className="text-fresh" />
           Solo la ven técnicos que atienden este equipo en tu zona.
@@ -234,7 +242,7 @@ export function PublishPanel({
         ) : null}
         <button
           type="submit"
-          aria-disabled={isSubmitting || undefined}
+          disabled={isSubmitting}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-0 bg-brand px-6 font-semibold text-on-brand transition-colors hover:bg-brand-strong"
         >
           {isSubmitting ? 'Publicando…' : 'Publicar problema'}

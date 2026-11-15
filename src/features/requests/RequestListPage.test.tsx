@@ -57,7 +57,7 @@ describe('RequestListPage', () => {
       within(items[0]!).getByRole('link', { name: /Samsung/ }),
     ).toHaveAttribute('href', '/client/requests/7');
     expect(within(items[1]!).getByText('Con ofertas')).toBeInTheDocument();
-    expect(screen.getByText('Showing 1–10 of 25')).toBeInTheDocument();
+    expect(screen.getByText('Mostrando 1–10 de 25')).toBeInTheDocument();
     expect(list).toHaveBeenCalledWith(
       { page: 0, size: 10, status: undefined, search: '', sort: 'newest' },
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
@@ -96,7 +96,7 @@ describe('RequestListPage', () => {
       ),
     );
 
-    await user.click(await screen.findByRole('button', { name: 'Page 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Página 1' }));
     expect(router.state.location.search).not.toContain('page=');
   });
 
@@ -151,7 +151,7 @@ describe('RequestListPage', () => {
     answer(() => Promise.reject(new ApiError(403, 'Forbidden', {})));
     renderPage(<RequestListPage />, { path: PATH });
     expect((await screen.findAllByRole('alert')).length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull();
   });
 
   it('retries a server failure on its own, then lets the user try again', async () => {
@@ -166,7 +166,7 @@ describe('RequestListPage', () => {
     renderPage(<RequestListPage />, { path: PATH });
     const retry = await screen.findByRole(
       'button',
-      { name: 'Try again' },
+      { name: 'Reintentar' },
       { timeout: 5000 },
     );
     expect(calls).toBe(3);

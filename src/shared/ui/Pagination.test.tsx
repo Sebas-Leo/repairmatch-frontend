@@ -27,14 +27,16 @@ describe('pageWindow', () => {
 
 describe('rangeLabel', () => {
   it('describes the visible range', () => {
-    expect(rangeLabel(0, 10, 45)).toBe('Showing 1–10 of 45');
-    expect(rangeLabel(4, 10, 45)).toBe('Showing 41–45 of 45');
-    expect(rangeLabel(0, 10, 0)).toBe('No results');
-    expect(rangeLabel(9, 10, 45)).toBe('No results on this page (45 in total)');
+    expect(rangeLabel(0, 10, 45)).toBe('Mostrando 1–10 de 45');
+    expect(rangeLabel(4, 10, 45)).toBe('Mostrando 41–45 de 45');
+    expect(rangeLabel(0, 10, 0)).toBe('Sin resultados');
+    expect(rangeLabel(9, 10, 45)).toBe(
+      'Sin resultados en esta página (45 en total)',
+    );
   });
 });
 
-describe('Pagination', () => {
+describe('Paginación', () => {
   const base = { page: 1, size: 10, totalPages: 5, totalElements: 45 };
 
   it('moves between pages and marks the current one', async () => {
@@ -42,15 +44,15 @@ describe('Pagination', () => {
     const onPageChange = vi.fn();
     render(<Pagination {...base} onPageChange={onPageChange} />);
 
-    expect(screen.getByText('Showing 11–20 of 45')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute(
+    expect(screen.getByText('Mostrando 11–20 de 45')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Página 2' })).toHaveAttribute(
       'aria-current',
       'page',
     );
 
-    await user.click(screen.getByRole('button', { name: 'Previous page' }));
-    await user.click(screen.getByRole('button', { name: 'Next page' }));
-    await user.click(screen.getByRole('button', { name: 'Page 5' }));
+    await user.click(screen.getByRole('button', { name: 'Página anterior' }));
+    await user.click(screen.getByRole('button', { name: 'Página siguiente' }));
+    await user.click(screen.getByRole('button', { name: 'Página 5' }));
     expect(onPageChange.mock.calls).toEqual([[0], [2], [4]]);
   });
 
@@ -59,13 +61,12 @@ describe('Pagination', () => {
       <Pagination {...base} page={0} onPageChange={vi.fn()} />,
     );
     expect(
-      screen.getByRole('button', { name: 'Previous page' }),
+      screen.getByRole('button', { name: 'Página anterior' }),
     ).toHaveAttribute('aria-disabled', 'true');
     rerender(<Pagination {...base} page={4} onPageChange={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Next page' })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', { name: 'Página siguiente' }),
+    ).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('changes the page size', async () => {
@@ -78,7 +79,7 @@ describe('Pagination', () => {
         onSizeChange={onSizeChange}
       />,
     );
-    await user.selectOptions(screen.getByLabelText('Per page'), '25');
+    await user.selectOptions(screen.getByLabelText('Por página'), '25');
     expect(onSizeChange).toHaveBeenCalledWith(25);
   });
 
@@ -93,9 +94,9 @@ describe('Pagination', () => {
       />,
     );
     expect(
-      screen.queryByRole('navigation', { name: 'Pagination' }),
+      screen.queryByRole('navigation', { name: 'Paginación' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Showing 1–3 of 3')).toBeInTheDocument();
+    expect(screen.getByText('Mostrando 1–3 de 3')).toBeInTheDocument();
   });
 
   it('keeps focus and ignores clicks while a page loads', async () => {
@@ -110,11 +111,11 @@ describe('Pagination', () => {
         onSizeChange={onSizeChange}
       />,
     );
-    const next = screen.getByRole('button', { name: 'Next page' });
+    const next = screen.getByRole('button', { name: 'Página siguiente' });
     await user.click(next);
     expect(next).toHaveFocus();
-    await user.click(screen.getByRole('button', { name: 'Page 3' }));
-    await user.selectOptions(screen.getByLabelText('Per page'), '50');
+    await user.click(screen.getByRole('button', { name: 'Página 3' }));
+    await user.selectOptions(screen.getByLabelText('Por página'), '50');
     expect(onPageChange).not.toHaveBeenCalled();
     expect(onSizeChange).not.toHaveBeenCalled();
   });
@@ -123,8 +124,8 @@ describe('Pagination', () => {
     const user = userEvent.setup();
     const onPageChange = vi.fn();
     render(<Pagination {...base} page={0} onPageChange={onPageChange} />);
-    await user.click(screen.getByRole('button', { name: 'Previous page' }));
-    await user.click(screen.getByRole('button', { name: 'Page 1' }));
+    await user.click(screen.getByRole('button', { name: 'Página anterior' }));
+    await user.click(screen.getByRole('button', { name: 'Página 1' }));
     expect(onPageChange).not.toHaveBeenCalled();
   });
 });

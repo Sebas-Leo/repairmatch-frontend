@@ -26,9 +26,11 @@ describe('NewRequestPage', () => {
   it('validates before sending', async () => {
     const user = userEvent.setup();
     renderPage(<NewRequestPage />, { path: PATH });
-    await user.click(screen.getByRole('button', { name: 'Publish request' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Publicar solicitud' }),
+    );
     expect(
-      await screen.findAllByText('Choose the appliance.'),
+      await screen.findAllByText('Selecciona el electrodoméstico.'),
     ).not.toHaveLength(0);
     expect(createServiceRequest).not.toHaveBeenCalled();
   });
@@ -38,15 +40,17 @@ describe('NewRequestPage', () => {
     vi.mocked(createServiceRequest).mockResolvedValue(aRequest({ id: 42 }));
     const { router } = renderPage(<NewRequestPage />, { path: PATH });
     await user.selectOptions(
-      await screen.findByLabelText('Appliance'),
+      await screen.findByLabelText('Electrodoméstico'),
       'Washing machine',
     );
     await user.type(
-      screen.getByLabelText('Problem'),
+      screen.getByLabelText('Problema'),
       '  It does not spin at all.  ',
     );
-    await user.type(screen.getByLabelText('Brand (optional)'), 'LG');
-    await user.click(screen.getByRole('button', { name: 'Publish request' }));
+    await user.type(screen.getByLabelText('Marca (opcional)'), 'LG');
+    await user.click(
+      screen.getByRole('button', { name: 'Publicar solicitud' }),
+    );
 
     expect(createServiceRequest).toHaveBeenCalledWith({
       applianceTypeId: 2,
@@ -69,11 +73,13 @@ describe('NewRequestPage', () => {
     );
     renderPage(<NewRequestPage />, { path: PATH });
     await user.selectOptions(
-      await screen.findByLabelText('Appliance'),
+      await screen.findByLabelText('Electrodoméstico'),
       'Refrigerator',
     );
-    await user.type(screen.getByLabelText('Problem'), 'Broken door seal');
-    await user.click(screen.getByRole('button', { name: 'Publish request' }));
+    await user.type(screen.getByLabelText('Problema'), 'Broken door seal');
+    await user.click(
+      screen.getByRole('button', { name: 'Publicar solicitud' }),
+    );
     expect(
       await screen.findAllByText('La descripción es muy corta'),
     ).not.toHaveLength(0);
@@ -85,7 +91,9 @@ describe('NewRequestPage', () => {
     );
     renderPage(<NewRequestPage />, { path: PATH });
     expect(
-      await screen.findByText('The appliance list did not load'),
+      await screen.findByText(
+        'No se pudo cargar la lista de electrodomésticos',
+      ),
     ).toBeInTheDocument();
   });
 });
@@ -111,18 +119,18 @@ describe('validateNewRequest', () => {
         model: 'y'.repeat(101),
       }),
     ).toEqual({
-      applianceTypeId: 'Choose the appliance.',
-      originalDescription: 'Add a little more detail (at least 10 characters).',
-      brand: 'Use at most 100 characters.',
-      model: 'Use at most 100 characters.',
+      applianceTypeId: 'Selecciona el electrodoméstico.',
+      originalDescription: 'Add a little more detail (at least 10 caracteres).',
+      brand: 'Use at most 100 caracteres.',
+      model: 'Use at most 100 caracteres.',
     });
     expect(
       validateNewRequest({ ...valid, originalDescription: 'x'.repeat(5001) })
         .originalDescription,
-    ).toBe('Keep it under 5000 characters.');
+    ).toBe('Usa menos de 5000 caracteres.');
     expect(
       validateNewRequest({ ...valid, originalDescription: '   ' })
         .originalDescription,
-    ).toBe('Describe what is wrong.');
+    ).toBe('Describe la falla.');
   });
 });

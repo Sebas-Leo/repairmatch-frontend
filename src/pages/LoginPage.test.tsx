@@ -18,10 +18,10 @@ async function fillAndSubmit(
   password = 'Test-pass-1',
 ) {
   // Pages are lazy: the first query waits for the page to download.
-  const emailField = await screen.findByLabelText('Email');
+  const emailField = await screen.findByLabelText('Correo electrónico');
   if (email) await user.type(emailField, email);
-  if (password) await user.type(screen.getByLabelText('Password'), password);
-  await user.click(screen.getByRole('button', { name: 'Sign in' }));
+  if (password) await user.type(screen.getByLabelText('Contraseña'), password);
+  await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 }
 
 describe('login form', () => {
@@ -29,18 +29,21 @@ describe('login form', () => {
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      'Sign in',
+      'Iniciar sesión',
     );
-    expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
-    expect(screen.getByLabelText('Password')).toHaveAttribute(
+    expect(screen.getByLabelText('Correo electrónico')).toHaveAttribute(
+      'type',
+      'email',
+    );
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute(
       'type',
       'password',
     );
-    expect(screen.getByLabelText('Password')).toHaveAttribute(
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute(
       'autocomplete',
       'current-password',
     );
-    expect(screen.getByRole('link', { name: 'Register' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Registrarse' })).toHaveAttribute(
       'href',
       '/register',
     );
@@ -51,15 +54,19 @@ describe('login form', () => {
     const { session, api } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
 
-    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Iniciar sesión' }),
+    );
 
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent('Email: Enter your email address.');
-    expect(alert).toHaveTextContent('Password: Enter your password.');
+    expect(alert).toHaveTextContent(
+      'Correo electrónico: Ingresa tu correo electrónico.',
+    );
+    expect(alert).toHaveTextContent('Contraseña: Ingresa tu contraseña.');
     expect(alert).toHaveFocus();
-    const email = screen.getByLabelText('Email');
+    const email = screen.getByLabelText('Correo electrónico');
     expect(email).toBeInvalid();
-    expect(email).toHaveAccessibleDescription('Enter your email address.');
+    expect(email).toHaveAccessibleDescription('Ingresa tu correo electrónico.');
     expect(api.adapter).not.toHaveBeenCalled();
   });
 
@@ -67,7 +74,9 @@ describe('login form', () => {
     const user = userEvent.setup();
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
-    const submit = await screen.findByRole('button', { name: 'Sign in' });
+    const submit = await screen.findByRole('button', {
+      name: 'Iniciar sesión',
+    });
 
     const changes: string[] = [];
     const observer = new MutationObserver((records) => {
@@ -92,7 +101,7 @@ describe('login form', () => {
     renderApp(session, '/login');
     await fillAndSubmit(user, 'not-an-email');
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Enter a valid email address.',
+      'Ingresa un correo electrónico válido.',
     );
     expect(api.adapter).not.toHaveBeenCalled();
   });
@@ -101,13 +110,15 @@ describe('login form', () => {
     const user = userEvent.setup();
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
-    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Iniciar sesión' }),
+    );
     await user.click(
       within(screen.getByRole('alert')).getByRole('link', {
-        name: 'Password: Enter your password.',
+        name: 'Contraseña: Ingresa tu contraseña.',
       }),
     );
-    expect(screen.getByLabelText('Password')).toHaveFocus();
+    expect(screen.getByLabelText('Contraseña')).toHaveFocus();
   });
 
   it('shows the server message and re-enables the form on bad credentials', async () => {
@@ -124,8 +135,12 @@ describe('login form', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Credenciales inválidas');
     expect(alert).toHaveFocus();
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
-    expect(screen.getByLabelText('Email')).toHaveValue('client@example.test');
+    expect(
+      screen.getByRole('button', { name: 'Iniciar sesión' }),
+    ).toBeEnabled();
+    expect(screen.getByLabelText('Correo electrónico')).toHaveValue(
+      'client@example.test',
+    );
   });
 
   it('shows field errors and unknown ones from a 400 response', async () => {
@@ -146,12 +161,12 @@ describe('login form', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Revisa los campos enviados');
     expect(alert).toHaveTextContent(
-      'Email: El correo debe tener un formato válido',
+      'Correo electrónico: El correo debe tener un formato válido',
     );
     expect(alert).toHaveTextContent('other: Algo más');
-    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription(
-      'El correo debe tener un formato válido',
-    );
+    expect(
+      screen.getByLabelText('Correo electrónico'),
+    ).toHaveAccessibleDescription('El correo debe tener un formato válido');
   });
 
   it('explains a network failure in the one error summary', async () => {
@@ -167,9 +182,11 @@ describe('login form', () => {
     await fillAndSubmit(user);
 
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('We could not reach the server');
+    expect(alert).toHaveTextContent('No pudimos conectar con el servidor');
     expect(alert).toHaveFocus();
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Iniciar sesión' }),
+    ).toBeEnabled();
   });
 
   it('replaces internal server text with friendly copy', async () => {
@@ -184,7 +201,7 @@ describe('login form', () => {
     await fillAndSubmit(user);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Something went wrong on our side. Try again in a few moments.',
+      'Ocurrió un error en el servidor. Inténtalo en unos momentos.',
     );
     expect(screen.queryByText(/upstream database/)).not.toBeInTheDocument();
   });
@@ -212,16 +229,16 @@ describe('login form', () => {
     renderApp(session, '/login');
     await fillAndSubmit(user);
 
-    const busy = screen.getByRole('button', { name: 'Signing in…' });
+    const busy = screen.getByRole('button', { name: 'Iniciando sesión…' });
     expect(busy).toBeDisabled();
-    expect(screen.getByLabelText('Email')).toBeDisabled();
-    expect(screen.getByLabelText('Password')).toBeDisabled();
+    expect(screen.getByLabelText('Correo electrónico')).toBeDisabled();
+    expect(screen.getByLabelText('Contraseña')).toBeDisabled();
     await user.click(busy); // a second click must not send a second request
     expect(api.callsTo('POST /auth/login')).toHaveLength(1);
 
     release();
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
   });
 
@@ -241,12 +258,12 @@ describe('login form', () => {
     );
     renderApp(session, '/login');
     await user.type(
-      await screen.findByLabelText('Email'),
+      await screen.findByLabelText('Correo electrónico'),
       'client@example.test',
     );
-    await user.type(screen.getByLabelText('Password'), 'Test-pass-1');
+    await user.type(screen.getByLabelText('Contraseña'), 'Test-pass-1');
     const form = screen
-      .getByRole('button', { name: 'Sign in' })
+      .getByRole('button', { name: 'Iniciar sesión' })
       .closest('form');
 
     // Both events land in the same batch, so the disabled fieldset is not
@@ -257,7 +274,7 @@ describe('login form', () => {
     });
     release();
 
-    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
+    await screen.findByRole('heading', { name: /^Hola,/ });
     expect(api.callsTo('POST /auth/login')).toHaveLength(1);
   });
 
@@ -266,7 +283,7 @@ describe('login form', () => {
     const { session, api } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/login');
     await fillAndSubmit(user, '  client@example.test ', ' Test-pass-1 ');
-    await screen.findByRole('heading', { name: '¿Qué se malogró?' });
+    await screen.findByRole('heading', { name: /^Hola,/ });
     expect(api.callsTo('POST /auth/login')[0]?.body).toEqual({
       email: 'client@example.test',
       password: ' Test-pass-1 ',
@@ -281,7 +298,7 @@ describe('after signing in', () => {
     const { router } = renderApp(session, '/login');
     await fillAndSubmit(user);
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -331,7 +348,7 @@ describe('after signing in', () => {
     await session.login({ email: clientUser.email, password: 'Test-pass-1' });
     const { router } = renderApp(session, '/login');
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -359,13 +376,15 @@ describe('after signing in', () => {
     renderApp(session, '/login');
 
     expect(
-      await screen.findByText('Checking your session…'),
+      await screen.findByText('Verificando tu sesión…'),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Correo electrónico'),
+    ).not.toBeInTheDocument();
 
     release();
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
   });
 });

@@ -7,7 +7,7 @@ import { roleHome } from './redirects';
 export function RoleRedirect() {
   const auth = useAuth();
   if (auth.status === 'loading')
-    return <LoadingState label="Checking your session…" />;
+    return <LoadingState label="Verificando tu sesión…" />;
   if (auth.status === 'anonymous') return <Navigate to="/login" replace />;
   return <Navigate to={roleHome(auth.user.role)} replace />;
 }

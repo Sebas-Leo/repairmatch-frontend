@@ -14,16 +14,17 @@ export function validateNewRequest(
   form: NewRequestForm,
 ): Partial<Record<keyof NewRequestForm, string>> {
   const errors: Partial<Record<keyof NewRequestForm, string>> = {};
-  if (!form.applianceTypeId) errors.applianceTypeId = 'Choose the appliance.';
+  if (!form.applianceTypeId)
+    errors.applianceTypeId = 'Selecciona el electrodoméstico.';
   const description = form.originalDescription.trim();
-  if (!description) errors.originalDescription = 'Describe what is wrong.';
+  if (!description) errors.originalDescription = 'Describe la falla.';
   else if (description.length < DESCRIPTION_MIN)
-    errors.originalDescription = `Add a little more detail (at least ${DESCRIPTION_MIN} characters).`;
+    errors.originalDescription = `Add a little more detail (at least ${DESCRIPTION_MIN} caracteres).`;
   else if (description.length > DESCRIPTION_MAX)
-    errors.originalDescription = `Keep it under ${DESCRIPTION_MAX} characters.`;
+    errors.originalDescription = `Usa menos de ${DESCRIPTION_MAX} caracteres.`;
   if (form.brand.trim().length > BRAND_MAX)
-    errors.brand = `Use at most ${BRAND_MAX} characters.`;
+    errors.brand = `Use at most ${BRAND_MAX} caracteres.`;
   if (form.model.trim().length > BRAND_MAX)
-    errors.model = `Use at most ${BRAND_MAX} characters.`;
+    errors.model = `Use at most ${BRAND_MAX} caracteres.`;
   return errors;
 }

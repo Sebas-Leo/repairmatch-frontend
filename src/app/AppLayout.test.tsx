@@ -29,7 +29,7 @@ describe('AppLayout', () => {
     render(<RouterProvider router={router} />);
 
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('status')).toHaveTextContent('Loading…');
+    expect(within(main).getByRole('status')).toHaveTextContent('Cargando…');
     expect(screen.getByRole('banner')).toBeVisible();
     expect(screen.getByRole('contentinfo')).toBeVisible();
 
@@ -63,7 +63,7 @@ describe('AppLayout', () => {
         element: <AppLayout />,
         children: [
           { index: true, element: <Saver /> },
-          { path: 'next', element: <h1>Next page</h1> },
+          { path: 'next', element: <h1>Página siguiente</h1> },
         ],
       },
     ]);
@@ -72,7 +72,7 @@ describe('AppLayout', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Next page' }),
+      await screen.findByRole('heading', { name: 'Página siguiente' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Saved')).toBeVisible();
     expect(
@@ -109,7 +109,7 @@ describe('AppLayout navigation', () => {
         <RouterProvider router={router} />
       </AuthContext.Provider>,
     );
-    const nav = screen.getByRole('navigation', { name: 'Main' });
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
     expect(within(nav).getByRole('link', { name: 'Inicio' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -132,7 +132,7 @@ describe('AppLayout navigation', () => {
     ]);
     render(<RouterProvider router={router} />);
     expect(
-      screen.queryByRole('navigation', { name: 'Main' }),
+      screen.queryByRole('navigation', { name: 'Principal' }),
     ).not.toBeInTheDocument();
   });
 });

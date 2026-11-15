@@ -32,7 +32,7 @@ describe('isChunkLoadError', () => {
   it.each([
     ['an ordinary error', new Error('Cannot read properties of undefined')],
     ['a failed fetch of data', new TypeError('Failed to fetch')],
-    ['an API error', new ApiError(500, 'Request failed (500)', undefined)],
+    ['an API error', new ApiError(500, 'Solicitud failed (500)', undefined)],
     ['an error without a message', {}],
     ['a message that is not text', { message: 42 }],
     ['a plain string', 'Failed to fetch dynamically imported module'],

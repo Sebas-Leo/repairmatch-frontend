@@ -40,21 +40,21 @@ const PROFILE_FIELDS: readonly SummaryField[] = [
   {
     name: 'experienceYears',
     id: 'profile-experience',
-    label: 'Years of experience',
+    label: 'Años de experiencia',
   },
-  { name: 'phone', id: 'profile-phone', label: 'Phone' },
-  { name: 'bio', id: 'profile-bio', label: 'Bio' },
+  { name: 'phone', id: 'profile-phone', label: 'Teléfono' },
+  { name: 'bio', id: 'profile-bio', label: 'Biografía' },
   {
     name: 'applianceTypeIds',
     id: 'profile-appliances',
-    label: 'Appliances you repair',
+    label: 'Electrodomésticos que reparas',
   },
 ];
 
 const AREA_FIELDS: readonly SummaryField[] = [
-  { name: 'latitude', id: 'area-latitude', label: 'Latitude' },
-  { name: 'longitude', id: 'area-longitude', label: 'Longitude' },
-  { name: 'maxRadiusKm', id: 'area-radius', label: 'Radius (km)' },
+  { name: 'latitude', id: 'area-latitude', label: 'Latitud' },
+  { name: 'longitude', id: 'area-longitude', label: 'Longitud' },
+  { name: 'maxRadiusKm', id: 'area-radius', label: 'Radio (km)' },
 ];
 
 /**
@@ -211,7 +211,7 @@ function ProfileDetailsCard({
         applianceTypeIds: form.applianceTypeIds,
       });
       onSaved(updated);
-      toast.success('Profile saved.');
+      toast.success('Perfil guardado.');
     } catch (error) {
       show(feedbackFromError(error));
     }
@@ -258,10 +258,10 @@ function ProfileDetailsCard({
               aria-hidden="true"
               className="inline-block h-6 w-2.5 -skew-x-12 rounded-sm bg-[#d0dc15] ring-2 ring-[#006838]"
             />
-            Professional details
+            Datos profesionales
           </h2>
           <p className="m-0 text-[15px] font-medium text-muted">
-            Your technical presentation sheet shown when sending an offer.
+            Tu presentación profesional se muestra al enviar una oferta.
           </p>
           {profile.applianceTypes.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 pt-1">
@@ -288,14 +288,14 @@ function ProfileDetailsCard({
 
       <form onSubmit={handleSubmit} noValidate>
         <fieldset disabled={isSubmitting} className={HARMONIZED_FIELDS}>
-          <legend className="visually-hidden">Professional details</legend>
+          <legend className="visually-hidden">Datos profesionales</legend>
           <div className="grid gap-x-4 sm:grid-cols-2">
             <TextField
               id="profile-experience"
               name="experienceYears"
-              label="Years of experience"
+              label="Años de experiencia"
               inputMode="numeric"
-              hint="Field years repairing home appliances"
+              hint="Años de experiencia reparando electrodomésticos"
               placeholder="5"
               value={form.experienceYears}
               onChange={(event) => set('experienceYears', event.target.value)}
@@ -306,8 +306,8 @@ function ProfileDetailsCard({
               name="phone"
               type="tel"
               autoComplete="tel"
-              label="Phone"
-              hint="Direct contact once your quote is accepted"
+              label="Teléfono"
+              hint="Contacto directo cuando se acepta tu oferta"
               placeholder="+51 999 888 777"
               maxLength={PHONE_MAX}
               value={form.phone}
@@ -319,8 +319,8 @@ function ProfileDetailsCard({
           <TextAreaField
             id="profile-bio"
             name="bio"
-            label="Bio"
-            hint="Share the brands you master (Samsung, LG, Bosch, Mabe...), tools and warranty."
+            label="Biografía"
+            hint="Indica las marcas que conoces (Samsung, LG, Bosch, Mabe...), tus herramientas y la garantía que ofreces."
             rows={3}
             maxLength={BIO_MAX}
             value={form.bio}
@@ -340,15 +340,15 @@ function ProfileDetailsCard({
                 id="profile-appliances-label"
                 className="font-display text-[15px] font-bold tracking-tight"
               >
-                Appliances you repair
+                Electrodomésticos que reparas
               </span>
               <span className="-skew-x-6 rounded-[8px_2px_8px_2px] border border-[#006838] bg-[#d0dc15] px-2.5 py-0.5 font-display text-xs font-bold text-[#0b1f17] shadow-[2px_2px_0_0_#006838]">
                 {form.applianceTypeIds.length} of {types.length} active
               </span>
             </div>
             <p className="field-hint">
-              Select at least one appliance line so matching requests can appear
-              in Opportunities.
+              Selecciona al menos un tipo de electrodoméstico para recibir
+              oportunidades compatibles.
             </p>
             <div className="grid gap-2.5 pt-2.5 sm:grid-cols-2">
               {types.map((type) => {
@@ -396,7 +396,7 @@ function ProfileDetailsCard({
               loading={isSubmitting}
               className="rounded-[14px_4px_14px_4px] border-2 border-[#006838] bg-gradient-to-r from-[#d0dc15] to-[#a3ce29] px-5 font-display text-base font-bold text-[#0b1f17] shadow-[3px_3px_0_0_#006838] transition-transform duration-150 hover:-translate-y-0.5 hover:from-[#e6e20c] hover:to-[#b9d51f]"
             >
-              {isSubmitting ? 'Saving…' : 'Save profile'}
+              {isSubmitting ? 'Guardando…' : 'Guardar perfil'}
             </Button>
           </div>
         </fieldset>
@@ -430,7 +430,7 @@ function ServiceAreaCard({
         maxRadiusKm: parseDecimal(area.maxRadiusKm),
       });
       onSaved(updated);
-      toast.success('Service area saved.');
+      toast.success('Zona de servicio guardada.');
     } catch (error) {
       show(feedbackFromError(error));
     }
@@ -500,7 +500,7 @@ function ServiceAreaCard({
             )}
           >
             <span className="h-2 w-2 rounded-full bg-[#006838] animate-pulse" />
-            {areaReady ? `${profile.maxRadiusKm} km radius` : 'Not set'}
+            {areaReady ? `${profile.maxRadiusKm} km radius` : 'Sin configurar'}
           </span>
         </div>
 
@@ -513,11 +513,11 @@ function ServiceAreaCard({
               aria-hidden="true"
               className="inline-block h-6 w-2.5 -skew-x-12 rounded-sm bg-[#5fba46] ring-2 ring-[#006838]"
             />
-            Service area
+            Zona de servicio
           </h2>
           <p className="m-0 text-[15px] font-medium text-muted">
-            Pick your base sector in Lima; each card updates its distance in km
-            live against your radius.
+            Elige tu zona base en Lima; las distancias de las solicitudes se
+            actualizarán según tu radio.
           </p>
         </div>
       </div>
@@ -526,12 +526,12 @@ function ServiceAreaCard({
       <div className="mb-5 flex items-center justify-between gap-4 rounded-[20px_6px_20px_6px] border-2 border-[#006838] bg-gradient-to-r from-[#147539] via-[#28833a] to-[#3c903b] p-4 text-white shadow-[4px_4px_0_0_#006838]">
         <div className="grid gap-1">
           <span className="font-display text-sm font-bold tracking-wide text-[#d0dc15] uppercase">
-            Live Radar · Radio activo: {activeRadius} km
+            Radar en vivo · Radio activo: {activeRadius} km
           </span>
           <span className="text-xs font-medium text-white/95">
             {hasValidCenter
               ? `Base: ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`
-              : 'Select a Lima zone below to set your base point'}
+              : 'Selecciona una zona de Lima para establecer tu ubicación base'}
           </span>
         </div>
 
@@ -652,14 +652,14 @@ function ServiceAreaCard({
 
       <form onSubmit={handleSubmit} noValidate>
         <fieldset disabled={isSubmitting} className={HARMONIZED_FIELDS}>
-          <legend className="visually-hidden">Service area</legend>
+          <legend className="visually-hidden">Zona de servicio</legend>
           <div className="grid gap-x-4 sm:grid-cols-3">
             <TextField
               id="area-latitude"
               name="latitude"
-              label="Latitude"
+              label="Latitud"
               inputMode="decimal"
-              hint="-90 to 90"
+              hint="De -90 a 90"
               placeholder="-12.0464"
               value={area.latitude}
               onChange={(event) => set('latitude', event.target.value)}
@@ -668,9 +668,9 @@ function ServiceAreaCard({
             <TextField
               id="area-longitude"
               name="longitude"
-              label="Longitude"
+              label="Longitud"
               inputMode="decimal"
-              hint="-180 to 180"
+              hint="De -180 a 180"
               placeholder="-77.0428"
               value={area.longitude}
               onChange={(event) => set('longitude', event.target.value)}
@@ -679,9 +679,9 @@ function ServiceAreaCard({
             <TextField
               id="area-radius"
               name="maxRadiusKm"
-              label="Radius (km)"
+              label="Radio (km)"
               inputMode="decimal"
-              hint="1 to 300 km"
+              hint="De 1 a 300 km"
               placeholder="15"
               value={area.maxRadiusKm}
               onChange={(event) => set('maxRadiusKm', event.target.value)}
@@ -695,7 +695,7 @@ function ServiceAreaCard({
               loading={isSubmitting}
               className="rounded-[4px_14px_4px_14px] border-2 border-[#006838] bg-gradient-to-r from-[#76c13c] to-[#a3ce29] px-5 font-display text-base font-bold text-[#0b1f17] shadow-[3px_3px_0_0_#006838] transition-transform duration-150 hover:-translate-y-0.5 hover:from-[#8cc733] hover:to-[#d0dc15]"
             >
-              {isSubmitting ? 'Saving…' : 'Save service area'}
+              {isSubmitting ? 'Guardando…' : 'Guardar zona de servicio'}
             </Button>
           </div>
         </fieldset>
@@ -736,7 +736,7 @@ function ProfileEditor({
               </p>
               <span className="inline-flex -skew-x-12 items-center gap-1.5 rounded-[10px_2px_10px_2px] border-2 border-[#006838] bg-gradient-to-r from-[#d0dc15] to-[#a3ce29] px-3 py-0.5 font-display text-xs font-bold text-[#0b1f17] shadow-[2px_2px_0_0_#006838]">
                 <span className="h-2 w-2 skew-x-12 rounded-full bg-[#006838] animate-pulse" />
-                <span className="skew-x-12">Verified technician account</span>
+                <span className="skew-x-12">Cuenta de técnico verificada</span>
               </span>
             </div>
             <p className="m-0 text-sm font-semibold text-muted">
@@ -747,13 +747,13 @@ function ProfileEditor({
 
         <div className="relative flex flex-wrap gap-2.5 font-display text-sm font-bold">
           <span className="-skew-x-6 rounded-[12px_3px_12px_3px] border-2 border-[#147539] bg-[#d0dc15]/45 px-3.5 py-1.5 text-ink shadow-[2px_2px_0_0_#147539]">
-            Experience:{' '}
+            Experiencia:{' '}
             {profile.experienceYears !== undefined
               ? `${profile.experienceYears} yrs`
               : '—'}
           </span>
           <span className="-skew-x-6 rounded-[12px_3px_12px_3px] border-2 border-[#147539] bg-[#76c13c]/35 px-3.5 py-1.5 text-ink shadow-[2px_2px_0_0_#147539]">
-            Specialties: {profile.applianceTypes.length}
+            Especialidades: {profile.applianceTypes.length}
           </span>
         </div>
       </div>
@@ -786,17 +786,17 @@ export function TechnicianProfilePage() {
     <section aria-labelledby="profile-title">
       <PageHeader
         titleId="profile-title"
-        title="Profile"
-        description="Set the appliances you repair and your coverage zone in Lima & Callao so matching requests can reach you."
+        title="Perfil"
+        description="Configura los electrodomésticos que reparas y tu zona de cobertura en Lima y Callao para recibir solicitudes compatibles."
         breadcrumbs={[
-          { label: 'Dashboard', to: '/technician' },
-          { label: 'Profile' },
+          { label: 'Inicio', to: '/technician' },
+          { label: 'Perfil' },
         ]}
       />
       {query.status === 'error' ? (
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : !query.data ? (
-        <ListSkeleton rows={2} label="Loading your profile" />
+        <ListSkeleton rows={2} label="Cargando tu perfil" />
       ) : (
         <ProfileEditor initialProfile={query.data[0]} types={query.data[1]} />
       )}
