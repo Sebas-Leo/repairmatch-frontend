@@ -59,8 +59,8 @@ describe('useApiQuery', () => {
   });
 
   it('reports a 4xx at once, without retrying', async () => {
-    const error = new ApiError(404, 'Not found', {
-      message: 'Request not found',
+    const error = new ApiError(404, 'No encontrado', {
+      message: 'Solicitud no encontrada',
     });
     const fetcher = vi.fn(async () => {
       throw error;

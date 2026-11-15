@@ -28,9 +28,9 @@ import {
 } from './validation';
 
 const FIELDS: readonly SummaryField[] = [
-  { name: 'diagnosticCost', id: 'offer-cost', label: 'Diagnostic cost' },
-  { name: 'availableAt', id: 'offer-when', label: 'Available from' },
-  { name: 'conditions', id: 'offer-conditions', label: 'What it includes' },
+  { name: 'diagnosticCost', id: 'offer-cost', label: 'Costo del diagnóstico' },
+  { name: 'availableAt', id: 'offer-when', label: 'Disponible desde' },
+  { name: 'conditions', id: 'offer-conditions', label: 'Qué incluye' },
 ];
 
 const EMPTY: ProposalForm = {
@@ -77,7 +77,9 @@ export function SubmitProposalPage() {
         availableAt: toLocalDateTime(form.availableAt),
         conditions: form.conditions.trim(),
       });
-      toast.success('Offer sent. The client will see it next to the others.');
+      toast.success(
+        'Oferta enviada. El cliente podrá compararla con las demás.',
+      );
       navigate('/technician/proposals');
     } catch (error) {
       show(feedbackFromError(error));
@@ -100,9 +102,9 @@ export function SubmitProposalPage() {
 
   const valid = Number.isInteger(id) && id > 0;
   const crumbs = [
-    { label: 'Dashboard', to: '/technician' },
-    { label: 'Opportunities', to: '/technician/opportunities' },
-    { label: 'Send offer' },
+    { label: 'Inicio', to: '/technician' },
+    { label: 'Oportunidades', to: '/technician/opportunities' },
+    { label: 'Enviar oferta' },
   ];
 
   if (!valid) {
@@ -110,11 +112,11 @@ export function SubmitProposalPage() {
       <section aria-labelledby="offer-title">
         <PageHeader
           titleId="offer-title"
-          title="Request not found"
+          title="Solicitud no encontrada"
           breadcrumbs={crumbs}
         />
         <ButtonLink to="/technician/opportunities" variant="secondary">
-          Back to opportunities
+          Volver a oportunidades
         </ButtonLink>
       </section>
     );
@@ -124,8 +126,8 @@ export function SubmitProposalPage() {
     <section aria-labelledby="offer-title">
       <PageHeader
         titleId="offer-title"
-        title={`Send an offer for request #${id}`}
-        description="The client compares offers by cost and availability."
+        title={`Enviar una oferta para la solicitud #${id}`}
+        description="El cliente compara las ofertas por costo y disponibilidad."
         breadcrumbs={crumbs}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -139,12 +141,12 @@ export function SubmitProposalPage() {
           ) : null}
           <form onSubmit={handleSubmit} noValidate>
             <fieldset disabled={isSubmitting} className="form-fields">
-              <legend className="visually-hidden">Offer details</legend>
+              <legend className="visually-hidden">Detalle de la oferta</legend>
               <div className="grid gap-x-4 sm:grid-cols-2">
                 <TextField
                   id="offer-cost"
                   name="diagnosticCost"
-                  label="Diagnostic cost (S/)"
+                  label="Costo del diagnóstico (S/)"
                   inputMode="decimal"
                   placeholder="45.00"
                   value={form.diagnosticCost}
@@ -157,7 +159,7 @@ export function SubmitProposalPage() {
                   id="offer-when"
                   name="availableAt"
                   type="datetime-local"
-                  label="Available from"
+                  label="Disponible desde"
                   value={form.availableAt}
                   onChange={(event) => set('availableAt', event.target.value)}
                   error={feedback?.fieldErrors.availableAt}
@@ -166,8 +168,8 @@ export function SubmitProposalPage() {
               <TextAreaField
                 id="offer-conditions"
                 name="conditions"
-                label="What it includes"
-                hint="Diagnosis, travel, warranty, and what is quoted separately."
+                label="Qué incluye"
+                hint="Diagnóstico, traslado, garantía y conceptos que se cotizan por separado."
                 maxLength={CONDITIONS_MAX}
                 value={form.conditions}
                 onChange={(event) => set('conditions', event.target.value)}
@@ -175,10 +177,10 @@ export function SubmitProposalPage() {
               />
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button type="submit" loading={isSubmitting}>
-                  {isSubmitting ? 'Sending…' : 'Send offer'}
+                  {isSubmitting ? 'Enviando…' : 'Enviar oferta'}
                 </Button>
                 <ButtonLink to="/technician/opportunities" variant="ghost">
-                  Cancel
+                  Cancelar
                 </ButtonLink>
               </div>
             </fieldset>

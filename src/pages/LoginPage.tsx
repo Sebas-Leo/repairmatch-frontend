@@ -18,8 +18,8 @@ import { LoadingState } from '../shared/ui/LoadingState';
 import { TextField } from '../shared/ui/TextField';
 
 const FIELDS: readonly SummaryField[] = [
-  { name: 'email', id: 'login-email', label: 'Email' },
-  { name: 'password', id: 'login-password', label: 'Password' },
+  { name: 'email', id: 'login-email', label: 'Correo electrónico' },
+  { name: 'password', id: 'login-password', label: 'Contraseña' },
 ];
 
 export function LoginPage() {
@@ -40,7 +40,7 @@ export function LoginPage() {
   );
 
   if (auth.status === 'loading') {
-    return <LoadingState label="Checking your session…" />;
+    return <LoadingState label="Verificando tu sesión…" />;
   }
   if (auth.status === 'authenticated') {
     // Also covers a successful submit: the session flips to authenticated.
@@ -66,7 +66,7 @@ export function LoginPage() {
 
   return (
     <section aria-labelledby="login-title" className="auth-page">
-      <h1 id="login-title">Sign in</h1>
+      <h1 id="login-title">Iniciar sesión</h1>
       {feedback && hasFeedback(feedback) ? (
         <FormErrorSummary
           ref={summaryRef}
@@ -76,12 +76,12 @@ export function LoginPage() {
       ) : null}
       <form onSubmit={handleSubmit} noValidate className="form">
         <fieldset disabled={isSubmitting} className="form-fields">
-          <legend className="visually-hidden">Sign-in details</legend>
+          <legend className="visually-hidden">Datos de acceso</legend>
           <TextField
             id="login-email"
             name="email"
             type="email"
-            label="Email"
+            label="Correo electrónico"
             autoComplete="username"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -91,21 +91,21 @@ export function LoginPage() {
             id="login-password"
             name="password"
             type="password"
-            label="Password"
+            label="Contraseña"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             error={feedback?.fieldErrors.password}
           />
           <button type="submit" aria-busy={isSubmitting}>
-            {isSubmitting ? 'Signing in…' : 'Sign in'}
+            {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
           </button>
         </fieldset>
       </form>
       <p>
-        Need an account?{' '}
+        ¿Necesitas una cuenta?{' '}
         <Link to="/register" state={location.state}>
-          Register
+          Registrarse
         </Link>
       </p>
     </section>

@@ -30,7 +30,7 @@ export function CoverPhoto({
       {src ? (
         <img
           src={src}
-          alt={`Photo of the ${applianceName.toLowerCase()}`}
+          alt={`Foto de ${applianceName.toLowerCase()}`}
           loading="lazy"
           className="size-full object-cover transition-transform duration-700 ease-out-soft group-hover:scale-[1.03]"
         />

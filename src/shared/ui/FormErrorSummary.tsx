@@ -38,7 +38,7 @@ export function FormErrorSummary({
   return (
     <div role="alert" tabIndex={-1} ref={ref} className="error-summary">
       <p className="error-summary-title">
-        {feedback.message ?? 'Please fix the following.'}
+        {feedback.message ?? 'Corrige los siguientes datos.'}
       </p>
       {items.length > 0 ? (
         <ul>

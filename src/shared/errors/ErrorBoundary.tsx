@@ -67,15 +67,15 @@ export class ErrorBoundary extends Component<
     if (fallback !== undefined) return fallback;
     return isChunkLoadError(failure.error) ? (
       <ErrorState
-        title="A new version may be available"
-        message="This part of the page could not be loaded, possibly because the app was updated. Reload the page to get the latest version."
-        retryLabel="Reload page"
+        title="Puede haber una nueva versión disponible"
+        message="No se pudo cargar esta sección. Recarga la página para obtener la última versión."
+        retryLabel="Recargar página"
         onRetry={onReload}
       />
     ) : (
       <ErrorState
-        title="Something went wrong"
-        message="This part of the page could not be shown. Try again."
+        title="Ocurrió un error"
+        message="No se pudo mostrar esta sección. Inténtalo nuevamente."
         onRetry={this.reset}
       />
     );

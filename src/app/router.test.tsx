@@ -42,7 +42,7 @@ describe('role redirect at /home', () => {
     const { router } = renderApp(session, '/home');
     expect(router.state.location.pathname).toBe('/login');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      'Sign in',
+      'Iniciar sesión',
     );
   });
 
@@ -50,7 +50,7 @@ describe('role redirect at /home', () => {
     const { session } = await signedInSession(clientUser);
     const { router } = renderApp(session, '/home');
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -89,7 +89,7 @@ describe('role redirect at /home', () => {
     const { router } = renderApp(session, '/home');
 
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Checking your session',
+      'Verificando tu sesión',
     );
     expect(router.state.location.pathname).toBe('/home');
 
@@ -114,9 +114,11 @@ describe('guarded areas', () => {
     const { session } = await signedInSession(clientUser);
     renderApp(session, '/client');
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Sesión de Test Client.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Ir a mis solicitudes' }),
+    ).toHaveAttribute('href', '/client/requests');
   });
 
   it('blocks a technician from the client area', async () => {
@@ -124,12 +126,12 @@ describe('guarded areas', () => {
     const { router } = renderApp(session, '/client');
     expect(
       await screen.findByRole('heading', {
-        name: 'You do not have access to this page.',
+        name: 'No tienes acceso a esta página.',
       }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/unauthorized');
     expect(
-      screen.queryByRole('heading', { name: '¿Qué se malogró?' }),
+      screen.queryByRole('heading', { name: /^Hola,/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -140,11 +142,11 @@ describe('guarded areas', () => {
     expect(router.state.location.pathname).toBe('/unauthorized');
 
     await user.click(
-      await screen.findByRole('link', { name: 'Go to your home' }),
+      await screen.findByRole('link', { name: 'Ir a tu inicio' }),
     );
 
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/client');
   });
@@ -153,7 +155,7 @@ describe('guarded areas', () => {
     const { session } = await signedInSession(clientUser);
     renderApp(session, '/client/does-not-exist');
     expect(
-      await screen.findByRole('heading', { name: 'This page is not here.' }),
+      await screen.findByRole('heading', { name: 'Esta página no existe.' }),
     ).toBeInTheDocument();
   });
 
@@ -161,7 +163,7 @@ describe('guarded areas', () => {
     const { session } = createTestSession(authRoutes(clientUser));
     renderApp(session, '/unauthorized');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      'You do not have access to this page.',
+      'No tienes acceso a esta página.',
     );
   });
 });
@@ -178,7 +180,7 @@ describe('signing out', () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Sign in' }),
+      screen.getByRole('heading', { level: 1, name: 'Iniciar sesión' }),
     ).toBeInTheDocument();
     expect(api.callsTo('POST /auth/logout')[0]?.body).toEqual({
       refreshToken: 'refresh-login',
@@ -210,13 +212,13 @@ describe('unknown URLs', () => {
     const { session } = await signedInSession(clientUser);
     renderApp(session, '/missing');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      'This page is not here',
+      'Esta página no existe',
     );
 
-    await user.click(screen.getByRole('link', { name: 'Back to home' }));
+    await user.click(screen.getByRole('link', { name: 'Volver al inicio' }));
 
     expect(
-      await screen.findByRole('heading', { name: '¿Qué se malogró?' }),
+      await screen.findByRole('heading', { name: /^Hola,/ }),
     ).toBeInTheDocument();
   });
 });

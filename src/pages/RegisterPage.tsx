@@ -25,22 +25,22 @@ import { LoadingState } from '../shared/ui/LoadingState';
 import { TextField } from '../shared/ui/TextField';
 
 const FIELDS: readonly SummaryField[] = [
-  { name: 'name', id: 'register-name', label: 'Name' },
-  { name: 'email', id: 'register-email', label: 'Email' },
-  { name: 'password', id: 'register-password', label: 'Password' },
-  { name: 'role', id: 'register-role-client', label: 'Account type' },
+  { name: 'name', id: 'register-name', label: 'Nombre' },
+  { name: 'email', id: 'register-email', label: 'Correo electrónico' },
+  { name: 'password', id: 'register-password', label: 'Contraseña' },
+  { name: 'role', id: 'register-role-client', label: 'Tipo de cuenta' },
 ];
 
 const ROLE_OPTIONS = [
   {
     value: 'CLIENT',
     id: 'register-role-client',
-    label: 'Client: I need something repaired',
+    label: 'Cliente: necesito una reparación',
   },
   {
     value: 'TECHNICIAN',
     id: 'register-role-technician',
-    label: 'Technician: I repair appliances',
+    label: 'Técnico: reparo electrodomésticos',
   },
 ] as const;
 
@@ -65,7 +65,7 @@ export function RegisterPage() {
         if (error instanceof RegistrationSignInError) {
           show({
             message:
-              'Your account was created, but we could not sign you in. Try signing in from the sign-in page.',
+              'Tu cuenta se creó, pero no pudimos iniciar sesión. Inténtalo desde la página de acceso.',
             fieldErrors: {},
           });
         } else {
@@ -76,7 +76,7 @@ export function RegisterPage() {
   );
 
   if (auth.status === 'loading') {
-    return <LoadingState label="Checking your session…" />;
+    return <LoadingState label="Verificando tu sesión…" />;
   }
   if (auth.status === 'authenticated') {
     return (
@@ -109,7 +109,7 @@ export function RegisterPage() {
 
   return (
     <section aria-labelledby="register-title" className="auth-page">
-      <h1 id="register-title">Create your account</h1>
+      <h1 id="register-title">Crea tu cuenta</h1>
       {feedback && hasFeedback(feedback) ? (
         <FormErrorSummary
           ref={summaryRef}
@@ -119,11 +119,11 @@ export function RegisterPage() {
       ) : null}
       <form onSubmit={handleSubmit} noValidate className="form">
         <fieldset disabled={isSubmitting} className="form-fields">
-          <legend className="visually-hidden">Registration details</legend>
+          <legend className="visually-hidden">Datos de registro</legend>
           <TextField
             id="register-name"
             name="name"
-            label="Name"
+            label="Nombre"
             autoComplete="name"
             value={values.name}
             onChange={(event) =>
@@ -135,7 +135,7 @@ export function RegisterPage() {
             id="register-email"
             name="email"
             type="email"
-            label="Email"
+            label="Correo electrónico"
             autoComplete="email"
             value={values.email}
             onChange={(event) =>
@@ -147,9 +147,9 @@ export function RegisterPage() {
             id="register-password"
             name="password"
             type="password"
-            label="Password"
+            label="Contraseña"
             autoComplete="new-password"
-            hint={`${PASSWORD_MIN} to ${PASSWORD_MAX} characters with an uppercase letter, a lowercase letter, a number and a symbol.`}
+            hint={`${PASSWORD_MIN} a ${PASSWORD_MAX} caracteres con una mayúscula, una minúscula, un número y un símbolo.`}
             value={values.password}
             onChange={(event) =>
               setValues({ ...values, password: event.target.value })
@@ -160,7 +160,7 @@ export function RegisterPage() {
             className="radio-group"
             aria-describedby={roleError ? 'register-role-error' : undefined}
           >
-            <legend>Account type</legend>
+            <legend>Tipo de cuenta</legend>
             {ROLE_OPTIONS.map((option) => (
               <label key={option.value} htmlFor={option.id} className="radio">
                 <input
@@ -186,14 +186,14 @@ export function RegisterPage() {
             ) : null}
           </fieldset>
           <button type="submit" aria-busy={isSubmitting}>
-            {isSubmitting ? 'Creating account…' : 'Create account'}
+            {isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}
           </button>
         </fieldset>
       </form>
       <p>
-        Already have an account?{' '}
+        ¿Ya tienes una cuenta?{' '}
         <Link to="/login" state={location.state}>
-          Sign in
+          Iniciar sesión
         </Link>
       </p>
     </section>

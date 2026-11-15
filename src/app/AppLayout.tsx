@@ -19,7 +19,7 @@ function SessionNav() {
   return (
     <>
       <nav
-        aria-label="Main"
+        aria-label="Principal"
         className="order-last w-full overflow-x-auto [scrollbar-width:none] sm:order-none sm:w-auto"
       >
         <ul className="m-0 flex list-none gap-1 p-1">

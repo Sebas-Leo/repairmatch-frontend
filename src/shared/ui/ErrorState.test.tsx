@@ -17,7 +17,7 @@ describe('ErrorState', () => {
     const onRetry = vi.fn();
     render(<ErrorState message="Could not load." onRetry={onRetry} />);
 
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
 
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
@@ -29,12 +29,12 @@ describe('ErrorState', () => {
       <ErrorState
         message="Could not load."
         onRetry={onRetry}
-        retryLabel="Reload page"
+        retryLabel="Recargar página"
       />,
     );
 
-    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Reload page' }));
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Recargar página' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
@@ -48,11 +48,11 @@ describe('ErrorState', () => {
     const onRetry = vi.fn();
     render(<ErrorState error={new NetworkError('x')} onRetry={onRetry} />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Connection problem');
+    expect(screen.getByRole('alert')).toHaveTextContent('Problema de conexión');
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'We could not reach the server.',
+      'No pudimos conectar con el servidor.',
     );
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
@@ -71,19 +71,19 @@ describe('ErrorState', () => {
     render(
       <ErrorState
         error={new NetworkError('x')}
-        title="Requests unavailable"
+        title="Solicituds unavailable"
         message="Your requests could not be loaded."
       />,
     );
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent('Requests unavailable');
+    expect(alert).toHaveTextContent('Solicituds unavailable');
     expect(alert).toHaveTextContent('Your requests could not be loaded.');
-    expect(alert).not.toHaveTextContent('Connection problem');
+    expect(alert).not.toHaveTextContent('Problema de conexión');
   });
 
   it('falls back to a generic message', () => {
     render(<ErrorState />);
-    expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong');
+    expect(screen.getByRole('alert')).toHaveTextContent('Ocurrió un error');
   });
 
   it('shows nothing for a cancelled call', () => {

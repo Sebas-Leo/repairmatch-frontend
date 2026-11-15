@@ -28,7 +28,7 @@ export function ErrorState({
   title,
   message,
   onRetry,
-  retryLabel = 'Try again',
+  retryLabel = 'Reintentar',
 }: ErrorStateProps) {
   const description = describeApiError(error);
   if (description.kind === 'cancelled') return null;

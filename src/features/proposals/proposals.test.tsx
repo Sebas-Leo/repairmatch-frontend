@@ -72,16 +72,19 @@ describe('SubmitProposalPage', () => {
     );
     expect(screen.getByText('It does not spin.')).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('Diagnostic cost (S/)'), '45.50');
     await user.type(
-      screen.getByLabelText('Available from'),
+      screen.getByLabelText('Costo del diagnóstico (S/)'),
+      '45.50',
+    );
+    await user.type(
+      screen.getByLabelText('Disponible desde'),
       '2099-01-15T09:30',
     );
     await user.type(
-      screen.getByLabelText('What it includes'),
+      screen.getByLabelText('Qué incluye'),
       '  Diagnosis at home.  ',
     );
-    await user.click(screen.getByRole('button', { name: 'Send offer' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar oferta' }));
 
     expect(submitProposal).toHaveBeenCalledWith(7, {
       diagnosticCost: 45.5,
@@ -100,9 +103,9 @@ describe('SubmitProposalPage', () => {
       anOpportunity({ requestId: 99 }),
     );
     expect(screen.queryByText('It does not spin.')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Send offer' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar oferta' }));
     expect(
-      (await screen.findAllByText('Enter the diagnostic cost.')).length,
+      (await screen.findAllByText('Ingresa el costo del diagnóstico.')).length,
     ).toBeGreaterThan(0);
     expect(submitProposal).not.toHaveBeenCalled();
   });
@@ -110,17 +113,17 @@ describe('SubmitProposalPage', () => {
   it('shows why the backend refused the offer', async () => {
     const user = userEvent.setup();
     const refusal = new ApiError(403, 'Forbidden', {
-      message: 'Request is outside the technician service radius',
+      message: 'Solicitud is outside the technician service radius',
     });
     vi.mocked(submitProposal).mockImplementation(() => Promise.reject(refusal));
     openOffer('/technician/opportunities/7/offer');
-    await user.type(screen.getByLabelText('Diagnostic cost (S/)'), '30');
+    await user.type(screen.getByLabelText('Costo del diagnóstico (S/)'), '30');
     await user.type(
-      screen.getByLabelText('Available from'),
+      screen.getByLabelText('Disponible desde'),
       '2099-01-15T09:30',
     );
-    await user.type(screen.getByLabelText('What it includes'), 'Diagnosis');
-    await user.click(screen.getByRole('button', { name: 'Send offer' }));
+    await user.type(screen.getByLabelText('Qué incluye'), 'Diagnosis');
+    await user.click(screen.getByRole('button', { name: 'Enviar oferta' }));
     expect(
       (await screen.findAllByText(describeApiError(refusal).message)).length,
     ).toBeGreaterThan(0);
@@ -134,7 +137,9 @@ describe('SubmitProposalPage', () => {
       distanceKm: 'far',
     });
     expect(
-      screen.getByRole('heading', { name: 'Send an offer for request #7' }),
+      screen.getByRole('heading', {
+        name: 'Enviar una oferta para la solicitud #7',
+      }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Fridge')).toBeNull();
   });
@@ -143,13 +148,16 @@ describe('SubmitProposalPage', () => {
     const user = userEvent.setup();
     vi.mocked(submitProposal).mockResolvedValue(aProposal());
     openOffer('/technician/opportunities/7/offer');
-    await user.type(screen.getByLabelText('Diagnostic cost (S/)'), '45,5');
     await user.type(
-      screen.getByLabelText('Available from'),
+      screen.getByLabelText('Costo del diagnóstico (S/)'),
+      '45,5',
+    );
+    await user.type(
+      screen.getByLabelText('Disponible desde'),
       '2099-01-15T09:30',
     );
-    await user.type(screen.getByLabelText('What it includes'), 'Diagnosis');
-    await user.click(screen.getByRole('button', { name: 'Send offer' }));
+    await user.type(screen.getByLabelText('Qué incluye'), 'Diagnosis');
+    await user.click(screen.getByRole('button', { name: 'Enviar oferta' }));
     expect(submitProposal).toHaveBeenCalledWith(
       7,
       expect.objectContaining({ diagnosticCost: 45.5 }),
@@ -159,7 +167,7 @@ describe('SubmitProposalPage', () => {
   it('refuses an id that is not a number', () => {
     openOffer('/technician/opportunities/abc/offer');
     expect(
-      screen.getByRole('heading', { name: 'Request not found' }),
+      screen.getByRole('heading', { name: 'Solicitud no encontrada' }),
     ).toBeInTheDocument();
   });
 });
@@ -190,7 +198,7 @@ describe('MyProposalsPage', () => {
     ).toBeInTheDocument();
     expect((await screen.findAllByText('Aceptada')).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Miraflores/).length).toBeGreaterThan(0);
-    expect(screen.getByText('Showing 1–10 of 14')).toBeInTheDocument();
+    expect(screen.getByText('Mostrando 1–10 de 14')).toBeInTheDocument();
   });
 
   it('points a new technician to the opportunities', async () => {
@@ -257,9 +265,9 @@ describe('validateProposal', () => {
         now,
       ),
     ).toEqual({
-      diagnosticCost: 'The cost cannot be negative.',
-      availableAt: 'Choose a date and time in the future.',
-      conditions: 'Explain what the offer includes.',
+      diagnosticCost: 'El costo no puede ser negativo.',
+      availableAt: 'Elige una fecha y hora futuras.',
+      conditions: 'Explica qué incluye tu oferta.',
     });
     for (const ok of ['0', '5', '45.5', '45.50', '.5', '5.', '45,5', ' 7 ']) {
       expect(validateProposal({ ...valid, diagnosticCost: ok }, now)).toEqual(
@@ -269,19 +277,21 @@ describe('validateProposal', () => {
     for (const bad of ['1.234', '1e3', '0x10', 'abc', '4 5']) {
       expect(
         validateProposal({ ...valid, diagnosticCost: bad }, now).diagnosticCost,
-      ).toBe('Use a number like 45 or 45.50 (two decimals at most).');
+      ).toBe(
+        'Ingresa un número como 45 o 45.50, con un máximo de dos decimales.',
+      );
     }
     expect(parseCost('45,5')).toBe(45.5);
     expect(
       validateProposal({ ...valid, diagnosticCost: '99999999999' }, now)
         .diagnosticCost,
-    ).toBe('That cost is too high.');
+    ).toBe('El costo es demasiado alto.');
     expect(
       validateProposal({ ...valid, availableAt: '' }, now).availableAt,
-    ).toBe('Choose when you can go.');
+    ).toBe('Elige cuándo puedes realizar la visita.');
     expect(
       validateProposal({ ...valid, conditions: 'x'.repeat(1001) }, now)
         .conditions,
-    ).toBe('Keep it under 1000 characters.');
+    ).toBe('Usa menos de 1000 caracteres.');
   });
 });

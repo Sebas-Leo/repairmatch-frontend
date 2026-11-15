@@ -31,7 +31,8 @@ export function aProposal(overrides: Partial<Proposal> = {}): Proposal {
     technicianName: 'Tito Tech',
     diagnosticCost: 45.5,
     availableAt: '2026-11-13T09:00:00',
-    conditions: 'Diagnosis at home, parts quoted separately.',
+    conditions:
+      'Diagnóstico a domicilio; los repuestos se cotizan por separado.',
     createdAt: '2026-11-10T12:00:00',
     status: 'PENDING',
     ...overrides,

@@ -24,7 +24,7 @@ describe('lazyPage', () => {
     const download = deferred<{ Hello: typeof Hello }>();
     render(lazyPage(() => download.promise, 'Hello'));
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando…');
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
 
     download.resolve({ Hello });

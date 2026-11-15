@@ -21,7 +21,8 @@ import { PageHeader } from '../../shared/ui/PageHeader';
 import { SelectField } from '../../shared/ui/SelectField';
 import { TextAreaField } from '../../shared/ui/TextAreaField';
 import { TextField } from '../../shared/ui/TextField';
-import { createServiceRequest } from './api';
+import { publishWithPhoto } from './publishWithPhoto';
+import { PhotoDropzone } from '../../shared/ui/PhotoDropzone';
 import {
   BRAND_MAX,
   DESCRIPTION_MAX,
@@ -30,14 +31,18 @@ import {
 } from './validation';
 
 const FIELDS: readonly SummaryField[] = [
-  { name: 'applianceTypeId', id: 'new-request-type', label: 'Appliance' },
+  {
+    name: 'applianceTypeId',
+    id: 'new-request-type',
+    label: 'Electrodoméstico',
+  },
   {
     name: 'originalDescription',
     id: 'new-request-description',
-    label: 'Problem',
+    label: 'Problema',
   },
-  { name: 'brand', id: 'new-request-brand', label: 'Brand' },
-  { name: 'model', id: 'new-request-model', label: 'Model' },
+  { name: 'brand', id: 'new-request-brand', label: 'Marca' },
+  { name: 'model', id: 'new-request-model', label: 'Modelo' },
 ];
 
 const EMPTY: NewRequestForm = {
@@ -52,6 +57,7 @@ export function NewRequestPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const draft = (useLocation().state ?? null) as PublishDraft | null;
+  const [photo, setPhoto] = useState<File | null>(draft?.photo ?? null);
   const [form, setForm] = useState<NewRequestForm>(() => ({
     ...EMPTY,
     applianceTypeId: draft?.applianceTypeId ?? '',
@@ -64,14 +70,19 @@ export function NewRequestPage() {
   const { run: submit, isSubmitting } = useSubmitGuard(async () => {
     clear();
     try {
-      const created = await createServiceRequest({
-        applianceTypeId: Number(form.applianceTypeId),
-        originalDescription: form.originalDescription.trim(),
-        brand: form.brand.trim() || null,
-        model: form.model.trim() || null,
-      });
-      toast.success('Request published. Nearby technicians can see it now.');
-      navigate(`/client/requests/${created.id}`);
+      const { created, pendingPhoto } = await publishWithPhoto(
+        {
+          applianceTypeId: Number(form.applianceTypeId),
+          originalDescription: form.originalDescription.trim(),
+          brand: form.brand.trim() || null,
+          model: form.model.trim() || null,
+        },
+        photo,
+      );
+      toast.success(
+        'Solicitud publicada. Los técnicos compatibles podrán verla.',
+      );
+      navigate(`/client/requests/${created.id}`, { state: { pendingPhoto } });
     } catch (error) {
       show(feedbackFromError(error));
     }
@@ -95,12 +106,12 @@ export function NewRequestPage() {
     <section aria-labelledby="new-request-title">
       <PageHeader
         titleId="new-request-title"
-        title="New repair request"
-        description="Tell technicians what is broken. Clear details bring better offers."
+        title="Nueva solicitud de reparación"
+        description="Describe la falla del equipo. Los detalles claros ayudan a recibir mejores ofertas."
         breadcrumbs={[
-          { label: 'Dashboard', to: '/client' },
-          { label: 'My requests', to: '/client/requests' },
-          { label: 'New request' },
+          { label: 'Inicio', to: '/client' },
+          { label: 'Mis solicitudes', to: '/client/requests' },
+          { label: 'Nueva solicitud' },
         ]}
       />
       <Card className="max-w-2xl">
@@ -114,19 +125,21 @@ export function NewRequestPage() {
         {types.status === 'error' ? (
           <ErrorState
             error={types.error}
-            title="The appliance list did not load"
+            title="No se pudo cargar la lista de electrodomésticos"
             onRetry={types.reload}
           />
         ) : null}
         <form onSubmit={handleSubmit} noValidate>
           <fieldset disabled={isSubmitting} className="form-fields">
-            <legend className="visually-hidden">Request details</legend>
+            <legend className="visually-hidden">Datos de la solicitud</legend>
             <SelectField
               id="new-request-type"
               name="applianceTypeId"
-              label="Appliance"
+              label="Electrodoméstico"
               placeholder={
-                types.data ? 'Choose an appliance' : 'Loading appliances…'
+                types.data
+                  ? 'Selecciona un electrodoméstico'
+                  : 'Cargando electrodomésticos…'
               }
               options={(types.data ?? []).map((type) => ({
                 value: String(type.id),
@@ -139,9 +152,9 @@ export function NewRequestPage() {
             <TextAreaField
               id="new-request-description"
               name="originalDescription"
-              label="Problem"
-              hint="What happens, since when, and anything you already tried."
-              placeholder="The fridge stopped cooling yesterday; the light still turns on."
+              label="Problema"
+              hint="Describe qué sucede, desde cuándo y qué has intentado hacer."
+              placeholder="La refrigeradora dejó de enfriar ayer, pero la luz todavía enciende."
               maxLength={DESCRIPTION_MAX}
               rows={5}
               value={form.originalDescription}
@@ -154,7 +167,7 @@ export function NewRequestPage() {
               <TextField
                 id="new-request-brand"
                 name="brand"
-                label="Brand (optional)"
+                label="Marca (opcional)"
                 placeholder="Samsung"
                 maxLength={BRAND_MAX}
                 value={form.brand}
@@ -164,7 +177,7 @@ export function NewRequestPage() {
               <TextField
                 id="new-request-model"
                 name="model"
-                label="Model (optional)"
+                label="Modelo (opcional)"
                 placeholder="RT38K5930SL"
                 maxLength={BRAND_MAX}
                 value={form.model}
@@ -172,12 +185,17 @@ export function NewRequestPage() {
                 error={feedback?.fieldErrors.model}
               />
             </div>
+            <PhotoDropzone
+              file={photo}
+              onChange={setPhoto}
+              label="Foto del electrodoméstico (opcional)"
+            />
             <div className="flex flex-wrap gap-2 pt-2">
               <Button type="submit" loading={isSubmitting}>
-                {isSubmitting ? 'Publishing…' : 'Publish request'}
+                {isSubmitting ? 'Publicando…' : 'Publicar solicitud'}
               </Button>
               <ButtonLink to="/client/requests" variant="ghost">
-                Cancel
+                Cancelar
               </ButtonLink>
             </div>
           </fieldset>
