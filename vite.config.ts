@@ -7,6 +7,8 @@ export default defineConfig({
   server: { port: 5173, strictPort: true },
   preview: { port: 4173, strictPort: true },
   test: {
+    // Bound jsdom/coverage memory use on development machines and CI.
+    maxWorkers: 2,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
