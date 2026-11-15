@@ -1,6 +1,6 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { listApplianceTypes } from '../applianceTypes/api';
 import { ApiError } from '../../shared/api/http';
 import type { ApplianceType, TechnicianProfile } from '../../shared/api/types';
@@ -12,9 +12,15 @@ import {
 } from './api';
 import { TechnicianProfilePage } from './TechnicianProfilePage';
 import {
+  extractCoordsFromText,
+  formatGeocodedItem,
+  latLngToWorldPx,
   parseDecimal,
+  reverseGeocodeMapPin,
+  searchMapAddresses,
   validateProfile,
   validateServiceArea,
+  worldPxToLatLng,
 } from './validation';
 
 vi.mock('../applianceTypes/api', () => ({ listApplianceTypes: vi.fn() }));
@@ -29,6 +35,45 @@ const PATH = '/technician/profile';
 const TYPES: ApplianceType[] = [
   { id: 1, name: 'Refrigerator', description: 'Cooling and freezer units' },
   { id: 2, name: 'Washing machine', description: null },
+];
+
+const GEOCODE_CHEPEN = [
+  {
+    place_id: 101,
+    lat: '-7.2266',
+    lon: '-79.4292',
+    name: 'Chepén',
+    display_name: 'Chepén, Provincia de Chepén, La Libertad, Perú',
+    address: {
+      city: 'Chepén',
+      state: 'La Libertad',
+      country: 'Perú',
+    },
+  },
+  {
+    place_id: 102,
+    lat: '-12.0672',
+    lon: '-77.1154',
+    display_name: 'Jirón Chepén, La Perla, Callao, 07016, Perú',
+    address: {
+      road: 'Jirón Chepén',
+      suburb: 'La Perla',
+      city: 'Callao',
+      country: 'Perú',
+    },
+  },
+  {
+    place_id: 103,
+    lat: '-12.0758',
+    lon: '-77.0885',
+    display_name: 'Calle Chepén, San Miguel, Lima, 15088, Perú',
+    address: {
+      road: 'Calle Chepén',
+      city_district: 'San Miguel',
+      city: 'Lima',
+      country: 'Perú',
+    },
+  },
 ];
 
 function aProfile(
@@ -63,9 +108,34 @@ describe('TechnicianProfilePage', () => {
     vi.mocked(updateServiceArea).mockReset();
     vi.mocked(listApplianceTypes).mockReset();
     vi.mocked(listApplianceTypes).mockResolvedValue(TYPES);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/reverse')) {
+          return Response.json({
+            place_id: 500,
+            lat: '-12.0758',
+            lon: '-77.0885',
+            display_name: 'Calle Chepén, San Miguel, Lima, Perú',
+            address: {
+              road: 'Calle Chepén',
+              city_district: 'San Miguel',
+              city: 'Lima',
+              country: 'Perú',
+            },
+          });
+        }
+        return Response.json(GEOCODE_CHEPEN);
+      }),
+    );
   });
 
-  it('loads the current profile, specialties and service area', async () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('loads the current profile, specialties and interactive Google Maps canvas', async () => {
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
     setup();
 
@@ -84,28 +154,25 @@ describe('TechnicianProfilePage', () => {
       screen.getByRole('checkbox', { name: /Lavadora/ }),
     ).not.toBeChecked();
 
-    expect(screen.getByLabelText('Latitud')).toHaveValue('-12.0464');
-    expect(screen.getByLabelText('Longitud')).toHaveValue('-77.0428');
+    expect(
+      screen.getByRole('application', {
+        name: 'Mapa interactivo de Google Maps',
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Radio (km)')).toHaveValue('15');
     expect(screen.getByText('Radio de 15 km')).toBeInTheDocument();
   });
 
-  it('toggles progressive disclosure details on both cards', async () => {
+  it('toggles progressive disclosure details in specialties', async () => {
     const user = userEvent.setup();
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
     setup();
 
-    const buttons = await screen.findAllByRole('button', {
-      name: 'Saber más',
-    });
-    await user.click(buttons[0]!);
+    await user.click(await screen.findByRole('button', { name: 'Saber más' }));
     expect(
       screen.getByText('Filtro inteligente de compatibilidad'),
     ).toBeInTheDocument();
     expect(screen.getByText('Cooling and freezer units')).toBeInTheDocument();
-
-    await user.click(buttons[1]!);
-    expect(screen.getByText(/VES · Chorrillos · SJM/)).toBeInTheDocument();
   });
 
   it('starts with blank fields when the profile has not been set up yet', async () => {
@@ -119,7 +186,7 @@ describe('TechnicianProfilePage', () => {
 
     expect(await screen.findByText('Sin configurar')).toBeInTheDocument();
     expect(screen.getByLabelText('Años de experiencia')).toHaveValue('');
-    expect(screen.getByLabelText('Latitud')).toHaveValue('');
+    expect(screen.getByText('Ubicación en Google Maps')).toBeInTheDocument();
   });
 
   it('validates the profile form before calling the backend', async () => {
@@ -195,12 +262,177 @@ describe('TechnicianProfilePage', () => {
     });
   });
 
-  it('validates the service area before calling the backend', async () => {
+  it('queries real geocoded addresses and selects a suggestion from the floating list', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
+    vi.mocked(updateServiceArea).mockResolvedValue(
+      aProfile({ latitude: -12.0758, longitude: -77.0885, maxRadiusKm: 25 }),
+    );
+    setup();
+
+    const search = await screen.findByLabelText('Dirección');
+    await user.type(search, 'Chepen');
+
+    const listbox = await screen.findByRole('listbox', {
+      name: 'Sugerencias de dirección',
+    });
+    const option = within(listbox).getByRole('button', {
+      name: /Calle Chepén, San Miguel, Lima, Perú/i,
+    });
+    await user.click(option);
+
+    await user.click(screen.getByRole('button', { name: 'Mi casa' }));
+    await user.click(screen.getByRole('button', { name: '25 km' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Guardar zona de servicio' }),
+    );
+
+    expect(updateServiceArea).toHaveBeenCalledWith({
+      latitude: -12.0758,
+      longitude: -77.0885,
+      maxRadiusKm: 25,
+    });
+    expect(
+      await screen.findByText('Zona de servicio actualizada.'),
+    ).toBeInTheDocument();
+  });
+
+  it('pans the map, zooms in/out and drags the pin in sync with the current zoom', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
+    vi.mocked(updateServiceArea).mockResolvedValue(
+      aProfile({ latitude: -12.0464, longitude: -77.0428, maxRadiusKm: 10 }),
+    );
+    setup();
+
+    const mapSurface = await screen.findByRole('application', {
+      name: 'Mapa interactivo de Google Maps',
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Acercar mapa' }));
+    await user.click(screen.getByRole('button', { name: 'Alejar mapa' }));
+
+    // Panear el mapa
+    fireEvent.mouseDown(mapSurface, { button: 0, clientX: 200, clientY: 200 });
+    fireEvent.mouseMove(mapSurface, { clientX: 240, clientY: 220 });
+    fireEvent.mouseUp(mapSurface);
+
+    // Traer el pin al centro de la vista
+    await user.click(
+      screen.getByRole('button', { name: 'Traer pin al centro' }),
+    );
+
+    // Arrastrar el pin rojo directamente en el zoom actual
+    const pinBtn = screen.getByRole('button', {
+      name: 'Arrastrar pin de ubicación exacta',
+    });
+    fireEvent.mouseDown(pinBtn, { clientX: 300, clientY: 190 });
+    fireEvent.mouseMove(mapSurface, { clientX: 330, clientY: 210 });
+    fireEvent.mouseUp(mapSurface);
+
+    await user.click(screen.getByRole('button', { name: '10 km' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Guardar zona de servicio' }),
+    );
+    expect(updateServiceArea).toHaveBeenCalled();
+  });
+
+  it('extracts coordinates when pasting a Google Maps URL in the address box', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
+    vi.mocked(updateServiceArea).mockResolvedValue(
+      aProfile({ latitude: -12.1219, longitude: -77.0297, maxRadiusKm: 5 }),
+    );
+    setup();
+
+    const search = await screen.findByLabelText('Dirección');
+    await user.clear(search);
+    await user.type(
+      search,
+      'https://www.google.com/maps/@-12.1219,-77.0297,15z',
+    );
+    await user.click(screen.getByRole('button', { name: '5 km' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Guardar zona de servicio' }),
+    );
+
+    expect(updateServiceArea).toHaveBeenCalledWith({
+      latitude: -12.1219,
+      longitude: -77.0297,
+      maxRadiusKm: 5,
+    });
+  });
+
+  it('detects current location via browser geolocation GPS', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
+    vi.mocked(updateServiceArea).mockResolvedValue(
+      aProfile({ latitude: -12.1072, longitude: -76.9992, maxRadiusKm: 15 }),
+    );
+
+    const getCurrentPosition = vi.fn((success: PositionCallback) => {
+      success({
+        coords: { latitude: -12.1072, longitude: -76.9992 },
+      } as GeolocationPosition);
+    });
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      geolocation: { getCurrentPosition },
+    });
+
+    setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Usar mi ubicación actual' }),
+    );
+
+    expect(
+      await screen.findByText('Ubicación actual detectada en Google Maps.'),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Guardar zona de servicio' }),
+    );
+    expect(updateServiceArea).toHaveBeenCalledWith({
+      latitude: -12.1072,
+      longitude: -76.9992,
+      maxRadiusKm: 15,
+    });
+  });
+
+  it('notifies when GPS geolocation permission is denied', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
+
+    const getCurrentPosition = vi.fn(
+      (_success: PositionCallback, error?: PositionErrorCallback) => {
+        error?.({ code: 1, message: 'Denied' } as GeolocationPositionError);
+      },
+    );
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      geolocation: { getCurrentPosition },
+    });
+
+    setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Usar mi ubicación actual' }),
+    );
+
+    expect(
+      await screen.findByText(
+        'No se pudo obtener tu ubicación actual. Búscala en el mapa.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('validates manual coordinates before calling the backend', async () => {
     const user = userEvent.setup();
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
     setup();
 
-    const lat = await screen.findByLabelText('Latitud');
+    await user.click(
+      await screen.findByRole('button', { name: 'Ajustar pin' }),
+    );
+    const lat = screen.getByLabelText('Latitud');
     const lng = screen.getByLabelText('Longitud');
     const radius = screen.getByLabelText('Radio (km)');
 
@@ -209,13 +441,17 @@ describe('TechnicianProfilePage', () => {
     await user.clear(lng);
     await user.type(lng, '-195');
     await user.clear(radius);
+    await user.type(radius, '40');
+    await user.clear(radius);
     await user.type(radius, '0');
     await user.click(
       screen.getByRole('button', { name: 'Guardar zona de servicio' }),
     );
 
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent('Latitud: Usa una latitud entre -90 y 90.');
+    expect(alert).toHaveTextContent(
+      'Ubicación en el mapa: Usa una latitud entre -90 y 90.',
+    );
     expect(alert).toHaveTextContent(
       'Longitud: Usa una longitud entre -180 y 180.',
     );
@@ -223,36 +459,6 @@ describe('TechnicianProfilePage', () => {
       'Radio (km): Elige un radio entre 1 y 300 km.',
     );
     expect(updateServiceArea).not.toHaveBeenCalled();
-  });
-
-  it('fills coordinates from a Lima sector preset and quick radius pill', async () => {
-    const user = userEvent.setup();
-    vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
-    vi.mocked(updateServiceArea).mockResolvedValue(
-      aProfile({ latitude: -12.2125, longitude: -76.9372, maxRadiusKm: 25 }),
-    );
-    setup();
-
-    await user.click(await screen.findByRole('button', { name: /Lima Sur/ }));
-    expect(screen.getByLabelText('Latitud')).toHaveValue('-12.2125');
-    expect(screen.getByLabelText('Longitud')).toHaveValue('-76.9372');
-
-    await user.click(screen.getByRole('button', { name: '25 km' }));
-    expect(screen.getByLabelText('Radio (km)')).toHaveValue('25');
-
-    await user.click(
-      screen.getByRole('button', { name: 'Guardar zona de servicio' }),
-    );
-
-    expect(updateServiceArea).toHaveBeenCalledWith({
-      latitude: -12.2125,
-      longitude: -76.9372,
-      maxRadiusKm: 25,
-    });
-    expect(
-      await screen.findByText('Zona de servicio actualizada.'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Radio de 25 km')).toBeInTheDocument();
   });
 
   it('shows server validation errors in the corresponding form', async () => {
@@ -308,7 +514,11 @@ describe('TechnicianProfilePage', () => {
   });
 });
 
-describe('validateProfile and validateServiceArea', () => {
+describe('validateProfile, validateServiceArea, Web Mercator and geocoding helpers', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('checks profile field bounds', () => {
     expect(
       validateProfile({
@@ -333,12 +543,19 @@ describe('validateProfile and validateServiceArea', () => {
     });
   });
 
-  it('checks required service area fields and numeric formats', () => {
+  it('converts lat/lng to Web Mercator world pixels and back accurately at any zoom', () => {
+    const px = latLngToWorldPx(-12.0464, -77.0428, 16);
+    const roundtrip = worldPxToLatLng(px.x, px.y, 16);
+    expect(roundtrip.latitude).toBeCloseTo(-12.0464, 4);
+    expect(roundtrip.longitude).toBeCloseTo(-77.0428, 4);
+  });
+
+  it('checks required service area fields, coordinate parsing and geocoder formatting', async () => {
     expect(
       validateServiceArea({ latitude: '', longitude: '', maxRadiusKm: '' }),
     ).toEqual({
-      latitude: 'Ingresa la latitud.',
-      longitude: 'Ingresa la longitud.',
+      latitude: 'Busca tu dirección en Google Maps o usa tu ubicación actual.',
+      longitude: 'Selecciona un punto en el mapa para fijar la longitud.',
       maxRadiusKm: 'Ingresa el radio de cobertura.',
     });
 
@@ -355,5 +572,27 @@ describe('validateProfile and validateServiceArea', () => {
     });
 
     expect(parseDecimal(' -12,05 ')).toBe(-12.05);
+    expect(extractCoordsFromText('sin coordenadas')).toBeNull();
+    expect(extractCoordsFromText('95.1234, -77.0428')).toBeNull();
+    expect(
+      extractCoordsFromText('https://maps.google.com/?q=-12.1219,-77.0297'),
+    ).toEqual({ latitude: -12.1219, longitude: -77.0297 });
+
+    expect(await searchMapAddresses('a')).toEqual([]);
+    expect(
+      formatGeocodedItem({
+        place_id: 9,
+        lat: '-12.1',
+        lon: '-77.0',
+        display_name: 'Av. Arequipa 1200, Lince, Lima, 15046, Perú',
+      }).primary,
+    ).toBe('Av. Arequipa 1200, Lince, Lima, Perú');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 500 })),
+    );
+    expect(await searchMapAddresses('Miraflores')).toEqual([]);
+    expect(await reverseGeocodeMapPin(-12.1, -77.0)).toBeNull();
   });
 });
