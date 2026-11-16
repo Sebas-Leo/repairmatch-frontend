@@ -58,7 +58,7 @@ export function RequestCard({
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
         <p className="m-0 flex items-center gap-1">
           <CalendarClock size={14} aria-hidden="true" />
-          Published {formatDateTime(request.createdAt)} · #{request.id}
+          Publicada {formatDateTime(request.createdAt)} · #{request.id}
         </p>
         {showOffers ? <OfferCount requestId={request.id} /> : null}
       </div>
@@ -82,10 +82,10 @@ function OfferCount({ requestId }: { requestId: number }) {
     >
       <MessageSquareText size={14} aria-hidden="true" />
       {count === 0
-        ? 'No offers yet'
+        ? 'Todavía no hay ofertas'
         : count === 1
-          ? '1 offer received'
-          : `${count} offers received`}
+          ? '1 oferta recibida'
+          : `${count} ofertas recibidas`}
     </span>
   );
 }

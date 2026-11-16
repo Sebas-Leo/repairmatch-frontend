@@ -12,7 +12,7 @@ export interface Crumb {
 export function Breadcrumbs({ items }: { items: readonly Crumb[] }) {
   if (items.length === 0) return null;
   return (
-    <nav aria-label="Breadcrumb">
+    <nav aria-label="Ruta de navegación">
       <ol className="m-0 flex list-none flex-wrap items-center gap-1 p-0 text-sm text-muted">
         {items.map((item, index) => {
           const last = index === items.length - 1;

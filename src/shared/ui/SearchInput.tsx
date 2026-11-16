@@ -83,7 +83,7 @@ export function SearchInput({
         <button
           type="button"
           onClick={clear}
-          aria-label="Clear search"
+          aria-label="Borrar búsqueda"
           className="absolute top-1/2 right-1.5 inline-flex min-h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-md border-0 bg-transparent text-muted hover:text-ink"
         >
           <X size={16} aria-hidden="true" />

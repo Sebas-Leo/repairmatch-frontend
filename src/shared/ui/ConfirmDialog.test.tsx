@@ -15,15 +15,15 @@ function Harness({
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}>
-        Cancel request
+        Cancelar solicitud
       </button>
       <ConfirmDialog
         open={open}
         busy={busy}
-        title="Cancel this request?"
+        title="¿Cancelar esta solicitud?"
         description="Technicians will no longer see it."
         confirmLabel="Yes, cancel it"
-        cancelLabel="Keep it"
+        cancelLabel="Conservar solicitud"
         onConfirm={onConfirm}
         onCancel={() => setOpen(false)}
       />
@@ -35,16 +35,20 @@ describe('ConfirmDialog', () => {
   it('opens on the safe choice and returns focus when closed', async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    const trigger = screen.getByRole('button', { name: 'Cancel request' });
+    const trigger = screen.getByRole('button', {
+      name: 'Cancelar solicitud',
+    });
     await user.click(trigger);
 
     const dialog = screen.getByRole('alertdialog', {
-      name: 'Cancel this request?',
+      name: '¿Cancelar esta solicitud?',
     });
     expect(dialog).toHaveAccessibleDescription(
       'Technicians will no longer see it.',
     );
-    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
+    expect(
+      screen.getByRole('button', { name: 'Conservar solicitud' }),
+    ).toHaveFocus();
 
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
@@ -54,13 +58,17 @@ describe('ConfirmDialog', () => {
   it('keeps Tab inside the dialog', async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Cancelar solicitud' }),
+    );
     await user.tab();
     expect(
       screen.getByRole('button', { name: 'Yes, cancel it' }),
     ).toHaveFocus();
     await user.tab();
-    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
+    expect(
+      screen.getByRole('button', { name: 'Conservar solicitud' }),
+    ).toHaveFocus();
     await user.tab({ shift: true });
     expect(
       screen.getByRole('button', { name: 'Yes, cancel it' }),
@@ -71,7 +79,9 @@ describe('ConfirmDialog', () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
     render(<Harness onConfirm={onConfirm} />);
-    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Cancelar solicitud' }),
+    );
     await user.click(screen.getByRole('button', { name: 'Yes, cancel it' }));
     expect(onConfirm).toHaveBeenCalledOnce();
   });
@@ -79,7 +89,9 @@ describe('ConfirmDialog', () => {
   it('cannot be dismissed while the action runs', async () => {
     const user = userEvent.setup();
     render(<Harness busy />);
-    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Cancelar solicitud' }),
+    );
     await user.keyboard('{Escape}');
     expect(screen.getByRole('alertdialog')).toBeInTheDocument();
     expect(
@@ -90,10 +102,14 @@ describe('ConfirmDialog', () => {
   it('keeps Escape and Tab working after a click on the panel text', async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Cancelar solicitud' }),
+    );
     await user.click(screen.getByText('Technicians will no longer see it.'));
     await user.tab();
-    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
+    expect(
+      screen.getByRole('button', { name: 'Conservar solicitud' }),
+    ).toHaveFocus();
     await user.click(screen.getByText('Technicians will no longer see it.'));
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
@@ -102,7 +118,9 @@ describe('ConfirmDialog', () => {
   it('holds focus on the panel while busy and locks page scroll', async () => {
     const user = userEvent.setup();
     render(<Harness busy />);
-    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Cancelar solicitud' }),
+    );
     const dialog = screen.getByRole('alertdialog');
     expect(dialog).toHaveFocus();
     expect(document.body.style.overflow).toBe('hidden');
@@ -131,7 +149,7 @@ describe('ConfirmDialog', () => {
       );
     }
     render(<Custom />);
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
     expect(screen.getByRole('heading', { name: 'Landing' })).toHaveFocus();
   });
 });

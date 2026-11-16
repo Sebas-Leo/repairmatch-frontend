@@ -51,14 +51,13 @@ describe('Button', () => {
     render(
       <MemoryRouter>
         <ButtonLink to="/client/requests/new" variant="secondary">
-          New request
+          Nueva solicitud
         </ButtonLink>
       </MemoryRouter>,
     );
-    expect(screen.getByRole('link', { name: 'New request' })).toHaveAttribute(
-      'href',
-      '/client/requests/new',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Nueva solicitud' }),
+    ).toHaveAttribute('href', '/client/requests/new');
   });
 });
 
@@ -66,14 +65,14 @@ describe('display components', () => {
   it('renders a badge, a card and spinners', () => {
     render(
       <Card as="article" aria-label="Item">
-        <Badge tone="success">Accepted</Badge>
+        <Badge tone="success">Aceptada</Badge>
         <Spinner label="Loading item" />
         <Spinner />
         <Skeleton />
       </Card>,
     );
     expect(screen.getByRole('article', { name: 'Item' })).toHaveTextContent(
-      'Accepted',
+      'Aceptada',
     );
     expect(screen.getByRole('status')).toHaveTextContent('Loading item');
   });
@@ -88,12 +87,12 @@ describe('display components', () => {
       <EmptyState
         title="No requests yet"
         description="Publish your first repair request."
-        action={<button type="button">New request</button>}
+        action={<button type="button">Nueva solicitud</button>}
       />,
     );
     expect(screen.getByText('No requests yet')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'New request' }),
+      screen.getByRole('button', { name: 'Nueva solicitud' }),
     ).toBeInTheDocument();
   });
 
@@ -102,24 +101,22 @@ describe('display components', () => {
       <MemoryRouter>
         <PageHeader
           titleId="t"
-          title="Request #7"
+          title="Solicitud #7"
           description="Fridge"
           breadcrumbs={[
-            { label: 'Dashboard', to: '/client' },
-            { label: 'Request #7' },
+            { label: 'Inicio', to: '/client' },
+            { label: 'Solicitud #7' },
           ]}
-          actions={<button type="button">Cancel request</button>}
+          actions={<button type="button">Cancelar solicitud</button>}
         />
       </MemoryRouter>,
     );
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Request #7' }),
+      screen.getByRole('heading', { level: 1, name: 'Solicitud #7' }),
     ).toHaveAttribute('id', 't');
-    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(nav).toContainElement(
-      screen.getByRole('link', { name: 'Dashboard' }),
-    );
-    expect(screen.getAllByText('Request #7').at(0)).toHaveAttribute(
+    const nav = screen.getByRole('navigation', { name: 'Ruta de navegación' });
+    expect(nav).toContainElement(screen.getByRole('link', { name: 'Inicio' }));
+    expect(screen.getAllByText('Solicitud #7').at(0)).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -132,7 +129,7 @@ describe('display components', () => {
           label="Open requests"
           value={3}
           to="/client/requests"
-          hint="Waiting for offers"
+          hint="Esperando ofertas"
         />
       </MemoryRouter>,
     );
@@ -157,7 +154,7 @@ describe('form fields', () => {
         id="status"
         label="Status"
         hint="Filter the list"
-        error="Pick one"
+        error="Elegir one"
         placeholder="All statuses"
         options={[{ value: 'PUBLICADA', label: 'Publicada' }]}
         value=""
@@ -166,12 +163,12 @@ describe('form fields', () => {
     );
     const select = screen.getByLabelText('Status');
     expect(select).toHaveAttribute('aria-invalid', 'true');
-    expect(select).toHaveAccessibleDescription('Filter the list Pick one');
+    expect(select).toHaveAccessibleDescription('Filter the list Elegir one');
     await user.selectOptions(select, 'PUBLICADA');
     expect(onChange).toHaveBeenCalled();
   });
 
-  it('counts characters in a text area', () => {
+  it('counts caracteres in a text area', () => {
     render(
       <TextAreaField
         id="d"

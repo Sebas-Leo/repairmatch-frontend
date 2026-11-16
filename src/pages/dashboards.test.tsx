@@ -72,19 +72,21 @@ describe('ClientHomePage', () => {
     expect(
       await screen.findByRole('link', { name: /Esperando ofertas\s*3/ }),
     ).toHaveAttribute('href', '/client/requests?status=PUBLICADA');
-    expect(screen.getByRole('link', { name: /Todas\s*9/ })).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /Cerradas\s*4/ }),
+      screen.getByRole('link', { name: /Todas las solicitudes\s*9/ }),
     ).toBeInTheDocument();
-    expect(await screen.findByRole('article')).toHaveTextContent(
-      'Refrigeradora',
-    );
+    expect(
+      screen.getByRole('link', { name: /Solicitudes cerradas\s*4/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
   });
 
   it('invites a new client to publish', async () => {
     vi.mocked(listServiceRequests).mockResolvedValue(pageOf([]));
     renderPage(<ClientHomePage />, { path: '/client' });
-    expect(await screen.findByText('Aún no publicas nada')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', { name: /Todas las solicitudes\s*0/ }),
+    ).toHaveAttribute('href', '/client/requests');
   });
 
   it('shows errors in place of the figures and the list', async () => {
@@ -226,7 +228,7 @@ describe('WorkDrawer', () => {
 
 describe('format helpers', () => {
   it('formats dates and money, with a dash for missing values', () => {
-    expect(formatDateTime('2026-11-10T10:30:00')).toMatch(/10 Nov 2026/);
+    expect(formatDateTime('2026-11-10T10:30:00')).toMatch(/10 nov\. 2026/);
     expect(formatDateTime(null)).toBe('—');
     expect(formatDateTime('not a date')).toBe('—');
     expect(formatMoney(45.5)).toContain('45.50');

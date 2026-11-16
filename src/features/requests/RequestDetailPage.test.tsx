@@ -58,15 +58,15 @@ describe('RequestDetailPage', () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('navigation', { name: 'Breadcrumb' }),
-    ).toHaveTextContent('Request #7');
+      screen.getByRole('navigation', { name: 'Ruta de navegación' }),
+    ).toHaveTextContent('Solicitud #7');
     expect(
-      await screen.findByRole('img', { name: 'Photo 1 of the appliance' }),
+      await screen.findByRole('img', { name: 'Foto 1 del electrodoméstico' }),
     ).toHaveAttribute('src', 'https://img.example.com/1.jpg');
     const offers = await screen.findAllByRole('article');
     expect(offers).toHaveLength(2);
-    expect(within(offers[1]!).getByText('Lowest cost')).toBeInTheDocument();
-    expect(within(offers[0]!).queryByText('Lowest cost')).toBeNull();
+    expect(within(offers[1]!).getByText('Menor costo')).toBeInTheDocument();
+    expect(within(offers[0]!).queryByText('Menor costo')).toBeNull();
   });
 
   it('accepts an offer only after confirming', async () => {
@@ -75,26 +75,28 @@ describe('RequestDetailPage', () => {
     setup();
     const offers = await screen.findAllByRole('article');
     await user.click(
-      within(offers[1]!).getByRole('button', { name: 'Accept offer' }),
+      within(offers[1]!).getByRole('button', { name: 'Aceptar oferta' }),
     );
     const dialog = screen.getByRole('alertdialog', {
-      name: 'Accept the offer from Rosa Repairs?',
+      name: '¿Aceptar la oferta de Rosa Repairs?',
     });
-    await user.click(within(dialog).getByRole('button', { name: 'Not yet' }));
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Todavía no' }),
+    );
     expect(acceptProposal).not.toHaveBeenCalled();
 
     await user.click(
-      within(offers[1]!).getByRole('button', { name: 'Accept offer' }),
+      within(offers[1]!).getByRole('button', { name: 'Aceptar oferta' }),
     );
     await user.click(
       within(screen.getByRole('alertdialog')).getByRole('button', {
-        name: 'Accept offer',
+        name: 'Aceptar oferta',
       }),
     );
     expect(acceptProposal).toHaveBeenCalledWith(32);
     expect(
       await screen.findByText(
-        'Offer from Rosa Repairs accepted. The service is scheduled.',
+        'Oferta de Rosa Repairs aceptada. El servicio quedó programado.',
       ),
     ).toBeInTheDocument();
     // The page asks again so it shows the closed request, and focus lands on
@@ -107,18 +109,18 @@ describe('RequestDetailPage', () => {
   it('cancels the request after confirming, and reports a refusal', async () => {
     const user = userEvent.setup();
     const refusal = new ApiError(409, 'Conflict', {
-      message: 'Request already closed',
+      message: 'Solicitud already closed',
     });
     vi.mocked(cancelServiceRequest).mockImplementation(() =>
       Promise.reject(refusal),
     );
     setup();
     await user.click(
-      await screen.findByRole('button', { name: 'Cancel request' }),
+      await screen.findByRole('button', { name: 'Cancelar solicitud' }),
     );
     await user.click(
       within(screen.getByRole('alertdialog')).getByRole('button', {
-        name: 'Cancel request',
+        name: 'Cancelar solicitud',
       }),
     );
     expect(cancelServiceRequest).toHaveBeenCalledWith(7);
@@ -138,16 +140,20 @@ describe('RequestDetailPage', () => {
     vi.mocked(listRequestProposals).mockResolvedValue([]);
     setup();
     expect(
-      await screen.findByText('This request closed without offers.'),
+      await screen.findByText('Esta solicitud se cerró sin ofertas.'),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
-    expect(screen.getByText(/No photos yet/)).toBeInTheDocument();
-    expect(screen.getByText(/No location yet/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Cancelar solicitud' }),
+    ).toBeNull();
+    expect(screen.getByText(/Todavía no hay fotos/)).toBeInTheDocument();
+    expect(screen.getByText(/Sin ubicación/)).toBeInTheDocument();
   });
 
   it('explains a request that does not exist', async () => {
     vi.mocked(getServiceRequest).mockRejectedValue(
-      new ApiError(404, 'Not found', { message: 'Request not found' }),
+      new ApiError(404, 'No encontrado', {
+        message: 'Solicitud no encontrada',
+      }),
     );
     setup();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
@@ -156,7 +162,7 @@ describe('RequestDetailPage', () => {
   it('refuses an id that is not a number without calling the backend', () => {
     setup('/client/requests/abc');
     expect(
-      screen.getByRole('heading', { name: 'Request not found' }),
+      screen.getByRole('heading', { name: 'Solicitud no encontrada' }),
     ).toBeInTheDocument();
     expect(getServiceRequest).not.toHaveBeenCalled();
   });
@@ -172,7 +178,7 @@ describe('RequestDetailPage', () => {
     ]);
     setup();
     expect(
-      await screen.findByText('Photo 2 has an invalid address'),
+      await screen.findByText('Foto 2: dirección no válida'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('img')).toBeNull();
   });

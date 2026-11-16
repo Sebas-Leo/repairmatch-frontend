@@ -94,16 +94,16 @@ describe('ThemeProvider and ThemeToggle', () => {
     act(() => system.flip(false));
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
 
-    await user.click(screen.getByRole('button', { name: /Theme: system/ }));
+    await user.click(screen.getByRole('button', { name: /Tema: sistema/ }));
     expect(
-      screen.getByRole('button', { name: /Theme: light/ }),
+      screen.getByRole('button', { name: /Tema: claro/ }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Theme: light/ }));
+    await user.click(screen.getByRole('button', { name: /Tema: claro/ }));
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     expect(storage.getItem(THEME_STORAGE_KEY)).toBe('dark');
-    await user.click(screen.getByRole('button', { name: /Theme: dark/ }));
+    await user.click(screen.getByRole('button', { name: /Tema: oscuro/ }));
     expect(
-      screen.getByRole('button', { name: /Theme: system/ }),
+      screen.getByRole('button', { name: /Tema: sistema/ }),
     ).toBeInTheDocument();
   });
 

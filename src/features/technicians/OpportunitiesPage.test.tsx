@@ -58,7 +58,7 @@ describe('OpportunitiesPage', () => {
     expect(cards[0]).toHaveTextContent('Samsung M2');
     expect(cards[0]).toHaveTextContent('0.8 km');
     expect(list).toHaveBeenCalledWith({ page: 0, size: 25 }, expect.anything());
-    await user.click(screen.getByRole('button', { name: /next/i }));
+    await user.click(screen.getByRole('button', { name: /siguiente/i }));
     expect(router.state.location.search).toContain('page=2');
   });
 

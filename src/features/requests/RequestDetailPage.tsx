@@ -1,6 +1,8 @@
 import { Ban, Image as ImageIcon, MapPin } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
+import { RequestPhotoUpload } from './RequestPhotoUpload';
+import type { PendingPhoto } from './publishWithPhoto';
 import { acceptProposal, listRequestProposals } from '../proposals/api';
 import { ProposalCard } from '../proposals/ProposalCard';
 import { describeApiError } from '../../shared/api/errorMessages';
@@ -25,6 +27,8 @@ type Pending = { kind: 'cancel' } | { kind: 'accept'; proposal: Proposal };
 /** /client/requests/:requestId: the request, its photos and its offers. */
 export function RequestDetailPage() {
   const { requestId } = useParams();
+  const location = useLocation();
+  const photoState = location.state as { pendingPhoto?: PendingPhoto } | null;
   const id = Number(requestId);
   const validId = Number.isInteger(id) && id > 0;
   const toast = useToast();
@@ -50,9 +54,9 @@ export function RequestDetailPage() {
   );
 
   const crumbs = [
-    { label: 'Dashboard', to: '/client' },
-    { label: 'My requests', to: '/client/requests' },
-    { label: validId ? `Request #${id}` : 'Request' },
+    { label: 'Inicio', to: '/client' },
+    { label: 'Mis solicitudes', to: '/client/requests' },
+    { label: validId ? `Solicitud #${id}` : 'Solicitud' },
   ];
 
   if (!validId) {
@@ -60,11 +64,11 @@ export function RequestDetailPage() {
       <section aria-labelledby="request-title">
         <PageHeader
           titleId="request-title"
-          title="Request not found"
+          title="Solicitud no encontrada"
           breadcrumbs={crumbs}
         />
         <ButtonLink to="/client/requests" variant="secondary">
-          Back to my requests
+          Volver a mis solicitudes
         </ButtonLink>
       </section>
     );
@@ -76,13 +80,13 @@ export function RequestDetailPage() {
       <section aria-labelledby="request-title">
         <PageHeader
           titleId="request-title"
-          title={`Request #${id}`}
+          title={`Solicitud #${id}`}
           breadcrumbs={crumbs}
         />
         {request.status === 'error' ? (
           <ErrorState error={request.error} onRetry={request.reload} />
         ) : (
-          <ListSkeleton rows={2} label="Loading the request" />
+          <ListSkeleton rows={2} label="Cargando la solicitud" />
         )}
       </section>
     );
@@ -103,11 +107,11 @@ export function RequestDetailPage() {
     try {
       if (pending.kind === 'cancel') {
         await cancelServiceRequest(id);
-        toast.success('Request cancelled. Technicians no longer see it.');
+        toast.success('Solicitud cancelada. Los técnicos ya no podrán verla.');
       } else {
         await acceptProposal(pending.proposal.id);
         toast.success(
-          `Offer from ${pending.proposal.technicianName} accepted. The service is scheduled.`,
+          `Oferta de ${pending.proposal.technicianName} aceptada. El servicio quedó programado.`,
         );
       }
     } catch (error) {
@@ -127,7 +131,7 @@ export function RequestDetailPage() {
       <PageHeader
         titleId="request-title"
         title={`${data.applianceTypeName}${product ? ` · ${product}` : ''}`}
-        description={`Request #${data.id}, published ${formatDateTime(data.createdAt)}`}
+        description={`Solicitud #${data.id}, publicada el ${formatDateTime(data.createdAt)}`}
         breadcrumbs={crumbs}
         actions={
           open ? (
@@ -136,7 +140,7 @@ export function RequestDetailPage() {
               icon={<Ban size={18} aria-hidden="true" />}
               onClick={() => setPending({ kind: 'cancel' })}
             >
-              Cancel request
+              Cancelar solicitud
             </Button>
           ) : null
         }
@@ -146,7 +150,7 @@ export function RequestDetailPage() {
         <div className="grid content-start gap-4">
           <Card className="grid gap-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="m-0 text-lg">Problem</h2>
+              <h2 className="m-0 text-lg">Problema</h2>
               <RequestStatusBadge status={data.status} />
             </div>
             <p className="m-0 whitespace-pre-line">
@@ -156,19 +160,25 @@ export function RequestDetailPage() {
               <MapPin size={16} aria-hidden="true" />
               {data.latitude !== null && data.longitude !== null
                 ? `${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`
-                : 'No location yet: technicians cannot match it until it has one.'}
+                : 'Sin ubicación: debes agregarla para encontrar técnicos compatibles.'}
             </p>
           </Card>
           <Card className="grid gap-3">
-            <h2 className="m-0 text-lg">Photos</h2>
+            <h2 className="m-0 text-lg">Fotos</h2>
+            <RequestPhotoUpload
+              key={id}
+              requestId={id}
+              pendingPhoto={photoState?.pendingPhoto ?? null}
+              onAdded={evidences.reload}
+            />
             {evidences.status === 'error' ? (
               <ErrorState error={evidences.error} onRetry={evidences.reload} />
             ) : !evidences.data ? (
-              <ListSkeleton rows={1} label="Loading photos" />
+              <ListSkeleton rows={1} label="Cargando fotos" />
             ) : evidences.data.length === 0 ? (
               <p className="m-0 flex items-center gap-1.5 text-muted">
                 <ImageIcon size={16} aria-hidden="true" />
-                No photos yet. The mobile app adds them from the camera.
+                Todavía no hay fotos. Agrega una aquí o usa la cámara del móvil.
               </p>
             ) : (
               <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0 sm:grid-cols-3">
@@ -180,14 +190,14 @@ export function RequestDetailPage() {
                         <a href={url} target="_blank" rel="noreferrer noopener">
                           <img
                             src={url}
-                            alt={`Photo ${evidence.evidenceNumber} of the appliance`}
+                            alt={`Foto ${evidence.evidenceNumber} del electrodoméstico`}
                             loading="lazy"
                             className="aspect-square w-full rounded-lg border border-line object-cover"
                           />
                         </a>
                       ) : (
                         <span className="grid aspect-square place-items-center rounded-lg border border-line p-2 text-center text-sm text-muted">
-                          Photo {evidence.evidenceNumber} has an invalid address
+                          Foto {evidence.evidenceNumber}: dirección no válida
                         </span>
                       )}
                     </li>
@@ -200,19 +210,19 @@ export function RequestDetailPage() {
 
         <div className="grid content-start gap-3">
           <h2 className="m-0 text-lg">
-            Offers{offers.length ? ` (${offers.length})` : ''}
+            Ofertas{offers.length ? ` (${offers.length})` : ''}
           </h2>
           {proposals.status === 'error' ? (
             <ErrorState error={proposals.error} onRetry={proposals.reload} />
           ) : !proposals.data ? (
-            <ListSkeleton rows={2} label="Loading offers" />
+            <ListSkeleton rows={2} label="Cargando ofertas" />
           ) : offers.length === 0 ? (
             <EmptyState
-              title="No offers yet"
+              title="Todavía no hay ofertas"
               description={
                 open
-                  ? 'Compatible technicians nearby will see this request and send their offers here.'
-                  : 'This request closed without offers.'
+                  ? 'Los técnicos compatibles podrán ver esta solicitud y enviar sus ofertas aquí.'
+                  : 'Esta solicitud se cerró sin ofertas.'
               }
             />
           ) : (
@@ -223,7 +233,7 @@ export function RequestDetailPage() {
                     proposal={offer}
                     highlight={
                       offers.length > 1 && offer.id === cheapest?.id
-                        ? 'Lowest cost'
+                        ? 'Menor costo'
                         : undefined
                     }
                     action={
@@ -233,7 +243,7 @@ export function RequestDetailPage() {
                             setPending({ kind: 'accept', proposal: offer })
                           }
                         >
-                          Accept offer
+                          Aceptar oferta
                         </Button>
                       ) : null
                     }
@@ -251,18 +261,20 @@ export function RequestDetailPage() {
         tone={pending?.kind === 'accept' ? 'primary' : 'danger'}
         title={
           pending?.kind === 'accept'
-            ? `Accept the offer from ${pending.proposal.technicianName}?`
-            : 'Cancel this request?'
+            ? `¿Aceptar la oferta de ${pending.proposal.technicianName}?`
+            : '¿Cancelar esta solicitud?'
         }
         description={
           pending?.kind === 'accept'
-            ? 'The other offers are declined and the request closes. This cannot be undone.'
-            : 'Technicians will stop seeing it and pending offers are discarded. This cannot be undone.'
+            ? 'Las demás ofertas serán rechazadas y se cerrará la solicitud. Esta acción no se puede deshacer.'
+            : 'Los técnicos dejarán de verla. Esta acción no se puede deshacer.'
         }
         confirmLabel={
-          pending?.kind === 'accept' ? 'Accept offer' : 'Cancel request'
+          pending?.kind === 'accept' ? 'Aceptar oferta' : 'Cancelar solicitud'
         }
-        cancelLabel={pending?.kind === 'accept' ? 'Not yet' : 'Keep it'}
+        cancelLabel={
+          pending?.kind === 'accept' ? 'Todavía no' : 'Conservar solicitud'
+        }
         onConfirm={() => void confirm()}
         onCancel={() => setPending(null)}
         returnFocus={() => {

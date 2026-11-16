@@ -29,7 +29,7 @@ describe('ErrorBoundary', () => {
         <Boom />
       </ErrorBoundary>,
     );
-    expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong');
+    expect(screen.getByRole('alert')).toHaveTextContent('Ocurrió un error');
     expect(screen.queryByText(/database password/)).not.toBeInTheDocument();
   });
 
@@ -75,7 +75,7 @@ describe('ErrorBoundary', () => {
     );
 
     broken = false;
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
 
     expect(screen.getByText('Recovered')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('ErrorBoundary', () => {
         <Boom />
       </ErrorBoundary>,
     );
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
@@ -145,11 +145,13 @@ describe('ErrorBoundary', () => {
       );
 
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('A new version may be available');
+      expect(alert).toHaveTextContent(
+        'Puede haber una nueva versión disponible',
+      );
       expect(alert).not.toHaveTextContent('app.test');
-      expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull();
 
-      await user.click(screen.getByRole('button', { name: 'Reload page' }));
+      await user.click(screen.getByRole('button', { name: 'Recargar página' }));
       expect(onReload).toHaveBeenCalledTimes(1);
     });
 

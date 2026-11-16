@@ -160,6 +160,38 @@ describe('ServiceDetailPage', () => {
     expect(screen.getByText('4/5')).toBeInTheDocument();
   });
 
+  it('shows the existing review when the server answers 409 (already reviewed)', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getService).mockResolvedValue(aService({ status: 'COMPLETADO' }));
+    vi.mocked(getServiceReview)
+      .mockRejectedValueOnce(
+        new ApiError(404, 'Not Found', { message: 'Review not found' }),
+      )
+      .mockResolvedValue(aReview({ comment: 'Reseña ya publicada antes.' }));
+    vi.mocked(createReview).mockRejectedValue(
+      new ApiError(409, 'Conflict', { message: 'Service already reviewed' }),
+    );
+
+    renderPage(<ServiceDetailPage />, {
+      path: '/client/services/:serviceId',
+      url: '/client/services/12',
+      role: 'CLIENT',
+    });
+
+    await user.type(
+      await screen.findByLabelText('Comentario'),
+      'Otra reseña distinta.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Publicar reseña' }));
+
+    expect(
+      await screen.findByText('Reseña ya publicada antes.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Publicar reseña' }),
+    ).toBeNull();
+  });
+
   it('shows an existing review without the form for a technician', async () => {
     vi.mocked(getService).mockResolvedValue(aService({ status: 'COMPLETADO' }));
     vi.mocked(getServiceReview).mockResolvedValue(aReview());

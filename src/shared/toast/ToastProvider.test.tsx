@@ -34,10 +34,10 @@ describe('ToastProvider', () => {
   it('shows a success toast in a polite live region', () => {
     const { toast } = setup();
     act(() => {
-      toast().success('Profile saved');
+      toast().success('Perfil saved');
     });
 
-    const message = screen.getByText('Profile saved');
+    const message = screen.getByText('Perfil saved');
     expect(message).toBeVisible();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(message.closest('[aria-live]')).toHaveAttribute(
@@ -73,8 +73,10 @@ describe('ToastProvider', () => {
       toast().success('One');
       toast().info('Two');
     });
-    expect(screen.getByText('One')).toHaveTextContent('Success: One');
-    expect(screen.getByText('Two')).toHaveTextContent('Notice: Two');
+    expect(screen.getByText('One')).toHaveTextContent(
+      'Operación completada: One',
+    );
+    expect(screen.getByText('Two')).toHaveTextContent('Aviso: Two');
   });
 
   it('keeps the live region in the document when empty, ready to announce', () => {
@@ -93,7 +95,7 @@ describe('ToastProvider', () => {
     });
 
     const [first] = screen.getAllByRole('button', {
-      name: 'Dismiss notification',
+      name: 'Cerrar notificación',
     });
     await user.click(first!);
 
@@ -110,7 +112,7 @@ describe('ToastProvider', () => {
 
     await user.tab();
     expect(
-      screen.getByRole('button', { name: 'Dismiss notification' }),
+      screen.getByRole('button', { name: 'Cerrar notificación' }),
     ).toHaveFocus();
     await user.keyboard('{Escape}');
 
@@ -141,7 +143,7 @@ describe('ToastProvider', () => {
     });
     expect(screen.queryByText('A')).not.toBeInTheDocument();
     expect(
-      screen.getAllByRole('button', { name: 'Dismiss notification' }),
+      screen.getAllByRole('button', { name: 'Cerrar notificación' }),
     ).toHaveLength(3);
   });
 
@@ -251,7 +253,7 @@ describe('toast timing', () => {
     act(() => {
       toast().info('Focused');
     });
-    const close = screen.getByRole('button', { name: 'Dismiss notification' });
+    const close = screen.getByRole('button', { name: 'Cerrar notificación' });
 
     act(() => close.focus());
     advance(60_000);

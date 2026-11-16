@@ -26,22 +26,22 @@ export function OpportunityCard({
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <span className="inline-flex items-center gap-1 font-semibold tabular-nums">
             <MapPin size={15} aria-hidden="true" className="text-brand" />
-            {opportunity.distanceKm.toFixed(1)} km away
+            {opportunity.distanceKm.toFixed(1)} km de distancia
           </span>
           <span className="inline-flex items-center gap-1 text-muted tabular-nums">
             <MessageSquareText size={15} aria-hidden="true" />
             {offers === undefined
               ? opportunity.status === 'CON_PROPUESTAS'
-                ? 'Has offers'
-                : 'No offers yet'
+                ? 'Con ofertas'
+                : 'Todavía no hay ofertas'
               : offers === 1
-                ? '1 offer'
-                : `${offers} offers`}
+                ? '1 oferta'
+                : `${offers} ofertas`}
           </span>
         </div>
         <h2 className="m-0 text-lg">
           {product || opportunity.applianceTypeName}
-          <span className="sr-only"> · request #{opportunity.requestId}</span>
+          <span className="sr-only"> · solicitud #{opportunity.requestId}</span>
         </h2>
         <p className="m-0 line-clamp-2 text-muted">{opportunity.description}</p>
         <div className="pt-1">
@@ -51,7 +51,7 @@ export function OpportunityCard({
             size="sm"
             icon={<Send size={16} aria-hidden="true" />}
           >
-            Send offer
+            Enviar oferta
           </ButtonLink>
         </div>
       </div>

@@ -16,7 +16,7 @@ export function Skeleton({ className }: { className?: string }) {
 /** Placeholder for a list that is loading: `rows` card-shaped skeletons. */
 export function ListSkeleton({
   rows = 3,
-  label = 'Loading…',
+  label = 'Cargando…',
 }: {
   rows?: number;
   label?: string;
