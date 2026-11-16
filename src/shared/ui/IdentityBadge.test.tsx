@@ -13,6 +13,23 @@ describe('IdentityBadge', () => {
     expect(screen.getByText('Cliente verificado')).toBeInTheDocument();
   });
 
+  it('keeps the regular label when the name matches or is unknown', () => {
+    const { rerender } = render(<IdentityBadge nameMatches />);
+    expect(screen.getByText('Identidad verificada')).toBeInTheDocument();
+    rerender(<IdentityBadge nameMatches={null} />);
+    expect(screen.getByText('Identidad verificada')).toBeInTheDocument();
+    expect(screen.queryByText(/no coincide/)).toBeNull();
+  });
+
+  it('downgrades to "Persona verificada" with a note when the name differs', () => {
+    render(<IdentityBadge nameMatches={false} label="Cliente verificado" />);
+    expect(screen.getByText('Persona verificada')).toBeInTheDocument();
+    expect(screen.queryByText('Cliente verificado')).toBeNull();
+    expect(
+      screen.getByText('El nombre del perfil no coincide con su documento'),
+    ).toBeInTheDocument();
+  });
+
   it('hides its icon from assistive technology', () => {
     const { container } = render(<IdentityBadge />);
     expect(container.querySelector('svg')).toHaveAttribute(
@@ -40,6 +57,21 @@ describe('ProposalCard identity badge', () => {
   it('shows the badge on a verified technician', () => {
     renderCard(true);
     expect(screen.getByText('Identidad verificada')).toBeInTheDocument();
+  });
+
+  it('flags a proposal whose technician name differs from the document', () => {
+    render(
+      <MemoryRouter>
+        <ProposalCard
+          proposal={aProposal({
+            identityVerified: true,
+            identityNameMatches: false,
+          })}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Persona verificada')).toBeInTheDocument();
+    expect(screen.queryByText('Identidad verificada')).toBeNull();
   });
 
   it('shows nothing for an unverified or unknown technician', () => {

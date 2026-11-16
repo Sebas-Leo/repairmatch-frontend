@@ -13,6 +13,8 @@ export type IdentityStatus = (typeof IDENTITY_STATUSES)[number];
 export interface IdentityState {
   status: IdentityStatus;
   verifiedAt: LocalDateTimeString | null;
+  /** Profile name matches the verified document; null/omitted when unknown. */
+  nameMatches?: boolean | null;
 }
 
 /** POST /verification/identity/session (201): open `url` to verify. */

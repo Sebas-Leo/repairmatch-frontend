@@ -112,7 +112,10 @@ export function RecentRequestCard({
         </h3>
         {request.clientIdentityVerified ? (
           <div>
-            <IdentityBadge label="Cliente verificado" />
+            <IdentityBadge
+              label="Cliente verificado"
+              nameMatches={request.clientIdentityNameMatches}
+            />
           </div>
         ) : null}
         <button

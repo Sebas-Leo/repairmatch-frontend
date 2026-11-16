@@ -52,7 +52,9 @@ export function ProposalCard({
             {proposal.technicianName}
           </p>
           <div className="flex flex-wrap gap-1">
-            {proposal.identityVerified ? <IdentityBadge /> : null}
+            {proposal.identityVerified ? (
+              <IdentityBadge nameMatches={proposal.identityNameMatches} />
+            ) : null}
             {highlight ? <Badge tone="success">{highlight}</Badge> : null}
             <Badge tone={status.tone}>{status.label}</Badge>
           </div>

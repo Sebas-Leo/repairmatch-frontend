@@ -1191,7 +1191,9 @@ function ProfileEditor({
               <p className="m-0 font-display text-2xl font-extrabold tracking-tight capitalize text-ink transition-colors duration-300 group-hover/header:text-brand">
                 {profile.fullName}
               </p>
-              {profile.identityVerified ? <IdentityBadge /> : null}
+              {profile.identityVerified ? (
+                <IdentityBadge nameMatches={profile.identityNameMatches} />
+              ) : null}
             </div>
             <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
               <span>{profile.email}</span>
