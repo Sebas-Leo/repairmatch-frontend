@@ -57,7 +57,9 @@ describe('external photo uploads', () => {
   });
   it('propagates upload failures without a retry', async () => {
     vi.mocked(axios.request).mockRejectedValue(new Error('offline'));
-    await expect(uploadRequestPhoto(photo())).rejects.toThrow('offline');
+    await expect(uploadRequestPhoto(photo())).rejects.toThrow(
+      'No se pudo subir la foto',
+    );
     expect(axios.request).toHaveBeenCalledTimes(1);
   });
 });

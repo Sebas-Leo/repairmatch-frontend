@@ -389,6 +389,42 @@ describe('TechnicianProfilePage', () => {
     });
   });
 
+  it('keeps the coordinates when the reverse geocoder fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());
+    vi.mocked(updateServiceArea).mockResolvedValue(aProfile());
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))),
+    );
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      geolocation: {
+        getCurrentPosition: (success: PositionCallback) => {
+          success({
+            coords: { latitude: -12.1072, longitude: -76.9992 },
+          } as GeolocationPosition);
+        },
+      },
+    });
+
+    setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Usar mi ubicación actual' }),
+    );
+    expect(
+      await screen.findByText('Ubicación actual detectada en Google Maps.'),
+    ).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    process.off('unhandledRejection', unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Dirección')).toHaveValue(
+      'San Borja, Lima, Perú',
+    );
+  });
+
   it('notifies when GPS geolocation permission is denied', async () => {
     const user = userEvent.setup();
     vi.mocked(getOwnTechnicianProfile).mockResolvedValue(aProfile());

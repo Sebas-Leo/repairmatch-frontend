@@ -67,7 +67,7 @@ export function ServiceDetailPage() {
   const requestQuery = useApiQuery(
     ['service-request', data?.requestId ?? 0],
     (signal) => getServiceRequest(data!.requestId, { signal }),
-    { enabled: Boolean(data?.requestId) },
+    { enabled: Boolean(data?.requestId), keepPreviousData: false },
   );
   const req = requestQuery.data;
 
@@ -118,7 +118,7 @@ export function ServiceDetailPage() {
   const heading = product || `Servicio #${data.id}`;
 
   async function confirmTransition() {
-    if (!pending) return;
+    if (!pending || busy) return;
     setBusy(true);
     actedRef.current = true;
     try {

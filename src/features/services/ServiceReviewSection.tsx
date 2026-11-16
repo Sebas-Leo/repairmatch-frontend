@@ -102,6 +102,8 @@ export function ServiceReviewSection({
       const message = describeApiError(err).message;
       setSubmitError(message);
       toast.error(message);
+      // A 409 means the service already has a review: show it instead of the form.
+      if (err instanceof ApiError && err.status === 409) reviewQuery.reload();
     }
   });
 

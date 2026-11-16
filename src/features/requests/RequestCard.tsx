@@ -84,8 +84,8 @@ function OfferCount({ requestId }: { requestId: number }) {
       {count === 0
         ? 'Todavía no hay ofertas'
         : count === 1
-          ? '1 offer received'
-          : `${count} offers received`}
+          ? '1 oferta recibida'
+          : `${count} ofertas recibidas`}
     </span>
   );
 }

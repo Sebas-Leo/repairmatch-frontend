@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react';
-import { uploadRequestPhoto } from '../../shared/api/cloudinary';
+import {
+  PhotoUploadError,
+  uploadRequestPhoto,
+} from '../../shared/api/cloudinary';
 import type { CreateEvidence } from '../../shared/api/types';
 import { describeApiError } from '../../shared/api/errorMessages';
 import { useSubmitGuard } from '../../shared/hooks/useSubmitGuard';
@@ -33,7 +36,7 @@ export function RequestPhotoUpload({
     let uploaded = metadata;
     try {
       if (!uploaded) {
-        if (!file) throw new Error('Primero selecciona una foto.');
+        if (!file) throw new PhotoUploadError('Primero selecciona una foto.');
         uploaded = await uploadRequestPhoto(file);
         setMetadata(uploaded);
       }
@@ -51,8 +54,7 @@ export function RequestPhotoUpload({
       setError(
         uploaded
           ? 'La foto se subió, pero no se pudo confirmar el registro. Al reintentar se comprobará si ya está guardada.'
-          : cause instanceof Error &&
-              !(typeof cause === 'object' && 'status' in cause)
+          : cause instanceof PhotoUploadError
             ? cause.message
             : describeApiError(cause).message,
       );

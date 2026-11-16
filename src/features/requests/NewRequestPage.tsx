@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import type { PublishDraft } from './PublishPanel';
+import { PhotoUploadError } from '../../shared/api/cloudinary';
 import { listApplianceTypes } from '../applianceTypes/api';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { useSubmitGuard } from '../../shared/hooks/useSubmitGuard';
@@ -84,7 +85,11 @@ export function NewRequestPage() {
       );
       navigate(`/client/requests/${created.id}`, { state: { pendingPhoto } });
     } catch (error) {
-      show(feedbackFromError(error));
+      show(
+        error instanceof PhotoUploadError
+          ? { message: error.message, fieldErrors: {} }
+          : feedbackFromError(error),
+      );
     }
   });
 

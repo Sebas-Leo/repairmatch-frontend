@@ -192,7 +192,7 @@ export function SubmitProposalPage() {
             <p className="m-0 whitespace-pre-line">{opportunity.description}</p>
             <p className="m-0 flex items-center gap-1.5 text-sm text-muted">
               <MapPin size={16} aria-hidden="true" />
-              {opportunity.distanceKm.toFixed(1)} km away
+              {opportunity.distanceKm.toFixed(1)} km de distancia
             </p>
           </Card>
         ) : null}
