@@ -17,8 +17,11 @@ vi.mock('./openExternal', () => ({ openVerificationPage: vi.fn() }));
 function stateOf(
   status: IdentityState['status'],
   verifiedAt: string | null = null,
+  nameMatches?: boolean | null,
 ): IdentityState {
-  return { status, verifiedAt };
+  return nameMatches === undefined
+    ? { status, verifiedAt }
+    : { status, verifiedAt, nameMatches };
 }
 
 function setup(role: 'CLIENT' | 'TECHNICIAN' = 'CLIENT') {
@@ -78,6 +81,20 @@ describe('IdentityVerificationCard', () => {
     expect(
       screen.queryByRole('button', { name: /Verificar|Intentar/ }),
     ).toBeNull();
+  });
+
+  it('explains that the profile name is not verified and flags a mismatch', async () => {
+    vi.mocked(getIdentityState).mockResolvedValue(
+      stateOf('VERIFIED', '2026-11-14T10:30:00', false),
+    );
+    setup();
+    expect(await screen.findByText('Persona verificada')).toBeInTheDocument();
+    expect(
+      screen.getByText('El nombre del perfil no coincide con su documento'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/El nombre del perfil lo elige cada usuario/),
+    ).toBeInTheDocument();
   });
 
   it('lets a rejected user try again', async () => {

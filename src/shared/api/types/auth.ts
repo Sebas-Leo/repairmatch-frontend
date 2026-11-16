@@ -48,4 +48,6 @@ export interface UserResponse {
   role: Role;
   /** Passed the optional identity verification (older servers omit it). */
   identityVerified?: boolean;
+  /** Profile name matches the verified document (null/omitted: unknown). */
+  identityNameMatches?: boolean | null;
 }

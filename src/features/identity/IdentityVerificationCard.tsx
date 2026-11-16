@@ -114,7 +114,7 @@ export function IdentityVerificationCard() {
         </h2>
         {state ? (
           state.status === 'VERIFIED' ? (
-            <IdentityBadge />
+            <IdentityBadge nameMatches={state.nameMatches} />
           ) : (
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE[state.status]}`}
@@ -171,6 +171,10 @@ export function IdentityVerificationCard() {
           <p className="m-0 text-xs text-muted">
             No guardamos fotos de tu documento ni datos biométricos: solo si
             quedaste verificado o no.
+          </p>
+          <p className="m-0 text-xs text-muted">
+            El nombre del perfil lo elige cada usuario. La verificación confirma
+            que es una persona real con un documento válido.
           </p>
         </div>
       )}

@@ -46,7 +46,10 @@ export function OpportunityCard({
         </h2>
         {opportunity.clientIdentityVerified ? (
           <div>
-            <IdentityBadge label="Cliente verificado" />
+            <IdentityBadge
+              label="Cliente verificado"
+              nameMatches={opportunity.clientIdentityNameMatches}
+            />
           </div>
         ) : null}
         <p className="m-0 line-clamp-2 text-muted">{opportunity.description}</p>

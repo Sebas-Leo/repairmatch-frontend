@@ -20,6 +20,8 @@ export interface TechnicianProfile {
   applianceTypes: string[];
   /** Passed the optional identity verification. */
   identityVerified?: boolean;
+  /** Profile name matches the verified document (null/omitted: unknown). */
+  identityNameMatches?: boolean | null;
 }
 
 /**
@@ -76,6 +78,8 @@ export interface MatchingRequest {
   distanceKm: number;
   /** The client who published it passed identity verification. */
   clientIdentityVerified?: boolean;
+  /** The client's profile name matches their verified document (null: unknown). */
+  clientIdentityNameMatches?: boolean | null;
 }
 
 /** GET /technicians/{uuid}/reputation. */

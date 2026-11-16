@@ -30,4 +30,6 @@ export interface Proposal {
   status: ProposalStatus;
   /** The technician passed identity verification (show the badge). */
   identityVerified?: boolean;
+  /** Technician's profile name matches the verified document (null: unknown). */
+  identityNameMatches?: boolean | null;
 }
