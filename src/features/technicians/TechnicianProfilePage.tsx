@@ -444,7 +444,29 @@ function ServiceAreaCard({
   }>(null);
   const [showManualCoords, setShowManualCoords] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const reverseRef = useRef<AbortController | null>(null);
   const { feedback, summaryRef, show, clear } = useFormFeedback();
+
+  // Cancel a pending reverse geocode when the card unmounts.
+  useEffect(() => () => reverseRef.current?.abort(), []);
+
+  // Name the pin position. Only the latest lookup may touch the form, and a
+  // failed lookup (offline, rate limited) just keeps the label we already have.
+  function resolvePinLabel(latitude: number, longitude: number) {
+    reverseRef.current?.abort();
+    const controller = new AbortController();
+    reverseRef.current = controller;
+    reverseGeocodeMapPin(latitude, longitude, controller.signal)
+      .then((resolved) => {
+        if (controller.signal.aborted || !resolved) return;
+        setSelectedLabel(resolved);
+        setSearchQuery(resolved);
+        setDropdownOpen(false);
+      })
+      .catch(() => {
+        // Keep the district label; the coordinates are what gets saved.
+      });
+  }
 
   // Búsqueda real de direcciones en Perú mientras el técnico escribe
   useEffect(() => {
@@ -505,6 +527,7 @@ function ServiceAreaCard({
       latitude: String(latitude),
       longitude: String(longitude),
     }));
+    reverseRef.current?.abort();
     setViewCenter({ lat: latitude, lng: longitude });
     if (nextZoom !== undefined) setZoom(nextZoom);
     if (label) {
@@ -566,12 +589,7 @@ function ServiceAreaCard({
         setDropdownOpen(false);
         setLocating(false);
         toast.success('Ubicación actual detectada en Google Maps.');
-        void reverseGeocodeMapPin(lat, lng).then((resolved) => {
-          if (resolved) {
-            setSelectedLabel(resolved);
-            setSearchQuery(resolved);
-          }
-        });
+        resolvePinLabel(lat, lng);
       },
       () => {
         setLocating(false);
@@ -654,6 +672,7 @@ function ServiceAreaCard({
   function startPinDrag(event: ReactMouseEvent<HTMLElement>) {
     event.stopPropagation();
     event.preventDefault();
+    reverseRef.current?.abort();
     setDragAction({
       kind: 'pin',
       startClientX: event.clientX,
@@ -716,12 +735,7 @@ function ServiceAreaCard({
     const wasPin = dragAction.kind === 'pin';
     setDragAction(null);
     if (wasPin && hasValidCenter) {
-      void reverseGeocodeMapPin(currentLat, currentLng).then((resolved) => {
-        if (resolved) {
-          setSelectedLabel(resolved);
-          setSearchQuery(resolved);
-        }
-      });
+      resolvePinLabel(currentLat, currentLng);
     }
   }
 
@@ -744,12 +758,7 @@ function ServiceAreaCard({
       nextLng,
       district ? `${district}, Lima, Perú` : undefined,
     );
-    void reverseGeocodeMapPin(nextLat, nextLng).then((resolved) => {
-      if (resolved) {
-        setSelectedLabel(resolved);
-        setSearchQuery(resolved);
-      }
-    });
+    resolvePinLabel(nextLat, nextLng);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -850,7 +859,7 @@ function ServiceAreaCard({
                   placeholder="Busca cualquier calle, avenida, jirón o distrito (ej. Av. Arequipa, Miraflores)…"
                   className="w-full border-0 bg-transparent p-0 text-sm font-medium text-ink outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
                 />
-                {searching ? (
+                {searching && dropdownOpen ? (
                   <Loader2
                     size={16}
                     aria-hidden="true"

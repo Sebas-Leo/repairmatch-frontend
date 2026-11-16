@@ -78,7 +78,7 @@ describe('RequestDetailPage', () => {
       within(offers[1]!).getByRole('button', { name: 'Aceptar oferta' }),
     );
     const dialog = screen.getByRole('alertdialog', {
-      name: 'Aceptar la oferta de Rosa Repairs?',
+      name: '¿Aceptar la oferta de Rosa Repairs?',
     });
     await user.click(
       within(dialog).getByRole('button', { name: 'Todavía no' }),
@@ -178,7 +178,7 @@ describe('RequestDetailPage', () => {
     ]);
     setup();
     expect(
-      await screen.findByText('Foto 2 has an invalid address'),
+      await screen.findByText('Foto 2: dirección no válida'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('img')).toBeNull();
   });

@@ -1,6 +1,7 @@
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { PhotoUploadError } from '../../shared/api/cloudinary';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { useSubmitGuard } from '../../shared/hooks/useSubmitGuard';
 import { useToast } from '../../shared/toast/toastContext';
@@ -99,7 +100,9 @@ export function PublishPanel({
       });
     } catch (error) {
       setServerError(
-        feedbackFromError(error).message ?? 'No se pudo publicar.',
+        (error instanceof PhotoUploadError
+          ? error.message
+          : feedbackFromError(error).message) ?? 'No se pudo publicar.',
       );
     }
   });

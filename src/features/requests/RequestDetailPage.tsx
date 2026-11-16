@@ -197,7 +197,7 @@ export function RequestDetailPage() {
                         </a>
                       ) : (
                         <span className="grid aspect-square place-items-center rounded-lg border border-line p-2 text-center text-sm text-muted">
-                          Foto {evidence.evidenceNumber} has an invalid address
+                          Foto {evidence.evidenceNumber}: dirección no válida
                         </span>
                       )}
                     </li>
@@ -261,7 +261,7 @@ export function RequestDetailPage() {
         tone={pending?.kind === 'accept' ? 'primary' : 'danger'}
         title={
           pending?.kind === 'accept'
-            ? `Aceptar la oferta de ${pending.proposal.technicianName}?`
+            ? `¿Aceptar la oferta de ${pending.proposal.technicianName}?`
             : '¿Cancelar esta solicitud?'
         }
         description={
