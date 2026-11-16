@@ -103,7 +103,11 @@ export function IdentityVerificationCard() {
   const copy = state ? COPY[state.status] : undefined;
 
   return (
-    <Card as="section" aria-labelledby="identity-heading" className="grid gap-4">
+    <Card
+      as="section"
+      aria-labelledby="identity-heading"
+      className="grid gap-4"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="identity-heading" className="m-0 text-xl font-bold">
           Verificación de identidad

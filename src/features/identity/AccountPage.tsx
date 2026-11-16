@@ -12,7 +12,10 @@ export function AccountPage() {
         titleId="account-title"
         title="Mi cuenta"
         description="Tus datos y la verificación de identidad, que ayuda a que los técnicos confíen en tus solicitudes."
-        breadcrumbs={[{ label: 'Inicio', to: '/client' }, { label: 'Mi cuenta' }]}
+        breadcrumbs={[
+          { label: 'Inicio', to: '/client' },
+          { label: 'Mi cuenta' },
+        ]}
       />
       <div className="grid max-w-2xl gap-6">
         <Card as="section" aria-labelledby="account-data-heading">

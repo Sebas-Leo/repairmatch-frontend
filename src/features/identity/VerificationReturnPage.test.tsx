@@ -3,14 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IdentityState } from '../../shared/api/types';
 import { renderPage } from '../../test/renderPage';
 import { getIdentityState } from './api';
-import { MAX_POLLS, POLL_MS, VerificationReturnPage } from './VerificationReturnPage';
+import {
+  MAX_POLLS,
+  POLL_MS,
+  VerificationReturnPage,
+} from './VerificationReturnPage';
 
 vi.mock('./api', () => ({ getIdentityState: vi.fn() }));
 
 const PATH = '/verification/return';
 
 function stateOf(status: IdentityState['status']): IdentityState {
-  return { status, verifiedAt: status === 'VERIFIED' ? '2026-11-14T10:30:00' : null };
+  return {
+    status,
+    verifiedAt: status === 'VERIFIED' ? '2026-11-14T10:30:00' : null,
+  };
 }
 
 describe('VerificationReturnPage', () => {
@@ -41,10 +48,9 @@ describe('VerificationReturnPage', () => {
     expect(
       await screen.findByText('No pudimos verificar tu identidad.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ir a mi cuenta' })).toHaveAttribute(
-      'href',
-      '/technician/profile',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Ir a mi cuenta' }),
+    ).toHaveAttribute('href', '/technician/profile');
   });
 
   it('sends clients to their account page when it did not complete', async () => {
@@ -53,10 +59,9 @@ describe('VerificationReturnPage', () => {
     expect(
       await screen.findByText('Tu verificación no se completó.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ir a mi cuenta' })).toHaveAttribute(
-      'href',
-      '/client/account',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Ir a mi cuenta' }),
+    ).toHaveAttribute('href', '/client/account');
   });
 
   it('polls while pending and shows the result once the webhook lands', async () => {

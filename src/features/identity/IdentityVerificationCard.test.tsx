@@ -67,11 +67,17 @@ describe('IdentityVerificationCard', () => {
     );
     setup();
     expect(
-      await screen.findByText('Listo: tu perfil muestra la insignia de identidad verificada.'),
+      await screen.findByText(
+        'Listo: tu perfil muestra la insignia de identidad verificada.',
+      ),
     ).toBeInTheDocument();
-    expect(screen.getAllByText('Identidad verificada').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Identidad verificada').length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getByText(/Verificada el/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Verificar|Intentar/ })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /Verificar|Intentar/ }),
+    ).toBeNull();
   });
 
   it('lets a rejected user try again', async () => {
@@ -112,7 +118,9 @@ describe('IdentityVerificationCard', () => {
     await userEvent.click(
       await screen.findByRole('button', { name: 'Verificar mi identidad' }),
     );
-    expect(await screen.findByText(/No pudimos abrir la verificación/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/No pudimos abrir la verificación/),
+    ).toBeInTheDocument();
     expect(openVerificationPage).not.toHaveBeenCalled();
   });
 
@@ -134,7 +142,9 @@ describe('IdentityVerificationCard', () => {
   });
 
   it('shows a retryable error when the status cannot load', async () => {
-    vi.mocked(getIdentityState).mockRejectedValue(new ApiError(404, 'x', undefined));
+    vi.mocked(getIdentityState).mockRejectedValue(
+      new ApiError(404, 'x', undefined),
+    );
     setup();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
   });

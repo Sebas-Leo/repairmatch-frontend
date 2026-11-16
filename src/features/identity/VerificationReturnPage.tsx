@@ -59,7 +59,11 @@ export function VerificationReturnPage() {
             <>
               <IdentityBadge className="justify-self-start" />
               <p className="m-0 flex items-center gap-2 text-lg font-semibold">
-                <ShieldCheck size={20} aria-hidden="true" className="text-fresh" />
+                <ShieldCheck
+                  size={20}
+                  aria-hidden="true"
+                  className="text-fresh"
+                />
                 ¡Listo! Tu identidad quedó verificada.
               </p>
               <p className="m-0 text-sm text-muted">
@@ -81,7 +85,11 @@ export function VerificationReturnPage() {
           ) : (
             <>
               <p className="m-0 flex items-center gap-2 text-lg font-semibold">
-                <CircleAlert size={20} aria-hidden="true" className="text-danger" />
+                <CircleAlert
+                  size={20}
+                  aria-hidden="true"
+                  className="text-danger"
+                />
                 {status === 'REJECTED'
                   ? 'No pudimos verificar tu identidad.'
                   : 'Tu verificación no se completó.'}
