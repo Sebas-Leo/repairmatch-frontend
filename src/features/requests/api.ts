@@ -22,12 +22,10 @@ export interface CreateRequestInput {
 }
 
 // Obtener catálogo de electrodomésticos
-export const getAppliances = () =>
-  api.request<Appliance[]>('/appliances');
+export const getAppliances = () => api.request<Appliance[]>('/appliances');
 
 // Obtener las solicitudes del cliente autenticado
-export const getMyRequests = () =>
-  api.request<ServiceRequest[]>('/requests');
+export const getMyRequests = () => api.request<ServiceRequest[]>('/requests');
 
 // Crear una nueva solicitud
 export const createRequest = (data: CreateRequestInput) =>

@@ -302,22 +302,24 @@ if (error) return <ErrorState error={error} onRetry={load} />;
 La rúbrica del Proyecto 2 pide esta tabla. El docente multiplica la nota grupal por el porcentaje de cada integrante: 100 % significa que cumplió por completo sus responsabilidades. Cada integrante revisa su fila. **Los porcentajes los acuerda el equipo antes de la entrega.**
 
 <<<<<<< HEAD
-| Integrante         | Principales aportes (según el historial de PRs)                                                                                            | Participación |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
-| Sebas-Leo          | Base del frontend (auth, axios, UX), sistema de diseño, dashboards, solicitudes, ofertas, paginación del backend, integración y despliegue | por definir   |
-| AdrianPacheco12343 | Creación del repositorio y estructura base de la app móvil (Expo / React Native); configuración de Axios con cliente autenticado, interceptores y almacenamiento seguro con `expo-secure-store`; desarrollo de las pantallas de Login, Registro, Lista de Solicitudes y Detalle. | 100% |
-| andrehcv           | Backend: perfil del técnico, área de cobertura y motor de compatibilidad                                                                   | por definir   |
-| becomon            | Backend: base Spring Boot, identidad (registro, JWT, refresh, CORS), permisos y Postman                                                    | por definir   |
-| camilaalfaro-afk   | Backend: solicitudes, evidencias, ciclo de la solicitud y contenedor Docker                                                                | por definir   |
-=======
-| Integrante         | Principales aportes (según el historial de PRs)                                                                                                                                       | Participación |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| Sebas-Leo          | Base del frontend (auth, axios, UX), sistema de diseño, dashboards, solicitudes, ofertas, paginación del backend, integración y despliegue                                            | por definir   |
-| AdrianPacheco12343 | Backend: entidades, datos iniciales y endpoints de servicios                                                                                                                          | por definir   |
-| andrehcv           | Backend: perfil del técnico, área de cobertura y motor de compatibilidad                                                                                                              | por definir   |
-| becomon            | Backend: base Spring Boot, identidad (registro, JWT, refresh, CORS), permisos y Postman; web: subida de fotos desde archivos, evidencias en solicitudes, resumen del inicio y pruebas | por definir   |
-| camilaalfaro-afk   | Backend: solicitudes, evidencias, ciclo de la solicitud y contenedor Docker                                                                                                           | por definir   |
->>>>>>> 77da39f5f77134cbc3ec4cdf1fa03a6aa6bbef4f
+
+| Integrante         | Principales aportes (según el historial de PRs)                                                                                                                                                                                                                                  | Participación |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Sebas-Leo          | Base del frontend (auth, axios, UX), sistema de diseño, dashboards, solicitudes, ofertas, paginación del backend, integración y despliegue                                                                                                                                       | por definir   |
+| AdrianPacheco12343 | Creación del repositorio y estructura base de la app móvil (Expo / React Native); configuración de Axios con cliente autenticado, interceptores y almacenamiento seguro con `expo-secure-store`; desarrollo de las pantallas de Login, Registro, Lista de Solicitudes y Detalle. | 100%          |
+| andrehcv           | Backend: perfil del técnico, área de cobertura y motor de compatibilidad                                                                                                                                                                                                         | por definir   |
+| becomon            | Backend: base Spring Boot, identidad (registro, JWT, refresh, CORS), permisos y Postman                                                                                                                                                                                          | por definir   |
+| camilaalfaro-afk   | Backend: solicitudes, evidencias, ciclo de la solicitud y contenedor Docker                                                                                                                                                                                                      | por definir   |
+| =======            |
+| Integrante         | Principales aportes (según el historial de PRs)                                                                                                                                                                                                                                  | Participación |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------                                                                                            | ------------- |
+| Sebas-Leo          | Base del frontend (auth, axios, UX), sistema de diseño, dashboards, solicitudes, ofertas, paginación del backend, integración y despliegue                                                                                                                                       | por definir   |
+| AdrianPacheco12343 | Backend: entidades, datos iniciales y endpoints de servicios                                                                                                                                                                                                                     | por definir   |
+| andrehcv           | Backend: perfil del técnico, área de cobertura y motor de compatibilidad                                                                                                                                                                                                         | por definir   |
+| becomon            | Backend: base Spring Boot, identidad (registro, JWT, refresh, CORS), permisos y Postman; web: subida de fotos desde archivos, evidencias en solicitudes, resumen del inicio y pruebas                                                                                            | por definir   |
+| camilaalfaro-afk   | Backend: solicitudes, evidencias, ciclo de la solicitud y contenedor Docker                                                                                                                                                                                                      | por definir   |
+
+> > > > > > > 77da39f5f77134cbc3ec4cdf1fa03a6aa6bbef4f
 
 ## Reparto inicial del trabajo
 

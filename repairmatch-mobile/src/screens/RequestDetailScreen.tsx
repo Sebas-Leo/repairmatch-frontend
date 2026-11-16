@@ -1,6 +1,13 @@
 // repairmatch-mobile/src/screens/RequestDetailScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+  ScrollView,
+  Alert,
+} from 'react-native';
 import { client } from '../services/client';
 
 export default function RequestDetailScreen({ route }: { route?: any }) {
@@ -42,16 +49,20 @@ export default function RequestDetailScreen({ route }: { route?: any }) {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Detalle de Solicitud #{request.id}</Text>
-      
+
       <View style={styles.card}>
         <Text style={styles.label}>Estado:</Text>
         <Text style={styles.value}>{request.status || 'Pendiente'}</Text>
 
         <Text style={styles.label}>Descripción:</Text>
-        <Text style={styles.value}>{request.description || 'Sin descripción'}</Text>
+        <Text style={styles.value}>
+          {request.description || 'Sin descripción'}
+        </Text>
 
         <Text style={styles.label}>Electrodoméstico:</Text>
-        <Text style={styles.value}>{request.applianceType || 'No especificado'}</Text>
+        <Text style={styles.value}>
+          {request.applianceType || 'No especificado'}
+        </Text>
       </View>
     </ScrollView>
   );

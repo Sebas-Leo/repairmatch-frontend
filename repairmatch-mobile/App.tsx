@@ -1,38 +1,77 @@
 // repairmatch-mobile/App.tsx
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+} from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import RequestsListScreen from './src/screens/RequestsListScreen';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'register' | 'requests'>('login');
+  const [currentScreen, setCurrentScreen] = useState<
+    'login' | 'register' | 'requests'
+  >('login');
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Barra de navegación superior rápida para pruebas */}
       <View style={styles.navBar}>
-        <TouchableOpacity 
-          style={[styles.navButton, currentScreen === 'login' && styles.activeButton]} 
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            currentScreen === 'login' && styles.activeButton,
+          ]}
           onPress={() => setCurrentScreen('login')}
         >
-          <Text style={[styles.navText, currentScreen === 'login' && styles.activeText]}>Login</Text>
+          <Text
+            style={[
+              styles.navText,
+              currentScreen === 'login' && styles.activeText,
+            ]}
+          >
+            Login
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.navButton, currentScreen === 'register' && styles.activeButton]} 
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            currentScreen === 'register' && styles.activeButton,
+          ]}
           onPress={() => setCurrentScreen('register')}
         >
-          <Text style={[styles.navText, currentScreen === 'register' && styles.activeText]}>Registro</Text>
+          <Text
+            style={[
+              styles.navText,
+              currentScreen === 'register' && styles.activeText,
+            ]}
+          >
+            Registro
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.navButton, currentScreen === 'requests' && styles.activeButton]} 
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            currentScreen === 'requests' && styles.activeButton,
+          ]}
           onPress={() => setCurrentScreen('requests')}
         >
-          <Text style={[styles.navText, currentScreen === 'requests' && styles.activeText]}>Solicitudes</Text>
+          <Text
+            style={[
+              styles.navText,
+              currentScreen === 'requests' && styles.activeText,
+            ]}
+          >
+            Solicitudes
+          </Text>
         </TouchableOpacity>
       </View>
 

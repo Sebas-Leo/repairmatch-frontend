@@ -1,6 +1,14 @@
 // repairmatch-mobile/src/screens/RegisterScreen.tsx
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { authService } from '../services/auth';
 
 export default function RegisterScreen({ navigation }: { navigation?: any }) {
@@ -19,10 +27,16 @@ export default function RegisterScreen({ navigation }: { navigation?: any }) {
     try {
       setLoading(true);
       await authService.register({ email, firstName, lastName, password });
-      Alert.alert('¡Éxito!', 'Cuenta creada correctamente. Ahora puedes iniciar sesión.');
+      Alert.alert(
+        '¡Éxito!',
+        'Cuenta creada correctamente. Ahora puedes iniciar sesión.',
+      );
       if (navigation) navigation.goBack();
     } catch (error: any) {
-      Alert.alert('Error en el registro', error.response?.data?.detail || 'No se pudo crear la cuenta');
+      Alert.alert(
+        'Error en el registro',
+        error.response?.data?.detail || 'No se pudo crear la cuenta',
+      );
     } finally {
       setLoading(false);
     }
@@ -68,7 +82,11 @@ export default function RegisterScreen({ navigation }: { navigation?: any }) {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleRegister}
+        disabled={loading}
+      >
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (

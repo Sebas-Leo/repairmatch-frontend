@@ -1,6 +1,14 @@
 // repairmatch-mobile/src/screens/LoginScreen.tsx
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { authService } from '../services/auth';
 
 export default function LoginScreen({ navigation }: { navigation?: any }) {
@@ -20,7 +28,10 @@ export default function LoginScreen({ navigation }: { navigation?: any }) {
       Alert.alert('¡Éxito!', 'Inicio de sesión exitoso');
       // Aquí más adelante redirigiremos a la lista de solicitudes
     } catch (error: any) {
-      Alert.alert('Error de autenticación', error.response?.data?.message || 'Credenciales inválidas');
+      Alert.alert(
+        'Error de autenticación',
+        error.response?.data?.message || 'Credenciales inválidas',
+      );
     } finally {
       setLoading(false);
     }
@@ -50,7 +61,11 @@ export default function LoginScreen({ navigation }: { navigation?: any }) {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleLogin}
+        disabled={loading}
+      >
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (

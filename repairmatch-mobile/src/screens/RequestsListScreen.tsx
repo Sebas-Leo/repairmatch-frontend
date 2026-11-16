@@ -1,9 +1,20 @@
 // repairmatch-mobile/src/screens/RequestsListScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import { client } from '../services/client';
 
-export default function RequestsListScreen({ navigation }: { navigation?: any }) {
+export default function RequestsListScreen({
+  navigation,
+}: {
+  navigation?: any;
+}) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +25,7 @@ export default function RequestsListScreen({ navigation }: { navigation?: any })
   const fetchRequests = async () => {
     try {
       // Ajusta el endpoint según la ruta de tu API (ej. /flights o /requests)
-      const response = await client.get('/flights'); 
+      const response = await client.get('/flights');
       setRequests(response.data.items || response.data);
     } catch (error) {
       console.warn('Error al cargar las solicitudes/registros', error);
@@ -39,8 +50,12 @@ export default function RequestsListScreen({ navigation }: { navigation?: any })
         keyExtractor={(item: any) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card}>
-            <Text style={styles.cardTitle}>{item.flightNumber || item.title || `Solicitud #${item.id}`}</Text>
-            <Text style={styles.cardSubtitle}>{item.airlineName || item.description || 'Detalle disponible'}</Text>
+            <Text style={styles.cardTitle}>
+              {item.flightNumber || item.title || `Solicitud #${item.id}`}
+            </Text>
+            <Text style={styles.cardSubtitle}>
+              {item.airlineName || item.description || 'Detalle disponible'}
+            </Text>
           </TouchableOpacity>
         )}
       />

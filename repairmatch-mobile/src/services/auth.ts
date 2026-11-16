@@ -11,12 +11,17 @@ export const authService = {
     return response.data;
   },
 
-  async register(userData: { email: string; firstName: string; lastName: string; password: string }) {
+  async register(userData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+  }) {
     const response = await client.post('/users/register', userData);
     return response.data;
   },
 
   async logout() {
     await tokenStorage.clearTokens();
-  }
+  },
 };
