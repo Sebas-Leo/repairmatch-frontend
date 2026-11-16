@@ -1,5 +1,4 @@
 import {
-  BadgeCheck,
   Briefcase,
   Check,
   Compass,
@@ -25,6 +24,8 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { listApplianceTypes } from '../applianceTypes/api';
+import { IdentityVerificationCard } from '../identity/IdentityVerificationCard';
+import { IdentityBadge } from '../../shared/ui/IdentityBadge';
 import { ApplianceIcon } from '../requests/ApplianceIcon';
 import { applianceLabel } from '../requests/applianceLabel';
 import type { ApplianceType, TechnicianProfile } from '../../shared/api/types';
@@ -1190,10 +1191,7 @@ function ProfileEditor({
               <p className="m-0 font-display text-2xl font-extrabold tracking-tight capitalize text-ink transition-colors duration-300 group-hover/header:text-brand">
                 {profile.fullName}
               </p>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand-soft/75 px-3 py-0.5 text-xs font-semibold text-brand">
-                <BadgeCheck size={14} aria-hidden="true" />
-                Técnico verificado
-              </span>
+              {profile.identityVerified ? <IdentityBadge /> : null}
             </div>
             <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
               <span>{profile.email}</span>
@@ -1224,6 +1222,8 @@ function ProfileEditor({
           </div>
         </dl>
       </div>
+
+      <IdentityVerificationCard />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
         <ProfileDetailsCard

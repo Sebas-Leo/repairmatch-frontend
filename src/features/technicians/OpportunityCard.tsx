@@ -1,6 +1,7 @@
 import { MapPin, MessageSquareText, Send } from 'lucide-react';
 import type { MatchingRequest } from '../../shared/api/types';
 import { ButtonLink } from '../../shared/ui/Button';
+import { IdentityBadge } from '../../shared/ui/IdentityBadge';
 import { CoverPhoto } from '../requests/CoverPhoto';
 
 /** A repair request near the technician that they can send an offer for. */
@@ -43,6 +44,11 @@ export function OpportunityCard({
           {product || opportunity.applianceTypeName}
           <span className="sr-only"> · solicitud #{opportunity.requestId}</span>
         </h2>
+        {opportunity.clientIdentityVerified ? (
+          <div>
+            <IdentityBadge label="Cliente verificado" />
+          </div>
+        ) : null}
         <p className="m-0 line-clamp-2 text-muted">{opportunity.description}</p>
         <div className="pt-1">
           <ButtonLink

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { cx } from '../../shared/ui/cx';
+import { IdentityBadge } from '../../shared/ui/IdentityBadge';
 import { applianceLabel } from '../requests/applianceLabel';
 import { CoverPhoto } from '../requests/CoverPhoto';
 import type { RecommendedRequest } from './api';
@@ -109,6 +110,11 @@ export function RecentRequestCard({
         <h3 className="m-0 truncate text-lg" title={title}>
           {title}
         </h3>
+        {request.clientIdentityVerified ? (
+          <div>
+            <IdentityBadge label="Cliente verificado" />
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => setQuoting(true)}

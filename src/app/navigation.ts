@@ -16,6 +16,7 @@ export const NAVIGATION: Record<Role, readonly NavItem[]> = {
     { label: 'Inicio', to: '/client', end: true },
     { label: 'Mis solicitudes', to: '/client/requests' },
     { label: 'Servicios', to: '/client/services' },
+    { label: 'Mi cuenta', to: '/client/account' },
   ],
   TECHNICIAN: [
     { label: 'Inicio', to: '/technician', end: true },

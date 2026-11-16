@@ -46,4 +46,6 @@ export interface UserResponse {
   name: string;
   email: string;
   role: Role;
+  /** Passed the optional identity verification (older servers omit it). */
+  identityVerified?: boolean;
 }

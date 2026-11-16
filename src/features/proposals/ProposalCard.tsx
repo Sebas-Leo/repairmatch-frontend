@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { Proposal, ProposalStatus } from '../../shared/api/types';
 import { formatDateTime, formatMoney } from '../../shared/format';
 import { Badge, type BadgeTone } from '../../shared/ui/Badge';
+import { IdentityBadge } from '../../shared/ui/IdentityBadge';
 
 const STATUS: Record<ProposalStatus, { label: string; tone: BadgeTone }> = {
   PENDING: { label: 'Pendiente', tone: 'info' },
@@ -51,6 +52,7 @@ export function ProposalCard({
             {proposal.technicianName}
           </p>
           <div className="flex flex-wrap gap-1">
+            {proposal.identityVerified ? <IdentityBadge /> : null}
             {highlight ? <Badge tone="success">{highlight}</Badge> : null}
             <Badge tone={status.tone}>{status.label}</Badge>
           </div>

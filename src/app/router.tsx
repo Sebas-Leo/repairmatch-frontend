@@ -56,6 +56,14 @@ export const appRoutes: RouteObject[] = [
           {
             element: <RequireAuth />,
             children: [
+              // Where Didit sends the user back (any role).
+              {
+                path: 'verification/return',
+                element: lazyPage(
+                  () => import('../features/identity/VerificationReturnPage'),
+                  'VerificationReturnPage',
+                ),
+              },
               {
                 element: <RequireRole role="CLIENT" />,
                 children: [{ path: 'client', children: clientRoutes }],

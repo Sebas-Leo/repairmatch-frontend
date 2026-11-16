@@ -28,4 +28,6 @@ export interface Proposal {
   conditions: string;
   createdAt: LocalDateTimeString;
   status: ProposalStatus;
+  /** The technician passed identity verification (show the badge). */
+  identityVerified?: boolean;
 }
