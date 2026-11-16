@@ -30,6 +30,11 @@ vi.mock('./api', () => ({
   updateServiceArea: vi.fn(),
 }));
 
+vi.mock('../identity/api', () => ({
+  getIdentityState: vi.fn(() => new Promise(() => {})),
+  startIdentityVerification: vi.fn(),
+}));
+
 const PATH = '/technician/profile';
 
 const TYPES: ApplianceType[] = [

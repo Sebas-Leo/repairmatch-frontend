@@ -18,6 +18,8 @@ export interface TechnicianProfile {
   maxRadiusKm?: number;
   /** Appliance type NAMES (updates send ids through `applianceTypeIds`). */
   applianceTypes: string[];
+  /** Passed the optional identity verification. */
+  identityVerified?: boolean;
 }
 
 /**
@@ -72,6 +74,8 @@ export interface MatchingRequest {
   description: string;
   status: RequestStatus;
   distanceKm: number;
+  /** The client who published it passed identity verification. */
+  clientIdentityVerified?: boolean;
 }
 
 /** GET /technicians/{uuid}/reputation. */

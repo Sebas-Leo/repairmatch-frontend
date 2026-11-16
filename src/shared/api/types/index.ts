@@ -5,3 +5,4 @@ export * from './proposals';
 export * from './requests';
 export * from './services';
 export * from './technicians';
+export * from './identity';
