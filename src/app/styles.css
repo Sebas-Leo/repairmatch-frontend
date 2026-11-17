@@ -397,13 +397,10 @@
     text-decoration: none;
   }
   .brand-mark {
-    display: grid;
-    place-items: center;
+    display: block;
     width: 36px;
     height: 36px;
-    background: var(--rm-brand);
-    color: var(--rm-on-brand);
-    border-radius: 12px;
+    border-radius: 10px;
   }
   .eyebrow {
     font-weight: 700;

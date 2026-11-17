@@ -92,9 +92,13 @@ export function AppLayout() {
                 to="/"
                 aria-label="RepairMatch home"
               >
-                <span className="brand-mark" aria-hidden="true">
-                  R
-                </span>
+                <img
+                  className="brand-mark"
+                  src="/brand-icon.svg"
+                  alt=""
+                  width={36}
+                  height={36}
+                />
                 RepairMatch
               </Link>
               <SessionNav />

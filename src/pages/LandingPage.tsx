@@ -217,9 +217,13 @@ export function LandingPage() {
         <header className="sticky top-0 z-40 border-b border-[var(--rm-nav-line)] bg-surface">
           <div className="shell grid grid-cols-[1fr_auto_1fr] items-center py-3.5">
             <Link className="brand" to="/" aria-label="RepairMatch inicio">
-              <span className="brand-mark" aria-hidden="true">
-                R
-              </span>
+              <img
+                className="brand-mark"
+                src="/brand-icon.svg"
+                alt=""
+                width={36}
+                height={36}
+              />
               RepairMatch
             </Link>
             <nav
