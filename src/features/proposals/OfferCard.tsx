@@ -79,7 +79,7 @@ export function OfferCard({
   return (
     <article
       className={cx(
-        'grid grid-cols-[9rem_minmax(0,1fr)] overflow-hidden rounded-card border border-line bg-surface transition-opacity',
+        'grid grid-cols-[6.5rem_minmax(0,1fr)] sm:grid-cols-[9rem_minmax(0,1fr)] overflow-hidden rounded-card border border-line bg-surface transition-opacity',
         quiet && 'opacity-65',
       )}
     >

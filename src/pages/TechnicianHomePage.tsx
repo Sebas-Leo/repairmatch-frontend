@@ -194,7 +194,7 @@ export function TechnicianHomePage() {
               {group.title}
               <span className="ml-2 tabular-nums">{group.items.length}</span>
             </h2>
-            <ul className="stagger spotlight m-0 grid list-none grid-cols-3 gap-5 p-0">
+            <ul className="stagger spotlight m-0 grid list-none grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 p-0">
               {group.items.map((item) => (
                 <li key={item.request.requestId}>
                   <RecentRequestCard

@@ -114,7 +114,7 @@ export function RequestListPage() {
   } else {
     content = (
       <div aria-busy={query.isFetching || undefined} className="grid gap-6">
-        <ul className="stagger m-0 grid list-none grid-cols-2 gap-5 p-0">
+        <ul className="stagger m-0 grid list-none grid-cols-1 gap-5 lg:grid-cols-2 p-0">
           {data.content.map((request) => (
             <li key={request.id}>
               <ClientRequestRow request={request} />
@@ -166,7 +166,7 @@ export function RequestListPage() {
         </div>
       </header>
 
-      <dl className="m-0 grid grid-cols-4 gap-3">
+      <dl className="m-0 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="Publicadas" value={published} />
         <Kpi
           label="Con ofertas por revisar"
