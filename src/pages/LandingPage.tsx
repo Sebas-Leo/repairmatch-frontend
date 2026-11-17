@@ -162,7 +162,8 @@ const REVIEWS = [
 const CLIENT_SIGNUP = '/register?role=client';
 const TECHNICIAN_SIGNUP = '/register?role=technician';
 
-const navLink = 'text-ink no-underline transition-colors hover:text-brand';
+const navLink =
+  'inline-flex min-h-11 items-center justify-center text-center text-ink no-underline transition-colors hover:text-brand';
 const solidBtn =
   'inline-flex items-center justify-center gap-1.5 rounded-full bg-brand font-semibold text-white no-underline transition-colors hover:bg-brand-strong';
 const stepCard =
@@ -214,9 +215,13 @@ export function LandingPage() {
         <a className="skip-link" href="#landing-main">
           Saltar al contenido
         </a>
-        <header className="sticky top-0 z-40 border-b border-[var(--rm-nav-line)] bg-surface">
-          <div className="shell grid grid-cols-[1fr_auto_1fr] items-center py-3.5">
-            <Link className="brand" to="/" aria-label="RepairMatch inicio">
+        <header className="relative top-0 z-40 border-b border-[var(--rm-nav-line)] bg-surface xl:sticky">
+          <div className="shell grid grid-cols-1 items-center gap-2 py-3.5 md:grid-cols-[1fr_auto] xl:grid-cols-[1fr_auto_1fr] xl:gap-4">
+            <Link
+              className="brand min-h-11"
+              to="/"
+              aria-label="RepairMatch inicio"
+            >
               <img
                 className="brand-mark"
                 src="/brand-icon.svg"
@@ -228,7 +233,7 @@ export function LandingPage() {
             </Link>
             <nav
               aria-label="Secciones"
-              className="flex gap-7 text-sm font-medium"
+              className="order-last grid grid-cols-3 gap-1 text-sm font-medium md:col-span-2 xl:order-none xl:col-span-1 xl:flex xl:gap-7"
             >
               <a href="#como-funciona" className={navLink}>
                 Cómo funciona
@@ -240,12 +245,15 @@ export function LandingPage() {
                 Para técnicos
               </a>
             </nav>
-            <div className="flex items-center justify-end gap-2.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-2 md:justify-end [&>button]:min-h-11 [&>button]:min-w-11 [&>button]:shrink-0">
               <ThemeToggle />
               {signedIn ? (
                 <Link
                   to={roleHome(auth.user.role)}
-                  className={cx(solidBtn, 'min-h-10 px-5 text-sm')}
+                  className={cx(
+                    solidBtn,
+                    'min-h-11 px-3 text-center text-sm sm:px-5',
+                  )}
                 >
                   Ir a mi panel <ArrowRight size={15} aria-hidden="true" />
                 </Link>
@@ -253,13 +261,16 @@ export function LandingPage() {
                 <>
                   <Link
                     to="/login"
-                    className="inline-flex min-h-10 items-center rounded-full border border-line bg-surface px-5 text-sm font-semibold text-ink no-underline hover:border-ink"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-surface px-3 text-center text-sm font-semibold text-ink no-underline hover:border-ink sm:px-5"
                   >
                     Iniciar sesión
                   </Link>
                   <Link
                     to={CLIENT_SIGNUP}
-                    className={cx(solidBtn, 'min-h-10 px-5 text-sm')}
+                    className={cx(
+                      solidBtn,
+                      'min-h-11 px-3 text-center text-sm sm:px-5',
+                    )}
                   >
                     Publicar problema
                   </Link>
@@ -276,12 +287,12 @@ export function LandingPage() {
         >
           {/* Band 1 — hero on stone. */}
           <section aria-labelledby="landing-title" className="bg-bg">
-            <div className="shell grid grid-cols-[55fr_45fr] items-center gap-14 py-20">
-              <div className="rise grid content-start justify-items-start gap-6">
+            <div className="shell grid grid-cols-1 items-center gap-8 py-12 sm:py-16 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] xl:gap-14 xl:py-20">
+              <div className="rise grid min-w-0 content-start justify-items-start gap-6">
                 <span className="inline-flex items-center gap-2 rounded-full border border-fresh/25 bg-fresh-soft px-3.5 py-1 text-sm font-medium text-fresh-strong">
                   <span
                     aria-hidden="true"
-                    className="pulse-fresh size-2 rounded-full bg-fresh"
+                    className="pulse-fresh size-2 shrink-0 rounded-full bg-fresh"
                   />
                   Técnicos verificados en Lima Metropolitana
                 </span>
@@ -305,7 +316,7 @@ export function LandingPage() {
                     onSubmit={submit}
                     className="ai-glow relative rounded-2xl p-[1.5px]"
                   >
-                    <div className="flex items-center gap-3 rounded-[15px] bg-surface py-2.5 pr-2.5 pl-5">
+                    <div className="flex flex-wrap items-center gap-3 rounded-[15px] bg-surface p-3 sm:pl-5">
                       <span
                         aria-hidden="true"
                         className="ai-icon relative grid size-6 shrink-0 place-items-center text-brand"
@@ -313,7 +324,7 @@ export function LandingPage() {
                         <Sparkles size={22} className="ai-icon-a absolute" />
                         <Search size={22} className="ai-icon-b absolute" />
                       </span>
-                      <label className="grid flex-1 gap-0.5">
+                      <label className="grid min-w-0 flex-1 gap-0.5">
                         <span className="text-[0.95rem] font-semibold">
                           Describe la falla con tus palabras…
                         </span>
@@ -323,12 +334,15 @@ export function LandingPage() {
                           onChange={(event) => setQuery(event.target.value)}
                           aria-describedby="ai-hint"
                           placeholder="ej. 'Mi lavadora hace ruido y no bota agua'"
-                          className="peer min-w-0 border-0 bg-transparent p-0 text-[0.95rem] text-ink outline-none placeholder:text-muted"
+                          className="peer min-h-11 min-w-0 border-0 bg-transparent p-0 text-[0.95rem] text-ink outline-none placeholder:text-muted"
                         />
                       </label>
                       <button
                         type="submit"
-                        className={cx(solidBtn, 'sweep min-h-12 border-0 px-6')}
+                        className={cx(
+                          solidBtn,
+                          'sweep min-h-12 w-full border-0 px-6 sm:w-auto lg:w-full xl:w-auto',
+                        )}
                       >
                         Cotizar ahora{' '}
                         <ArrowRight size={17} aria-hidden="true" />
@@ -342,7 +356,7 @@ export function LandingPage() {
                     <Sparkles
                       size={12}
                       aria-hidden="true"
-                      className="text-fresh"
+                      className="shrink-0 text-fresh"
                     />
                     IA semántica: identifica el equipo, la falla probable y
                     técnicos compatibles cerca de ti
@@ -363,7 +377,7 @@ export function LandingPage() {
                         aria-pressed={active}
                         onClick={() => setCategory(active ? null : chip.value)}
                         className={cx(
-                          'min-h-10 rounded-full border px-4 text-sm font-medium transition-colors duration-200',
+                          'min-h-11 rounded-full border px-4 text-sm font-medium transition-colors duration-200',
                           active
                             ? 'border-ink bg-surface-2 text-ink'
                             : 'border-line bg-surface text-ink hover:border-ink/50',
@@ -397,7 +411,7 @@ export function LandingPage() {
               </div>
 
               {/* 2.5D showcase: tabs switch the case, offers float on their own planes. */}
-              <div className="rise showcase-stage relative grid gap-4">
+              <div className="rise showcase-stage relative mx-auto grid w-full min-w-0 max-w-xl gap-4">
                 <span
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-8 rounded-full bg-[radial-gradient(circle_at_30%_40%,rgb(224_90_30/14%),transparent_60%),radial-gradient(circle_at_75%_70%,rgb(5_150_105/12%),transparent_60%)] blur-[48px]"
@@ -405,7 +419,7 @@ export function LandingPage() {
                 <div
                   role="tablist"
                   aria-label="Casos de ejemplo"
-                  className="relative flex gap-1.5 justify-self-start rounded-full bg-surface p-1 shadow-card"
+                  className="relative flex max-w-full flex-wrap gap-1.5 justify-self-start rounded-2xl bg-surface p-1 shadow-card sm:rounded-full"
                 >
                   {SHOWCASE.map((item, i) => (
                     <button
@@ -415,7 +429,7 @@ export function LandingPage() {
                       aria-selected={scene === i}
                       onClick={() => setScene(i)}
                       className={cx(
-                        'min-h-9 rounded-full border-0 px-3.5 text-sm font-semibold whitespace-nowrap transition-colors duration-200',
+                        'min-h-11 rounded-full border-0 px-3.5 text-sm font-semibold transition-colors duration-200',
                         scene === i
                           ? 'bg-ink text-bg'
                           : 'bg-transparent text-muted hover:text-ink',
@@ -440,7 +454,7 @@ export function LandingPage() {
                   {/* Top-left: the request and its diagnosis. Bottom-right: the offers. They never share a corner. */}
                   <div
                     key={`req-${scene}`}
-                    className="swap-in group/req absolute top-8 left-8 z-30 grid max-w-[58%] justify-items-start gap-2 [transform:translateZ(40px)]"
+                    className="swap-in group/req relative z-30 mt-3 grid min-w-0 justify-items-start gap-2 xl:absolute xl:top-8 xl:left-8 xl:mt-0 xl:max-w-[58%] xl:[transform:translateZ(40px)]"
                   >
                     <div
                       tabIndex={0}
@@ -450,7 +464,7 @@ export function LandingPage() {
                         <Camera
                           size={15}
                           aria-hidden="true"
-                          className="text-muted"
+                          className="shrink-0 text-muted"
                         />{' '}
                         {show.request}
                       </span>
@@ -458,26 +472,26 @@ export function LandingPage() {
                         <Check size={12} aria-hidden="true" /> 3 ofertas listas
                       </span>
                     </div>
-                    <span className="pointer-events-none -translate-y-1 rounded-xl bg-[#242725] px-3 py-2 text-xs leading-snug font-medium text-white opacity-0 shadow-card transition-[opacity,transform] duration-300 group-hover/req:translate-y-0 group-hover/req:opacity-100 group-focus-within/req:translate-y-0 group-focus-within/req:opacity-100">
+                    <span className="rounded-xl bg-[#242725] px-3 py-2 text-xs leading-snug font-medium text-white shadow-card transition-[opacity,transform] duration-300 group-hover/req:translate-y-0 group-hover/req:opacity-100 group-focus-within/req:translate-y-0 group-focus-within/req:opacity-100 xl:pointer-events-none xl:-translate-y-1 xl:opacity-0">
                       Diagnóstico estimado: {show.diagnosis}
                     </span>
                   </div>
                   <ul
                     key={`offers-${scene}`}
-                    className="swap-in absolute right-8 bottom-8 z-20 m-0 grid list-none gap-2 p-0 [transform:translateZ(70px)]"
+                    className="swap-in relative z-20 m-0 mt-3 grid min-w-0 list-none gap-2 p-0 xl:absolute xl:right-8 xl:bottom-8 xl:mt-0 xl:[transform:translateZ(70px)]"
                   >
                     {show.offers.map(([ini, name, rate, note, price], i) => (
                       <li
                         key={name + note}
                         className={cx(
-                          'float-shadow flex items-center gap-3 rounded-xl border bg-surface px-3.5 py-2.5',
-                          i === 0 ? 'border-fresh/50' : 'mr-6 border-line',
+                          'float-shadow flex flex-wrap items-center gap-3 rounded-xl border bg-surface px-3.5 py-2.5',
+                          i === 0 ? 'border-fresh/50' : 'border-line xl:mr-6',
                         )}
                       >
-                        <span className="grid size-10 place-items-center rounded-full bg-cobalt-soft text-xs font-bold text-cobalt">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-cobalt-soft text-xs font-bold text-cobalt">
                           {ini}
                         </span>
-                        <span className="grid text-sm">
+                        <span className="grid min-w-0 flex-1 text-sm">
                           <span className="font-semibold">
                             {name} ·{' '}
                             <Star
@@ -547,7 +561,7 @@ export function LandingPage() {
             aria-labelledby="specialties-title"
             className="scroll-mt-16 border-y border-[var(--rm-nav-line)] bg-surface"
           >
-            <div className="shell grid gap-9 py-20">
+            <div className="shell grid gap-9 py-12 sm:py-16 xl:py-20">
               <header className="reveal grid gap-1.5 text-center">
                 <h2
                   id="specialties-title"
@@ -560,7 +574,7 @@ export function LandingPage() {
                   distrito
                 </p>
               </header>
-              <ul className="m-0 grid list-none grid-cols-3 grid-rows-[15rem_15rem] gap-5 p-0">
+              <ul className="m-0 grid list-none grid-cols-1 auto-rows-[18rem] gap-5 p-0 sm:grid-cols-2 xl:grid-cols-3 xl:grid-rows-[15rem_15rem]">
                 {SPECIALTIES.map((item, i) => (
                   <li
                     key={item.value}
@@ -568,8 +582,8 @@ export function LandingPage() {
                     onMouseMove={trackSpot}
                     className={cx(
                       'reveal spot-card group relative overflow-hidden rounded-card shadow-card',
-                      i === 0 && 'row-span-2 ring-2 ring-brand/30',
-                      i === 3 && 'col-start-3 row-span-2 row-start-1',
+                      i === 0 && 'ring-2 ring-brand/30 xl:row-span-2',
+                      i === 3 && 'xl:col-start-3 xl:row-span-2 xl:row-start-1',
                     )}
                   >
                     <Scene
@@ -583,7 +597,7 @@ export function LandingPage() {
                       aria-hidden="true"
                       className="absolute inset-0 bg-gradient-to-t from-[#1b1d1c]/80 via-[#1b1d1c]/15 to-transparent"
                     />
-                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-5 text-white">
+                    <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 p-5 text-white">
                       <div className="grid gap-0.5">
                         <h3
                           className={cx(
@@ -599,7 +613,7 @@ export function LandingPage() {
                       </div>
                       <Link
                         to={quoteHref(item.value)}
-                        className="relative z-10 inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-[#1f1a16] no-underline transition-colors hover:bg-brand hover:text-white dark:bg-brand dark:text-white dark:shadow-[0_8px_20px_-8px_rgb(201_74_20/60%)] dark:hover:bg-brand-strong"
+                        className="relative z-10 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-[#1f1a16] no-underline transition-colors hover:bg-brand hover:text-white dark:bg-brand dark:text-white dark:shadow-[0_8px_20px_-8px_rgb(201_74_20/60%)] dark:hover:bg-brand-strong"
                       >
                         Cotizar <ArrowRight size={14} aria-hidden="true" />
                       </Link>
@@ -616,7 +630,7 @@ export function LandingPage() {
             aria-labelledby="how-title"
             className="scroll-mt-16 bg-[radial-gradient(circle_at_20%_10%,rgb(16_185_129/14%),transparent_55%),linear-gradient(135deg,#bce0ce_0%,#d8efe3_48%,#f3e8d8_100%)] bg-[length:200%_200%] grad-drift dark:bg-none dark:bg-surface-2"
           >
-            <div className="shell grid gap-9 py-20">
+            <div className="shell grid gap-9 py-12 sm:py-16 xl:py-20">
               <header className="reveal grid gap-1.5 text-center">
                 <h2
                   id="how-title"
@@ -629,7 +643,7 @@ export function LandingPage() {
                   soluciona tu problema el mismo día.
                 </p>
               </header>
-              <ol className="m-0 grid list-none grid-cols-3 gap-5 p-0">
+              <ol className="m-0 grid list-none grid-cols-1 gap-5 p-0 lg:grid-cols-3">
                 <li
                   className={cx('reveal spot-card spot-tint', stepCard)}
                   style={delay(0)}
@@ -696,7 +710,7 @@ export function LandingPage() {
                         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-cobalt-soft text-xs font-bold text-cobalt">
                           {ini}
                         </span>
-                        <span className="grid text-sm">
+                        <span className="grid min-w-0 text-sm">
                           <span className="font-semibold">
                             {price} · {name}{' '}
                             <Star
@@ -771,14 +785,14 @@ export function LandingPage() {
             aria-labelledby="reviews-title"
             className="bg-[linear-gradient(125deg,#f5dfc9_0%,#efe6da_52%,#d4e7dd_100%)] bg-[length:200%_200%] grad-drift [animation-delay:-9s] dark:bg-none dark:bg-bg"
           >
-            <div className="shell grid gap-9 py-20">
+            <div className="shell grid gap-9 py-12 sm:py-16 xl:py-20">
               <h2
                 id="reviews-title"
                 className="reveal m-0 text-center text-[clamp(1.8rem,3vw,2.5rem)] font-extrabold tracking-[-0.03em]"
               >
                 Lo que dicen nuestros usuarios en Lima
               </h2>
-              <ul className="m-0 grid list-none grid-cols-3 gap-5 p-0">
+              <ul className="m-0 grid list-none grid-cols-1 gap-5 p-0 lg:grid-cols-3">
                 {REVIEWS.map((r, i) => (
                   <li
                     key={r.who}
@@ -806,7 +820,7 @@ export function LandingPage() {
             aria-labelledby="tech-title"
             className="scroll-mt-16 bg-[#242725] text-white"
           >
-            <div className="shell grid grid-cols-[1.3fr_1fr] items-center gap-12 py-20">
+            <div className="shell grid grid-cols-1 items-center gap-10 py-12 sm:py-16 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] xl:gap-12 xl:py-20">
               <div className="reveal grid justify-items-start gap-4">
                 <span className="text-xs font-semibold tracking-[0.14em] text-white/60 uppercase">
                   ¿Eres técnico?
@@ -831,17 +845,17 @@ export function LandingPage() {
               </div>
               <div
                 aria-hidden="true"
-                className="reveal relative justify-self-center"
+                className="reveal relative w-full max-w-72 justify-self-center"
               >
-                <span className="absolute -inset-10 rounded-full bg-[radial-gradient(circle_at_35%_40%,rgb(5_150_105/45%),transparent_60%),radial-gradient(circle_at_70%_65%,rgb(201_74_20/40%),transparent_60%)] blur-[56px]" />
-                <div className="relative aspect-[4/5] w-80 overflow-hidden rounded-2xl shadow-[0_24px_48px_-20px_rgb(0_0_0/60%)]">
+                <span className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_40%,rgb(5_150_105/45%),transparent_60%),radial-gradient(circle_at_70%_65%,rgb(201_74_20/40%),transparent_60%)] blur-[56px] sm:-inset-10" />
+                <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-[0_24px_48px_-20px_rgb(0_0_0/60%)]">
                   <Scene
                     photo="tecnico"
                     appliance="Washing Machine"
                     alt="Técnico revisando su caja de herramientas"
                   />
                 </div>
-                <div className="absolute -bottom-10 -left-24 scale-[0.72] rounded-2xl bg-surface p-6 text-ink shadow-[0_24px_48px_-20px_rgb(0_0_0/60%)]">
+                <div className="absolute -bottom-10 -left-6 scale-[0.72] sm:-left-24 rounded-2xl bg-surface p-6 text-ink shadow-[0_24px_48px_-20px_rgb(0_0_0/60%)]">
                   <p className="m-0 text-center font-display font-bold">
                     Cerca de Miraflores
                   </p>
@@ -850,7 +864,10 @@ export function LandingPage() {
                       9 solicitudes en tu radio
                     </span>
                   </p>
-                  <svg viewBox="0 0 200 200" className="mt-4 size-52">
+                  <svg
+                    viewBox="0 0 200 200"
+                    className="mx-auto mt-4 aspect-square w-full max-w-52"
+                  >
                     {[90, 62, 34].map((r, i) => (
                       <circle
                         key={r}
