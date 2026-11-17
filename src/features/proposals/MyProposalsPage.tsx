@@ -96,7 +96,7 @@ export function MyProposalsPage() {
             description="Prueba otra pestaña o la página siguiente."
           />
         ) : (
-          <ul className="stagger m-0 grid list-none grid-cols-2 gap-5 p-0">
+          <ul className="stagger m-0 grid list-none grid-cols-1 gap-5 lg:grid-cols-2 p-0">
             {shown.map((proposal) => (
               <li key={proposal.id}>
                 <OfferCard proposal={proposal} base={profile.data} />
@@ -133,7 +133,7 @@ export function MyProposalsPage() {
         </p>
       </header>
 
-      <dl className="m-0 grid grid-cols-4 gap-3">
+      <dl className="m-0 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="Enviadas" value={sent} />
         <Kpi label="Aceptadas" value={accepted} tone="text-fresh" />
         <Kpi label="Pendientes" value={count('PENDING')} tone="text-warning" />

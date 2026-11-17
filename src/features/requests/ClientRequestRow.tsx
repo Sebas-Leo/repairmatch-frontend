@@ -26,7 +26,7 @@ export function ClientRequestRow({ request }: { request: ServiceRequest }) {
   return (
     <article
       className={cx(
-        'group relative grid h-full grid-cols-[9.5rem_minmax(0,1fr)] overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[border-color,box-shadow] duration-200 hover:border-cobalt/40 hover:shadow-[0_10px_24px_-14px_rgb(28_25_23/30%)]',
+        'group relative grid h-full grid-cols-[6.5rem_minmax(0,1fr)] sm:grid-cols-[9.5rem_minmax(0,1fr)] overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[border-color,box-shadow] duration-200 hover:border-cobalt/40 hover:shadow-[0_10px_24px_-14px_rgb(28_25_23/30%)]',
         stopped && 'opacity-70',
       )}
     >

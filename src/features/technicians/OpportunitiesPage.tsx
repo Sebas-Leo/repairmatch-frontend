@@ -120,7 +120,7 @@ export function OpportunitiesPage() {
             description="Prueba otra pestaña, otra búsqueda o la página siguiente."
           />
         ) : (
-          <ul className="stagger spotlight m-0 grid list-none grid-cols-3 gap-5 p-0">
+          <ul className="stagger spotlight m-0 grid list-none grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 p-0">
             {visible.map((item) => (
               <li key={item.request.requestId}>
                 <RecentRequestCard item={item} onSent={query.reload} />

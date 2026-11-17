@@ -128,7 +128,7 @@ export function PublishPanel({
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="grid grid-cols-[62fr_38fr] rounded-[20px] border border-[var(--rm-cover-line)] [background-image:var(--rm-cover-bg)]"
+      className="grid grid-cols-1 lg:grid-cols-[62fr_38fr] rounded-[20px] border border-[var(--rm-cover-line)] [background-image:var(--rm-cover-bg)]"
     >
       <div className="grid content-start gap-5 p-7">
         <div className="grid gap-1">
@@ -229,7 +229,7 @@ export function PublishPanel({
         </div>
       </div>
 
-      <div className="grid content-start gap-4 border-l border-[var(--rm-cover-line)] p-7">
+      <div className="grid content-start gap-4 border-t border-[var(--rm-cover-line)] p-7 lg:border-t-0 lg:border-l">
         <fieldset disabled={isSubmitting} className="m-0 border-0 p-0">
           <legend className="sr-only">Foto</legend>
           <PhotoDropzone file={photo} onChange={setPhoto} />

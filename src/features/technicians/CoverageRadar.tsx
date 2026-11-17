@@ -75,7 +75,7 @@ export function CoverageRadar({
   return (
     <section
       aria-label="Zona de cobertura"
-      className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] rounded-[20px] border border-[var(--rm-cover-line)] [background-image:var(--rm-cover-bg)]"
+      className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] rounded-[20px] border border-[var(--rm-cover-line)] [background-image:var(--rm-cover-bg)]"
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 p-6">
         <div className="grid gap-4">
@@ -201,7 +201,7 @@ export function CoverageRadar({
         </svg>
       </div>
 
-      <div className="grid content-center gap-4 border-l border-[var(--rm-cover-line)] p-6">
+      <div className="grid content-center gap-4 border-t border-[var(--rm-cover-line)] p-6 lg:border-t-0 lg:border-l">
         <div className="grid grid-cols-[65fr_35fr] gap-2">
           <label className="relative">
             <span className="sr-only">Buscar solicitudes</span>
