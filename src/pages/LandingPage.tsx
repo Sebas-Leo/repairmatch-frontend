@@ -834,7 +834,14 @@ export function LandingPage() {
                 className="reveal relative justify-self-center"
               >
                 <span className="absolute -inset-10 rounded-full bg-[radial-gradient(circle_at_35%_40%,rgb(5_150_105/45%),transparent_60%),radial-gradient(circle_at_70%_65%,rgb(201_74_20/40%),transparent_60%)] blur-[56px]" />
-                <div className="relative rounded-2xl bg-surface p-6 text-ink shadow-[0_24px_48px_-20px_rgb(0_0_0/60%)]">
+                <div className="relative aspect-[4/5] w-80 overflow-hidden rounded-2xl shadow-[0_24px_48px_-20px_rgb(0_0_0/60%)]">
+                  <Scene
+                    photo="tecnico"
+                    appliance="Washing Machine"
+                    alt="Técnico revisando su caja de herramientas"
+                  />
+                </div>
+                <div className="absolute -bottom-10 -left-24 scale-[0.72] rounded-2xl bg-surface p-6 text-ink shadow-[0_24px_48px_-20px_rgb(0_0_0/60%)]">
                   <p className="m-0 text-center font-display font-bold">
                     Cerca de Miraflores
                   </p>
